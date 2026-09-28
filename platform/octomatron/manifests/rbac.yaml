@@ -2,9 +2,9 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: switchboard
+  name: octomatron
   labels:
-    app.kubernetes.io/name: switchboard
+    app.kubernetes.io/name: octomatron
 rules:
   - apiGroups:
       - tekton.dev
@@ -25,26 +25,26 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: switchboard
+  name: octomatron
   labels:
-    app.kubernetes.io/name: switchboard
+    app.kubernetes.io/name: octomatron
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: switchboard
+  name: octomatron
 subjects:
   - kind: ServiceAccount
-    name: switchboard
-    namespace: switchboard
+    name: octomatron
+    namespace: octomatron
 ---
 # Leader election for the check-run reconciler.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: switchboard
-  namespace: switchboard
+  name: octomatron
+  namespace: octomatron
   labels:
-    app.kubernetes.io/name: switchboard
+    app.kubernetes.io/name: octomatron
 rules:
   - apiGroups:
       - coordination.k8s.io
@@ -61,26 +61,26 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: switchboard
-  namespace: switchboard
+  name: octomatron
+  namespace: octomatron
   labels:
-    app.kubernetes.io/name: switchboard
+    app.kubernetes.io/name: octomatron
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: switchboard
+  name: octomatron
 subjects:
   - kind: ServiceAccount
-    name: switchboard
-    namespace: switchboard
+    name: octomatron
+    namespace: octomatron
 ---
-# What Switchboard may do inside a tenant namespace. Bound per namespace by RoleBinding "switchboard" (see ci-tenants).
+# What Octomatron may do inside a tenant namespace. Bound per namespace by RoleBinding "octomatron" (see ci-tenants).
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: switchboard-tenant
+  name: octomatron-tenant
   labels:
-    app.kubernetes.io/name: switchboard
+    app.kubernetes.io/name: octomatron
 rules:
   - apiGroups:
       - tekton.dev

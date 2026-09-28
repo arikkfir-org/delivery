@@ -1,4 +1,4 @@
-# Pull-request and merge-queue validation, run by Switchboard in namespace ci-delivery (see .switchboard.yaml).
+# Pull-request and merge-queue validation, run by Octomatron in namespace ci-delivery (see .octomatron.yaml).
 # Also runnable by hand: kubectl -n ci-delivery create -f .tekton/ci.yaml
 apiVersion: tekton.dev/v1
 kind: PipelineRun

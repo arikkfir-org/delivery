@@ -1,14 +1,14 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: switchboard
-  namespace: switchboard
+  name: octomatron
+  namespace: octomatron
   labels:
-    app.kubernetes.io/name: switchboard
+    app.kubernetes.io/name: octomatron
 spec:
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: switchboard
+      app.kubernetes.io/name: octomatron
   policyTypes:
     - Ingress
   ingress:

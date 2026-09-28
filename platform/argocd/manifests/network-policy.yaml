@@ -21,14 +21,14 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
-    # Switchboard, which relays verified GitHub webhooks to /api/webhook so Argo CD refreshes immediately.
+    # Octomatron, which relays verified GitHub webhooks to /api/webhook so Argo CD refreshes immediately.
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: switchboard
+              kubernetes.io/metadata.name: octomatron
           podSelector:
             matchLabels:
-              app.kubernetes.io/name: switchboard
+              app.kubernetes.io/name: octomatron
       ports:
         - protocol: TCP
           port: 8080

@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: switchboard
+  name: octomatron
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "4"
@@ -9,11 +9,11 @@ spec:
   project: default
   destination:
     server: https://kubernetes.default.svc
-    namespace: switchboard
+    namespace: octomatron
   source:
     repoURL: https://github.com/arikkfir-org/delivery
     targetRevision: main
-    path: platform/switchboard/manifests
+    path: platform/octomatron/manifests
   syncPolicy:
     automated:
       prune: true

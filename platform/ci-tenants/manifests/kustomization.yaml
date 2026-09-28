@@ -6,6 +6,6 @@ resources:
   - tenants/github
   - tenants/infra
   - tenants/delivery
-  - tenants/switchboard
+  - tenants/octomatron
   - tenants/tooling
   - tenants/docs

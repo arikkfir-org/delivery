@@ -33,7 +33,7 @@ configs:
         end
       end
       return hs
-    # CI runs are created by Switchboard, never declared in Git; do not watch their churn.
+    # CI runs are created by Octomatron, never declared in Git; do not watch their churn.
     resourceExclusionsAdditional:
       - apiGroups:
           - tekton.dev
