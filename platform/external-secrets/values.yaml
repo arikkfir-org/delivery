@@ -1,0 +1,5 @@
+installCRDs: true
+
+# The ClusterSecretStore authenticates with this KSA's ambient Workload Identity (external-secrets/external-secrets).
+serviceAccount:
+  name: external-secrets

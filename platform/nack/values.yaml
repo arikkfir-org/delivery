@@ -1,0 +1,5 @@
+# JetStream controller; its CRDs ship in the chart's crds/ directory, which Argo CD applies.
+jetstream:
+  enabled: true
+  nats:
+    url: nats://nats.nats.svc.cluster.local:4222

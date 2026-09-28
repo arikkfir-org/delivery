@@ -1,0 +1,113 @@
+# One Traefik with two entry-point pairs, each behind its own regional external passthrough NLB:
+#   protected: web (8000 -> 80, redirect) + websecure (8443 -> 443), Service "traefik",        IP "ingress-protected"
+#   public:    public-web (9080 -> 80, redirect) + public-websecure (9443 -> 443), Service "traefik-public", IP "ingress-public"
+# The Gateways (manifests/gateways.yaml) bind to entry points by port: protected -> 8443, public -> 9443.
+
+providers:
+  kubernetesCRD:
+    enabled: true
+  kubernetesIngress:
+    enabled: false
+  kubernetesGateway:
+    enabled: true
+    statusAddress:
+      service:
+        # The address is copied to every Gateway, and would give the public Gateway the protected load balancer's IP.
+        enabled: false
+
+# Gateways are defined in manifests/; only the GatewayClass comes from the chart.
+gateway:
+  enabled: false
+gatewayClass:
+  enabled: true
+  name: traefik
+
+# The Ingress provider is off, so an IngressClass would only mislead.
+ingressClass:
+  enabled: false
+
+ports:
+  web:
+    port: 8000
+    exposedPort: 80
+    expose:
+      default: true
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  websecure:
+    port: 8443
+    exposedPort: 443
+    expose:
+      default: true
+    http:
+      middlewares:
+        - traefik-strip-auth-headers@kubernetescrd
+        - traefik-oidc@kubernetescrd
+      tls:
+        enabled: true
+  public-web:
+    port: 9080
+    exposedPort: 80
+    protocol: TCP
+    expose:
+      default: false
+      public: true
+    http:
+      redirections:
+        entryPoint:
+          to: public-websecure
+          scheme: https
+          permanent: true
+  public-websecure:
+    port: 9443
+    exposedPort: 443
+    protocol: TCP
+    expose:
+      default: false
+      public: true
+    http:
+      middlewares:
+        - traefik-strip-auth-headers@kubernetescrd
+      tls:
+        enabled: true
+
+# Backend service-based regional external passthrough NLBs (GKE's HttpLoadBalancing add-on must stay enabled) on the
+# static IPs reserved by Terraform, referenced by name. GKE documents the IP-name annotation for external LoadBalancer
+# Services only together with spec.loadBalancerClass networking.gke.io/l4-regional-external, so both Services set that
+# class as well as the l4-rbs annotation. The class and the annotation are only read when a Service is created, and
+# the class is immutable: changing either means deleting and re-creating the Service.
+service:
+  annotations:
+    cloud.google.com/l4-rbs: "enabled"
+    networking.gke.io/load-balancer-ip-addresses: ingress-protected
+  spec:
+    type: LoadBalancer
+    loadBalancerClass: networking.gke.io/l4-regional-external
+    externalTrafficPolicy: Local
+  additionalServices:
+    public:
+      annotations:
+        cloud.google.com/l4-rbs: "enabled"
+        networking.gke.io/load-balancer-ip-addresses: ingress-public
+      spec:
+        type: LoadBalancer
+        loadBalancerClass: networking.gke.io/l4-regional-external
+        externalTrafficPolicy: Local
+
+# Wildcard certificate issued by cert-manager (manifests/certificate.yaml).
+tlsStore:
+  default:
+    defaultCertificate:
+      secretName: wildcard-kfirs-com-tls
+
+# The dashboard on the protected entry point; the websecure entry-point middlewares put it behind the interceptor.
+ingressRoute:
+  dashboard:
+    enabled: true
+    matchRule: Host(`traefik.kfirs.com`)
+    entryPoints:
+      - websecure

@@ -1,0 +1,8 @@
+image:
+  # The chart's appVersion is "latest"; pin a released tag (ghcr.io/nats-nui/nui).
+  tag: "0.9.3"
+  pullPolicy: IfNotPresent
+
+# NUI keeps its connections and settings in /db (a volumeClaimTemplate of the chart's StatefulSet).
+persistence:
+  size: 1Gi

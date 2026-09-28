@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nack
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nats
+  sources:
+    - repoURL: https://nats-io.github.io/k8s/helm/charts
+      chart: nack
+      targetRevision: 0.35.0
+      helm:
+        releaseName: nack
+        valueFiles:
+          - $values/platform/nack/values.yaml
+    - repoURL: https://github.com/arikkfir-org/delivery
+      targetRevision: main
+      ref: values
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 10
+      refresh: true
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+    syncOptions:
+      - CreateNamespace=true

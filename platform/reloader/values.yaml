@@ -1,0 +1,3 @@
+# Restarts workloads annotated with reloader.stakater.com/* when their ConfigMaps or Secrets change, in any namespace.
+reloader:
+  watchGlobally: true

@@ -1,0 +1,43 @@
+# Field names follow the tekton-operator v0.77.0 API (pkg/apis/operator/v1alpha1). The CRD has no schema, so a
+# misspelt field is silently ignored rather than rejected: check the Go types when changing this file.
+apiVersion: operator.tekton.dev/v1alpha1
+kind: TektonConfig
+metadata:
+  name: config
+spec:
+  profile: all
+  targetNamespace: tekton-pipelines
+  # Cron-based pruner (tkn), per namespace. TaskRuns and pods go with their PipelineRuns (owner references).
+  pruner:
+    disabled: false
+    resources:
+      - pipelinerun
+    keep: 30
+    schedule: "0 * * * *"
+  dashboard:
+    readonly: false
+  chain:
+    disabled: true
+  # Profile "all" would also install Tekton Results (with its own PostgreSQL); the hub uses Pipelines, Triggers and the
+  # Dashboard only.
+  result:
+    disabled: true
+  pipeline:
+    default-service-account: pipeline
+    # Every TaskRun pod, and every affinity-assistant pod, runs on the Spot "ci" node pool.
+    default-pod-template: |
+      nodeSelector:
+        kfirs.com/pool: ci
+      tolerations:
+        - key: kfirs.com/pool
+          operator: Equal
+          value: ci
+          effect: NoSchedule
+    default-affinity-assistant-pod-template: |
+      nodeSelector:
+        kfirs.com/pool: ci
+      tolerations:
+        - key: kfirs.com/pool
+          operator: Equal
+          value: ci
+          effect: NoSchedule

@@ -1,0 +1,11 @@
+apiVersion: switchboard.kfirs.com/v1
+pipelines:
+  - name: ci
+    pipelineRun: .tekton/ci.yaml
+    on:
+      pull_request:
+        branches: [main]
+      merge_group: {}
+    params:
+      repo-url: "{{ .Repository.CloneURL }}"
+      revision: "{{ .Revision }}"

@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: switchboard
+  namespace: switchboard
+  labels:
+    app.kubernetes.io/name: switchboard
+data:
+  config.yaml: |
+    github:
+      appIDFile: /etc/switchboard/github/app-id
+      privateKeyFile: /etc/switchboard/github/private-key
+      webhookSecretFile: /etc/switchboard/github/webhook-secret
+      allowedOwners: [arikkfir-org]        # installations on other owners are ignored
+    tekton:
+      dashboardURL: https://tekton.kfirs.com
+    namespaces:
+      template: "ci-{{ .Repository.Name }}" # rendered, then sanitized to a DNS label
+      overrides:
+        arikkfir-org/.github: ci-github
+    relay:
+      # Switchboard forwards verified push/pull_request webhooks so Argo CD refreshes immediately
+      urls: [http://argocd-server.argocd.svc.cluster.local/api/webhook]
+    retention:
+      freePVCsAfter: 1h

@@ -1,0 +1,21 @@
+# Selects only the NUI pods; NATS itself is untouched.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nui
+  namespace: nats
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: nui
+      app.kubernetes.io/instance: nui
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+      ports:
+        - protocol: TCP
+          port: 31311
