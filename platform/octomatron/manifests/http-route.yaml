@@ -11,12 +11,12 @@ spec:
     - name: public
       namespace: traefik
   hostnames:
-    - octomatron.kfirs.com
+    - octomatron.dev.kfirs.com
   rules:
     - matches:
         - path:
-            type: PathPrefix
-            value: /webhook
+            type: Exact
+            value: /github/hooks
       backendRefs:
         - name: octomatron
           port: 80

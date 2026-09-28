@@ -41,7 +41,7 @@ operators' webhooks; in `traefik` the wildcard Certificate is issued before the 
 
 Secrets never live in Git: each one is an `ExternalSecret` reading Secret Manager through the `ClusterSecretStore`
 `gcp-secret-manager`. Every UI is served on the `protected` gateway, behind the oauth2-proxy interceptor; only
-`auth.kfirs.com/oauth2` and `octomatron.kfirs.com/webhook` use the `public` gateway.
+`auth.kfirs.com/oauth2` and `octomatron.dev.kfirs.com/github/hooks` use the `public` gateway.
 
 Removing a file from `apps/` deletes the Application but not its resources (no cascading finalizer). Delete the
 resources deliberately, or cascade-delete the Application before removing its file.
