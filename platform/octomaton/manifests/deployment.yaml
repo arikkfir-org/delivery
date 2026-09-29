@@ -45,6 +45,9 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            # Names the pod in exported metrics and traces; Octomaton detects the cluster and its location.
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: k8s.pod.name=$(OCTOMATON_POD_NAME),k8s.namespace.name=$(OCTOMATON_POD_NAMESPACE),k8s.container.name=octomaton
             - name: OCTOMATON_GITHUB_APP_ID
               valueFrom:
                 secretKeyRef:
