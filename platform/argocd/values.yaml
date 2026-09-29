@@ -1,4 +1,4 @@
-# Argo CD manages itself with this file. Terraform bootstrapped the same chart (argo-cd 10.9.2, release "argocd").
+# Argo CD manages itself with this file. Terraform bootstrapped the same chart (argo-cd 10.9.4, release "argocd").
 
 global:
   domain: argocd.dev.kfirs.com
