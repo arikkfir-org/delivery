@@ -75,11 +75,12 @@ ports:
       tls:
         enabled: true
 
-# Backend service-based regional external passthrough NLBs (GKE's HttpLoadBalancing add-on must stay enabled) on the
-# static IPs reserved by Terraform, referenced by name. GKE documents the IP-name annotation for external LoadBalancer
-# Services only together with spec.loadBalancerClass networking.gke.io/l4-regional-external, so both Services set that
-# class as well as the l4-rbs annotation. The class and the annotation are only read when a Service is created, and
-# the class is immutable: changing either means deleting and re-creating the Service.
+# Backend service-based regional external passthrough NLBs on the static IPs reserved by Terraform, referenced by name.
+# GKE documents the IP-name annotation for external LoadBalancer Services only together with spec.loadBalancerClass
+# networking.gke.io/l4-regional-external, so both Services set that class as well as the l4-rbs annotation. Below GKE
+# 1.36 these load balancers need the HttpLoadBalancing add-on; infra disables it and requires GKE 1.36. The class and
+# the annotation are only read when a Service is created, and the class is immutable: changing either means deleting
+# and re-creating the Service.
 service:
   annotations:
     cloud.google.com/l4-rbs: "enabled"
