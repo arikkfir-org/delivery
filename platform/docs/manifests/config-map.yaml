@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: docs
+  namespace: docs
+  labels:
+    app.kubernetes.io/name: docs
+data:
+  # Replaces the image's default server. No listings or index pages: pages are reached by direct links.
+  default.conf: |
+    types {
+        text/markdown md;
+    }
+
+    server {
+        listen 8080;
+        server_name _;
+        server_tokens off;
+        root /srv/site;
+        autoindex off;
+        charset utf-8;
+        charset_types text/css text/plain text/markdown application/javascript image/svg+xml;
+
+        location = /healthz {
+            access_log off;
+            default_type text/plain;
+            return 200 "ok\n";
+        }
+
+        # Hidden paths, such as the publish pipeline's .published-revision marker, are never served.
+        location ~ /\. {
+            return 404;
+        }
+
+        location / {
+            add_header Cache-Control "private, max-age=300" always;
+            try_files $uri =404;
+        }
+    }
