@@ -1,5 +1,5 @@
-# Field names follow the tekton-operator v0.77.0 API (pkg/apis/operator/v1alpha1). The CRD has no schema, so a
-# misspelt field is silently ignored rather than rejected: check the Go types when changing this file.
+# Field names follow the tekton-operator v0.81.1 API (pkg/apis/operator/v1alpha1); check the Go types for the pinned
+# version when changing this file. A field the running operator does not know is refused or dropped, never applied.
 apiVersion: operator.tekton.dev/v1alpha1
 kind: TektonConfig
 metadata:
@@ -19,8 +19,18 @@ spec:
   chain:
     disabled: true
   # Profile "all" would also install Tekton Results (with its own PostgreSQL); the hub uses Pipelines, Triggers and the
-  # Dashboard only.
+  # Dashboard only. The CRD requires is_external_db even so.
   result:
+    disabled: true
+    is_external_db: false
+  # Octomaton is the hub's CI. On Kubernetes the operator installs Pipelines-as-Code unless told not to.
+  platforms:
+    kubernetes:
+      pipelinesAsCode:
+        enable: false
+  # The operator's own NetworkPolicies would put default-deny policies in tekton-pipelines, whose pods serve admission
+  # webhooks.
+  networkPolicy:
     disabled: true
   pipeline:
     default-service-account: pipeline
