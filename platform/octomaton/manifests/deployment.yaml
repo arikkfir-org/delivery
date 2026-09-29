@@ -19,6 +19,8 @@ spec:
         app.kubernetes.io/name: octomaton
     spec:
       serviceAccountName: octomaton
+      # Octomaton reads OCTOMATON_* variables: no <SERVICE>_PORT variables from Services in the namespace.
+      enableServiceLinks: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532
@@ -29,18 +31,35 @@ spec:
       containers:
         - name: octomaton
           image: me-west1-docker.pkg.dev/arikkfir/images/octomaton:v0.1.0
-          args:
-            - --config=/etc/octomaton/config.yaml
+          # Configured by environment variables only; the server's README lists them.
+          envFrom:
+            - configMapRef:
+                name: octomaton
           env:
             # Leader election: the Lease's namespace and this replica's identity.
-            - name: POD_NAMESPACE
+            - name: OCTOMATON_POD_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: POD_NAME
+            - name: OCTOMATON_POD_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+            - name: OCTOMATON_GITHUB_APP_ID
+              valueFrom:
+                secretKeyRef:
+                  name: octomaton-github
+                  key: app-id
+            - name: OCTOMATON_GITHUB_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: octomaton-github
+                  key: private-key
+            - name: OCTOMATON_GITHUB_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: octomaton-github
+                  key: webhook-secret
           ports:
             - name: http
               containerPort: 8080
@@ -68,30 +87,8 @@ spec:
               drop:
                 - ALL
           volumeMounts:
-            # /etc/octomaton/config.yaml and /etc/octomaton/github/{app-id,private-key,webhook-secret}
-            - name: config
-              mountPath: /etc/octomaton
-              readOnly: true
             - name: tmp
               mountPath: /tmp
       volumes:
-        - name: config
-          projected:
-            defaultMode: 288  # 0440
-            sources:
-              - configMap:
-                  name: octomaton
-                  items:
-                    - key: config.yaml
-                      path: config.yaml
-              - secret:
-                  name: octomaton-github
-                  items:
-                    - key: app-id
-                      path: github/app-id
-                    - key: private-key
-                      path: github/private-key
-                    - key: webhook-secret
-                      path: github/webhook-secret
         - name: tmp
           emptyDir: {}
