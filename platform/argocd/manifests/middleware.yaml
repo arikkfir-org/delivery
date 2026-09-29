@@ -1,0 +1,14 @@
+# Hands Argo CD the signed-in user's Descope ID token, which Argo CD verifies against Descope (oidc.config, same client),
+# so the Descope session signs the user in. Only Argo CD's route uses it: the entry point's oidc middleware copies
+# identity headers alone.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: descope-token
+  namespace: argocd
+spec:
+  forwardAuth:
+    address: http://oauth2-proxy.auth.svc.cluster.local/
+    trustForwardHeader: true
+    authResponseHeaders:
+      - Authorization
