@@ -1,0 +1,17 @@
+crds:
+  enabled: true
+  keep: true
+
+global:
+  leaderElection:
+    # Keep the leader-election lease (and its Role) in cert-manager's own namespace rather than kube-system.
+    namespace: cert-manager
+
+# Cloud DNS is reached with the ambient Workload Identity of this KSA (cert-manager/cert-manager); no key Secret.
+serviceAccount:
+  name: cert-manager
+
+# A Helm post-install hook, which Argo CD would re-run as a PostSync hook on every sync. The ClusterIssuers are applied in
+# a later sync wave instead, after the webhook Deployment is healthy.
+startupapicheck:
+  enabled: false

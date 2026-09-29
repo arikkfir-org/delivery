@@ -1,0 +1,72 @@
+# Argo CD manages itself with this file. Terraform bootstrapped the same chart (argo-cd 10.9.2, release "argocd").
+
+global:
+  domain: argocd.dev.kfirs.com
+  networkPolicy:
+    # The chart's argocd-server policy allows all ingress whenever this flag is on, and policies are additive, so it is
+    # off here: per-component policies are enabled below, and argocd-server's policy lives in manifests/.
+    create: false
+
+configs:
+  cm:
+    url: https://argocd.dev.kfirs.com
+    oidc.config: |
+      name: Descope
+      issuer: https://api.descope.com/P3JyPV2qsSrMLUpVPTGcBNRHlSkv
+      clientID: P3JyPV2qsSrMLUpVPTGcBNRHlSkv
+      clientSecret: $argocd-oidc:clientSecret
+      requestedScopes:
+        - openid
+        - profile
+        - email
+    # Restores the Application health check so app-of-apps sync waves wait for child applications to be healthy.
+    resource.customizations.health.argoproj.io_Application: |
+      hs = {}
+      hs.status = "Progressing"
+      hs.message = ""
+      if obj.status ~= nil then
+        if obj.status.health ~= nil then
+          hs.status = obj.status.health.status
+          if obj.status.health.message ~= nil then
+            hs.message = obj.status.health.message
+          end
+        end
+      end
+      return hs
+    # CI runs are created by Octomaton, never declared in Git; do not watch their churn.
+    resourceExclusionsAdditional:
+      - apiGroups:
+          - tekton.dev
+        kinds:
+          - PipelineRun
+          - TaskRun
+          - CustomRun
+      - apiGroups:
+          - resolution.tekton.dev
+        kinds:
+          - ResolutionRequest
+  params:
+    server.insecure: true
+  rbac:
+    policy.default: role:admin
+
+# Users log in through Descope directly (oidc.config); Dex is not needed.
+dex:
+  enabled: false
+
+controller:
+  networkPolicy:
+    create: true
+repoServer:
+  networkPolicy:
+    create: true
+redis:
+  networkPolicy:
+    create: true
+notifications:
+  networkPolicy:
+    create: true
+server:
+  networkPolicy:
+    # Replaced by manifests/network-policy.yaml (same name, so it also adopts the policy the bootstrap created).
+    create: false

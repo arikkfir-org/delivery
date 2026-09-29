@@ -1,0 +1,38 @@
+# oauth2-proxy is the hub's auth interceptor: Traefik's "oidc" ForwardAuth middleware calls it for every request on the
+# protected entry point, and its callback is served at https://auth.kfirs.com/oauth2 through the public gateway.
+
+config:
+  # ExternalSecret "oauth2-proxy" (manifests/external-secrets.yaml): keys client-secret and cookie-secret.
+  existingSecret: oauth2-proxy
+  # The client ID is not secret; it is passed as a flag below.
+  requiredSecretKeys:
+    - client-secret
+    - cookie-secret
+  # Must be empty: any email domain (including "*") would admit users that are not in the authenticated emails file.
+  emailDomains: []
+  upstreams:
+    - static://202
+
+# ExternalSecret "oauth2-proxy-emails", key "emails", mounted as a file.
+authenticatedEmailsFile:
+  enabled: true
+  persistence: secret
+  template: oauth2-proxy-emails
+  restrictedUserAccessKey: emails
+
+extraArgs:
+  provider: oidc
+  oidc-issuer-url: https://api.descope.com/P3JyPV2qsSrMLUpVPTGcBNRHlSkv
+  client-id: P3JyPV2qsSrMLUpVPTGcBNRHlSkv
+  scope: openid email profile
+  redirect-url: https://auth.kfirs.com/oauth2/callback
+  reverse-proxy: true
+  set-xauthrequest: true
+  skip-provider-button: true
+  cookie-domain: .kfirs.com
+  cookie-secure: true
+  whitelist-domain: .kfirs.com
+
+# Restart when the client or cookie secret (environment variables) rotates.
+deploymentAnnotations:
+  reloader.stakater.com/auto: "true"

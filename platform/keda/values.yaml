@@ -1,0 +1,3 @@
+# Chart defaults: operator, metrics API server and admission webhooks, with CRDs.
+crds:
+  install: true

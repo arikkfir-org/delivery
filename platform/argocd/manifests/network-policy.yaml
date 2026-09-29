@@ -1,0 +1,37 @@
+# Same name as the chart's own policy (disabled in values.yaml), so the allow-all policy created at bootstrap is
+# replaced rather than left alongside this one.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: argocd-server
+  namespace: argocd
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-server
+      app.kubernetes.io/instance: argocd
+  policyTypes:
+    - Ingress
+  ingress:
+    # Traefik, for the UI and API behind the protected gateway.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Octomaton, which relays verified GitHub webhooks to /api/webhook so Argo CD refreshes immediately.
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: octomaton
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: octomaton
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Argo CD's own components.
+    - from:
+        - podSelector: {}

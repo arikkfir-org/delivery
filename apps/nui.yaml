@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: nui
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: nats
+  sources:
+    - repoURL: https://nats-nui.github.io/k8s/helm/charts
+      chart: nui
+      targetRevision: 0.1.6
+      helm:
+        releaseName: nui
+        valueFiles:
+          - $values/platform/nui/values.yaml
+    - repoURL: https://github.com/arikkfir-org/delivery
+      targetRevision: main
+      ref: values
+    - repoURL: https://github.com/arikkfir-org/delivery
+      targetRevision: main
+      path: platform/nui/manifests
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 10
+      refresh: true
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+    syncOptions:
+      - CreateNamespace=true
+      - SkipDryRunOnMissingResource=true

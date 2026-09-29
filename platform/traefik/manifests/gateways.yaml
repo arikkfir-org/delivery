@@ -1,0 +1,66 @@
+# Listener ports select Traefik entry points: 8443 = websecure (protected), 9443 = public-websecure (public).
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: protected
+  namespace: traefik
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  gatewayClassName: traefik
+  listeners:
+    - name: websecure
+      protocol: HTTPS
+      port: 8443
+      hostname: "*.kfirs.com"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: wildcard-kfirs-com-tls
+      allowedRoutes:
+        namespaces:
+          from: All
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: public
+  namespace: traefik
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  gatewayClassName: traefik
+  listeners:
+    - name: public-websecure
+      protocol: HTTPS
+      port: 9443
+      hostname: "*.kfirs.com"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: wildcard-kfirs-com-tls
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              kfirs.com/public-ingress: "true"
+    # Octomaton's own domain: its webhook and Go import page. Only Octomaton's namespace may attach routes.
+    - name: octomaton-dev
+      protocol: HTTPS
+      port: 9443
+      hostname: octomaton.dev
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: octomaton-dev-tls
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              kubernetes.io/metadata.name: octomaton
+              kfirs.com/public-ingress: "true"

@@ -1,0 +1,12 @@
+extends: default
+
+ignore: |
+  .ci/
+
+rules:
+  document-start: disable
+  line-length:
+    max: 160
+  truthy:
+    # ".octomaton.yaml" uses an "on:" key.
+    check-keys: false

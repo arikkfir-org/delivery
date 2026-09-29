@@ -1,0 +1,16 @@
+# Octomaton's check-run links point here: https://tekton.dev.kfirs.com/#/namespaces/<namespace>/pipelineruns/<name>
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: tekton-dashboard
+  namespace: tekton-pipelines
+spec:
+  parentRefs:
+    - name: protected
+      namespace: traefik
+  hostnames:
+    - tekton.dev.kfirs.com
+  rules:
+    - backendRefs:
+        - name: tekton-dashboard
+          port: 9097

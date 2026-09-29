@@ -1,0 +1,53 @@
+# Users arrive through the protected gateway; Grafana trusts the X-Auth-Request-Email header set by the interceptor.
+
+# Workload Identity principal grafana/grafana has roles/monitoring.viewer on the project.
+serviceAccount:
+  create: true
+  name: grafana
+
+env:
+  # With the login form and basic auth off, the built-in admin account cannot be used; skipping it also stops the chart
+  # from rendering a random admin password, which would change on every Argo CD render and restart Grafana.
+  GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION: "true"
+
+grafana.ini:
+  server:
+    domain: grafana.dev.kfirs.com
+    root_url: https://grafana.dev.kfirs.com
+  auth:
+    disable_login_form: true
+  auth.basic:
+    enabled: false
+  auth.proxy:
+    enabled: true
+    header_name: X-Auth-Request-Email
+    header_property: email
+    auto_sign_up: true
+  users:
+    allow_sign_up: false
+    auto_assign_org: true
+    auto_assign_org_role: Admin
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Google Cloud Monitoring
+        uid: google-cloud-monitoring
+        type: stackdriver
+        access: proxy
+        isDefault: true
+        editable: false
+        jsonData:
+          # GCE authentication uses the metadata server, i.e. this pod's Workload Identity.
+          authenticationType: gce
+          defaultProject: arikkfir
+
+persistence:
+  enabled: true
+  type: pvc
+  size: 1Gi
+
+# A ReadWriteOnce volume cannot be attached to a surge pod on another node.
+deploymentStrategy:
+  type: Recreate

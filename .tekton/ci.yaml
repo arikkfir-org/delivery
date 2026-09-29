@@ -1,0 +1,99 @@
+# Pull-request and merge-queue validation, run by Octomaton in namespace ci-delivery (see .octomaton.yaml).
+# Also runnable by hand: kubectl -n ci-delivery create -f .tekton/ci.yaml
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: delivery-ci-
+spec:
+  params:
+    - name: repo-url
+      value: https://github.com/arikkfir-org/delivery.git
+    - name: revision
+      value: main
+  taskRunTemplate:
+    serviceAccountName: pipeline
+  timeouts:
+    pipeline: 30m
+  workspaces:
+    - name: source
+      emptyDir: {}
+  pipelineSpec:
+    params:
+      - name: repo-url
+        type: string
+        description: Git URL of the repository.
+      - name: revision
+        type: string
+        description: Commit SHA (or ref) to validate.
+    workspaces:
+      - name: source
+    tasks:
+      - name: validate
+        params:
+          - name: repo-url
+            value: $(params.repo-url)
+          - name: revision
+            value: $(params.revision)
+        workspaces:
+          - name: source
+            workspace: source
+        taskSpec:
+          params:
+            - name: repo-url
+              type: string
+            - name: revision
+              type: string
+          workspaces:
+            - name: source
+          steps:
+            - name: clone
+              image: docker.io/alpine/git:v2.54.0
+              workingDir: $(workspaces.source.path)
+              env:
+                - name: REPO_URL
+                  value: $(params.repo-url)
+                - name: REVISION
+                  value: $(params.revision)
+              script: |
+                #!/bin/sh
+                set -eu
+                git init -q .
+                git remote add origin "${REPO_URL}"
+                git fetch -q --depth=1 origin "${REVISION}"
+                git checkout -q --detach FETCH_HEAD
+                git log -1 --format='%H %s'
+
+            - name: yamllint
+              image: docker.io/pipelinecomponents/yamllint:0.35.13
+              workingDir: $(workspaces.source.path)
+              script: |
+                #!/bin/sh
+                set -eu
+                yamllint --strict .
+
+            - name: kustomize
+              image: docker.io/alpine/k8s:1.37.1
+              workingDir: $(workspaces.source.path)
+              script: |
+                #!/bin/sh
+                # Render every kustomization (including remote resources) into .ci/rendered/ for kubeconform.
+                set -eu
+                find platform -name kustomization.yaml | sort | while read -r k; do
+                  dir="${k%/kustomization.yaml}"
+                  echo "kubectl kustomize ${dir}"
+                  mkdir -p ".ci/rendered/${dir}"
+                  kubectl kustomize "${dir}" > ".ci/rendered/${dir}/manifests.yaml"
+                done
+
+            - name: kubeconform
+              image: ghcr.io/yannh/kubeconform:v0.8.0-alpine
+              workingDir: $(workspaces.source.path)
+              script: |
+                #!/bin/sh
+                # Built-in kinds use the default schemas; custom resources use the datreeio CRDs-catalog; kinds with no
+                # published schema (the Tekton operator's TektonConfig) are skipped.
+                set -eu
+                /kubeconform -strict -summary -ignore-missing-schemas \
+                  -schema-location default \
+                  -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+                  apps .ci/rendered
