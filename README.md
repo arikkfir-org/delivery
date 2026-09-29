@@ -3,7 +3,7 @@
 Argo CD GitOps repository for the `arikkfir-org` development hub: everything that runs inside the GKE cluster `hub`
 is declared here, and Argo CD applies it from `main`. Names, versions, hosts and identities follow the hub reference
 (`docs/hub/reference.md` in [arikkfir-org/docs](https://github.com/arikkfir-org/docs)), which is the contract between
-this repository, `infra` and `octomatron`.
+this repository, `infra` and `octomaton`.
 
 ## Layout
 
@@ -11,7 +11,7 @@ this repository, `infra` and `octomatron`.
 apps/<component>.yaml                One Argo CD Application per component (synced by the root Application)
 platform/<component>/values.yaml     Helm values, for chart-based components
 platform/<component>/manifests/      Plain manifests with a kustomization.yaml, where needed
-.octomatron.yaml, .tekton/ci.yaml   CI for this repository (run by Octomatron on Tekton)
+.octomaton.yaml, .tekton/ci.yaml   CI for this repository (run by Octomaton on Tekton)
 ```
 
 ## How it syncs
@@ -24,7 +24,7 @@ Each file there is an Application in namespace `argocd`, project `default`:
   `platform/<component>/manifests` when it has extra manifests. A manifest-only component has one source, that path.
 - Every Application syncs automatically with prune and self-heal, retries with backoff (`refresh: true`, so a retry
   picks up a newer commit), and creates its namespace. Namespace labels come from `managedNamespaceMetadata`
-  (for example `kfirs.com/public-ingress: "true"` on `auth` and `octomatron`). `ServerSideApply=true` is set where CRDs
+  (for example `kfirs.com/public-ingress: "true"` on `auth` and `octomaton`). `ServerSideApply=true` is set where CRDs
   are too large for client-side apply; `SkipDryRunOnMissingResource=true` where resources use CRDs of another component.
 - `argocd` manages Argo CD itself with the chart and release name Terraform bootstrapped. Its `argocd-cm` restores the
   health check for `argoproj.io/Application`, so the root Application's sync waves wait for each wave to be healthy:
@@ -34,14 +34,15 @@ Each file there is an Application in namespace `argocd`, project `default`:
 | 1 | `gateway-api`, `cert-manager`, `external-secrets` |
 | 2 | `argocd` |
 | 3 | `traefik`, `tekton-operator`, `keda`, `reloader`, `nats` |
-| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomatron`, `docs`, `ci-tenants` |
+| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton`, `docs`, `ci-tenants` |
 
 Within an Application, waves order dependent resources as well: ClusterIssuers and the ClusterSecretStore wait for their
-operators' webhooks; in `traefik` the wildcard Certificate is issued before the Gateways that reference its Secret.
+operators' webhooks; in `traefik` the Certificates (the wildcard and `octomaton-dev`) are issued before the Gateways
+that reference their Secrets.
 
 Secrets never live in Git: each one is an `ExternalSecret` reading Secret Manager through the `ClusterSecretStore`
 `gcp-secret-manager`. Every UI is served on the `protected` gateway, behind the oauth2-proxy interceptor; only
-`auth.kfirs.com/oauth2` and `octomatron.dev.kfirs.com/github/hooks` use the `public` gateway.
+`auth.kfirs.com/oauth2` and `octomaton.dev` (Octomaton's webhook and Go import page) use the `public` gateway.
 
 Removing a file from `apps/` deletes the Application but not its resources (no cascading finalizer). Delete the
 resources deliberately, or cascade-delete the Application before removing its file.
@@ -62,10 +63,10 @@ A repository runs its CI in namespace `ci-<repository>` (`.github` uses `ci-gith
 
 1. Copy a directory under `platform/ci-tenants/manifests/tenants/`, set its `namespace`, and list it in
    `platform/ci-tenants/manifests/kustomization.yaml`. This creates the namespace, the `pipeline` ServiceAccount and the
-   RoleBinding that lets Octomatron run pipelines there.
+   RoleBinding that lets Octomaton run pipelines there.
 2. If its pipelines need Google Cloud access, grant it to the Workload Identity principal of `ci-<repository>/pipeline`
    in `infra`.
-3. Add `.octomatron.yaml` and a PipelineRun file to the repository.
+3. Add `.octomaton.yaml` and a PipelineRun file to the repository.
 
 ## Validate
 

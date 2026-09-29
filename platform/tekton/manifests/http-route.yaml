@@ -1,4 +1,4 @@
-# Octomatron's check-run links point here: https://tekton.dev.kfirs.com/#/namespaces/<namespace>/pipelineruns/<name>
+# Octomaton's check-run links point here: https://tekton.dev.kfirs.com/#/namespaces/<namespace>/pipelineruns/<name>
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:

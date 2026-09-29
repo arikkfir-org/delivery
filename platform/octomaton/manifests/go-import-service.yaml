@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: octomatron
-  namespace: octomatron
+  name: go-import
+  namespace: octomaton
   labels:
-    app.kubernetes.io/name: octomatron
+    app.kubernetes.io/name: go-import
 spec:
   selector:
-    app.kubernetes.io/name: octomatron
+    app.kubernetes.io/name: go-import
   ports:
     - name: http
       port: 80

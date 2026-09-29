@@ -1,0 +1,36 @@
+# Octomaton's Go module path is octomaton.dev. The go command and the Go module proxy request
+# https://octomaton.dev/<path>?go-get=1 and follow the go-import tag to the repository; any other request (a browser)
+# is redirected there.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: go-import
+  namespace: octomaton
+  labels:
+    app.kubernetes.io/name: go-import
+data:
+  default.conf: |
+    map $args $go_get {
+        default               0;
+        "~(^|&)go-get=1(&|$)" 1;
+    }
+
+    server {
+        listen 8080;
+        server_name _;
+        server_tokens off;
+
+        location = /healthz {
+            access_log off;
+            default_type text/plain;
+            return 200 "ok\n";
+        }
+
+        location / {
+            default_type text/html;
+            if ($go_get) {
+                return 200 '<!doctype html>\n<meta name="go-import" content="octomaton.dev git https://github.com/arikkfir-org/octomaton">\n';
+            }
+            return 302 https://github.com/arikkfir-org/octomaton;
+        }
+    }

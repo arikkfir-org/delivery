@@ -1,16 +1,16 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: octomatron
-  namespace: octomatron
+  name: octomaton
+  namespace: octomaton
   labels:
-    app.kubernetes.io/name: octomatron
+    app.kubernetes.io/name: octomaton
 data:
   config.yaml: |
     github:
-      appIDFile: /etc/octomatron/github/app-id
-      privateKeyFile: /etc/octomatron/github/private-key
-      webhookSecretFile: /etc/octomatron/github/webhook-secret
+      appIDFile: /etc/octomaton/github/app-id
+      privateKeyFile: /etc/octomaton/github/private-key
+      webhookSecretFile: /etc/octomaton/github/webhook-secret
       allowedOwners: [arikkfir-org]        # installations on other owners are ignored
     tekton:
       dashboardURL: https://tekton.dev.kfirs.com
@@ -19,7 +19,7 @@ data:
       overrides:
         arikkfir-org/.github: ci-github
     relay:
-      # Octomatron forwards verified push/pull_request webhooks so Argo CD refreshes immediately
+      # Octomaton forwards verified push/pull_request webhooks so Argo CD refreshes immediately
       urls: [http://argocd-server.argocd.svc.cluster.local/api/webhook]
     retention:
       freePVCsAfter: 1h

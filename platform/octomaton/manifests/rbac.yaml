@@ -2,9 +2,9 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: octomatron
+  name: octomaton
   labels:
-    app.kubernetes.io/name: octomatron
+    app.kubernetes.io/name: octomaton
 rules:
   - apiGroups:
       - tekton.dev
@@ -25,26 +25,26 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: octomatron
+  name: octomaton
   labels:
-    app.kubernetes.io/name: octomatron
+    app.kubernetes.io/name: octomaton
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: octomatron
+  name: octomaton
 subjects:
   - kind: ServiceAccount
-    name: octomatron
-    namespace: octomatron
+    name: octomaton
+    namespace: octomaton
 ---
 # Leader election for the check-run reconciler.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: octomatron
-  namespace: octomatron
+  name: octomaton
+  namespace: octomaton
   labels:
-    app.kubernetes.io/name: octomatron
+    app.kubernetes.io/name: octomaton
 rules:
   - apiGroups:
       - coordination.k8s.io
@@ -61,26 +61,26 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: octomatron
-  namespace: octomatron
+  name: octomaton
+  namespace: octomaton
   labels:
-    app.kubernetes.io/name: octomatron
+    app.kubernetes.io/name: octomaton
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: octomatron
+  name: octomaton
 subjects:
   - kind: ServiceAccount
-    name: octomatron
-    namespace: octomatron
+    name: octomaton
+    namespace: octomaton
 ---
-# What Octomatron may do inside a tenant namespace. Bound per namespace by RoleBinding "octomatron" (see ci-tenants).
+# What Octomaton may do inside a tenant namespace. Bound per namespace by RoleBinding "octomaton" (see ci-tenants).
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: octomatron-tenant
+  name: octomaton-tenant
   labels:
-    app.kubernetes.io/name: octomatron
+    app.kubernetes.io/name: octomaton
 rules:
   - apiGroups:
       - tekton.dev

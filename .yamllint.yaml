@@ -8,5 +8,5 @@ rules:
   line-length:
     max: 160
   truthy:
-    # ".octomatron.yaml" uses an "on:" key.
+    # ".octomaton.yaml" uses an "on:" key.
     check-keys: false

@@ -1,0 +1,35 @@
+# Wave 1: issued before the Gateways (wave 2) reference its Secret, so their listeners resolve on first reconcile.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: wildcard-kfirs-com
+  namespace: traefik
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  secretName: wildcard-kfirs-com-tls
+  dnsNames:
+    - "*.kfirs.com"
+    - "*.dev.kfirs.com"
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: letsencrypt
+---
+# octomaton.dev (zone octomaton-dev) has a certificate of its own, so a problem with that domain can't block renewal of
+# the wildcard. Wave 1 as well: the Gateways wait for it, so octomaton.dev must be delegated before the first sync.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: octomaton-dev
+  namespace: traefik
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  secretName: octomaton-dev-tls
+  dnsNames:
+    - octomaton.dev
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: letsencrypt
