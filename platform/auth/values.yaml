@@ -24,10 +24,14 @@ extraArgs:
   provider: oidc
   oidc-issuer-url: https://api.descope.com/P3JyPV2qsSrMLUpVPTGcBNRHlSkv
   client-id: P3JyPV2qsSrMLUpVPTGcBNRHlSkv
-  scope: openid email profile
+  # offline_access yields a refresh token, which cookie-refresh uses to renew the session's tokens.
+  scope: openid email profile offline_access
+  cookie-refresh: 5m
   redirect-url: https://auth.kfirs.com/oauth2/callback
   reverse-proxy: true
   set-xauthrequest: true
+  # Adds "Authorization: Bearer <ID token>" to the response; only Argo CD's descope-token middleware copies it upstream.
+  set-authorization-header: true
   skip-provider-button: true
   cookie-domain: .kfirs.com
   cookie-secure: true
