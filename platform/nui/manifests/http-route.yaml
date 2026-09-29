@@ -8,7 +8,7 @@ spec:
     - name: protected
       namespace: traefik
   hostnames:
-    - nui.kfirs.com
+    - nui.dev.kfirs.com
   rules:
     - backendRefs:
         - name: nui

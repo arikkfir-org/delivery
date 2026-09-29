@@ -12,7 +12,7 @@ spec:
     - name: protected
       namespace: traefik
   hostnames:
-    - argocd.kfirs.com
+    - argocd.dev.kfirs.com
   rules:
     - backendRefs:
         - name: argocd-server

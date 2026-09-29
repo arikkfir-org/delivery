@@ -1,7 +1,7 @@
 # Argo CD manages itself with this file. Terraform bootstrapped the same chart (argo-cd 10.9.2, release "argocd").
 
 global:
-  domain: argocd.kfirs.com
+  domain: argocd.dev.kfirs.com
   networkPolicy:
     # The chart's argocd-server policy allows all ingress whenever this flag is on, and policies are additive, so it is
     # off here: per-component policies are enabled below, and argocd-server's policy lives in manifests/.
@@ -9,7 +9,7 @@ global:
 
 configs:
   cm:
-    url: https://argocd.kfirs.com
+    url: https://argocd.dev.kfirs.com
     oidc.config: |
       name: Descope
       issuer: https://api.descope.com/P3JyPV2qsSrMLUpVPTGcBNRHlSkv

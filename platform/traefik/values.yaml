@@ -108,6 +108,6 @@ tlsStore:
 ingressRoute:
   dashboard:
     enabled: true
-    matchRule: Host(`traefik.kfirs.com`)
+    matchRule: Host(`traefik.dev.kfirs.com`)
     entryPoints:
       - websecure

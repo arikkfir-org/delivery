@@ -13,7 +13,7 @@ data:
       webhookSecretFile: /etc/octomatron/github/webhook-secret
       allowedOwners: [arikkfir-org]        # installations on other owners are ignored
     tekton:
-      dashboardURL: https://tekton.kfirs.com
+      dashboardURL: https://tekton.dev.kfirs.com
     namespaces:
       template: "ci-{{ .Repository.Name }}" # rendered, then sanitized to a DNS label
       overrides:

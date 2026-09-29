@@ -12,8 +12,8 @@ env:
 
 grafana.ini:
   server:
-    domain: grafana.kfirs.com
-    root_url: https://grafana.kfirs.com
+    domain: grafana.dev.kfirs.com
+    root_url: https://grafana.dev.kfirs.com
   auth:
     disable_login_form: true
   auth.basic:

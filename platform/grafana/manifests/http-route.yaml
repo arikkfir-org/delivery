@@ -8,7 +8,7 @@ spec:
     - name: protected
       namespace: traefik
   hostnames:
-    - grafana.kfirs.com
+    - grafana.dev.kfirs.com
   rules:
     - backendRefs:
         - name: grafana
