@@ -9,28 +9,30 @@ metadata:
   labels:
     app.kubernetes.io/name: go-import
 data:
-  default.conf: |
-    map $args $go_get {
-        default               0;
-        "~(^|&)go-get=1(&|$)" 1;
+  Caddyfile: |
+    {
+      admin off
+      auto_https off
+      persist_config off
     }
 
-    server {
-        listen 8080;
-        server_name _;
-        server_tokens off;
+    :8080 {
+      log
+      log_skip /healthz
 
-        location = /healthz {
-            access_log off;
-            default_type text/plain;
-            return 200 "ok\n";
-        }
+      handle /healthz {
+        respond "ok" 200
+      }
 
-        location / {
-            default_type text/html;
-            if ($go_get) {
-                return 200 '<!doctype html>\n<meta name="go-import" content="octomaton.dev git https://github.com/arikkfir-org/octomaton">\n';
-            }
-            return 302 https://github.com/arikkfir-org/octomaton;
-        }
+      @goGet query go-get=1
+      handle @goGet {
+        header Content-Type "text/html; charset=utf-8"
+        respond `<!doctype html>
+    <meta name="go-import" content="octomaton.dev git https://github.com/arikkfir-org/octomaton">
+    ` 200
+      }
+
+      handle {
+        redir https://github.com/arikkfir-org/octomaton 302
+      }
     }

@@ -6,34 +6,39 @@ metadata:
   labels:
     app.kubernetes.io/name: docs
 data:
-  # Replaces the image's default server. No listings or index pages: pages are reached by direct links.
-  default.conf: |
-    types {
-        text/markdown md;
+  # Replaces the image's Caddyfile. No listings or index pages: pages are reached by direct links.
+  Caddyfile: |
+    {
+      admin off
+      auto_https off
+      persist_config off
     }
 
-    server {
-        listen 8080;
-        server_name _;
-        server_tokens off;
-        root /srv/site;
-        autoindex off;
-        charset utf-8;
-        charset_types text/css text/plain text/markdown application/javascript image/svg+xml;
+    :8080 {
+      root * /srv/site
+      log
+      log_skip /healthz
 
-        location = /healthz {
-            access_log off;
-            default_type text/plain;
-            return 200 "ok\n";
-        }
+      handle /healthz {
+        respond "ok" 200
+      }
 
-        # Hidden paths, such as the publish pipeline's .published-revision marker, are never served.
-        location ~ /\. {
-            return 404;
-        }
+      # Hidden paths, such as the publish pipeline's .published-revision marker, are never served.
+      @hidden path_regexp /\.
+      handle @hidden {
+        respond 404
+      }
 
-        location / {
-            add_header Cache-Control "private, max-age=300" always;
-            try_files $uri =404;
-        }
+      # A directory is not a page.
+      @directory file {path}/
+      handle @directory {
+        respond 404
+      }
+
+      handle {
+        header Cache-Control "private, max-age=300"
+        @markdown path *.md
+        header @markdown Content-Type "text/markdown; charset=utf-8"
+        file_server
+      }
     }
