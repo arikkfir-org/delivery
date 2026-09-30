@@ -9,6 +9,8 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
 - `docs/hub/reference.md` (arikkfir-org/docs) is the contract. Names, namespaces, hosts, versions and identities must
   match it; if one has to change, change the reference first.
 - Pin everything: chart `targetRevision`, image tags, remote manifest URLs. Never `latest`, never a floating branch.
+  The one exception is `apps/octomaton.yaml`: it follows `main` of `arikkfir-org/octomaton` (its `deploy/`) and runs
+  the image of the synced commit.
 - Secrets never go in Git: use an `ExternalSecret` on `ClusterSecretStore` `gcp-secret-manager`.
 - New UIs go on the `protected` gateway, with a NetworkPolicy admitting only the `traefik` namespace to their pods.
   Select only those pods: namespaces with admission webhooks or aggregated APIs must never get a default-deny policy.

@@ -1,9 +1,10 @@
 # delivery
 
-Argo CD GitOps repository for the `arikkfir-org` development hub: everything that runs inside the GKE cluster `hub`
-is declared here, and Argo CD applies it from `main`. Names, versions, hosts and identities follow the hub reference
-(`docs/hub/reference.md` in [arikkfir-org/docs](https://github.com/arikkfir-org/docs)), which is the contract between
-this repository, `infra` and `octomaton`.
+Argo CD GitOps repository for the `arikkfir-org` development hub: everything that runs inside the GKE cluster `hub` is
+declared here, and Argo CD applies it from `main`. Octomaton's own manifests are the exception (below). Names, versions,
+hosts and identities follow the hub reference (`docs/hub/reference.md` in
+[arikkfir-org/docs](https://github.com/arikkfir-org/docs)), which is the contract between this repository, `infra` and
+`octomaton`.
 
 ## Layout
 
@@ -22,6 +23,9 @@ Each file there is an Application in namespace `argocd`, project `default`:
 - A chart-based component has three sources: the pinned chart (with `helm.releaseName` and
   `valueFiles: [$values/platform/<component>/values.yaml]`), this repository as `ref: values`, and
   `platform/<component>/manifests` when it has extra manifests. A manifest-only component has one source, that path.
+- `octomaton` is the exception: its manifests live with its code, in `deploy/` of `arikkfir-org/octomaton`. Its
+  Application follows that repository's `main` and sets the image tag to `${ARGOCD_APP_REVISION_SHORT}`, the short SHA
+  of the synced commit, which Octomaton's `release` publishes on every push. A merge there deploys itself.
 - Every Application syncs automatically with prune and self-heal, retries with backoff (`refresh: true`, so a retry
   picks up a newer commit), and creates its namespace. Namespace labels come from `managedNamespaceMetadata`
   (for example `kfirs.com/public-ingress: "true"` on `auth` and `octomaton`). `ServerSideApply=true` is set where CRDs
