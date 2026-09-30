@@ -30,7 +30,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: octomaton
-          image: me-west1-docker.pkg.dev/arikkfir/images/octomaton:afa6953
+          image: me-west1-docker.pkg.dev/arikkfir/images/octomaton:2356e2e
           # Configured by environment variables only; the server's README lists them.
           envFrom:
             - configMapRef:
