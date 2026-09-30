@@ -8,17 +8,11 @@ config:
   requiredSecretKeys:
     - client-secret
     - cookie-secret
-  # Must be empty: any email domain (including "*") would admit users that are not in the authenticated emails file.
-  emailDomains: []
+  # Descope decides who signs in (only users of its project can), so every email it authenticates is admitted.
+  emailDomains:
+    - "*"
   upstreams:
     - static://202
-
-# ExternalSecret "oauth2-proxy-emails", key "emails", mounted as a file.
-authenticatedEmailsFile:
-  enabled: true
-  persistence: secret
-  template: oauth2-proxy-emails
-  restrictedUserAccessKey: emails
 
 extraArgs:
   provider: oidc
