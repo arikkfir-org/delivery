@@ -36,34 +36,34 @@ spec:
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: deepseek-api-key
+  name: reviewer-deepseek-api-key
 spec:
   refreshInterval: 1h
   secretStoreRef:
     kind: ClusterSecretStore
     name: gcp-secret-manager
   target:
-    name: deepseek-api-key
+    name: reviewer-deepseek-api-key
     creationPolicy: Owner
   data:
     - secretKey: api-key
       remoteRef:
-        key: deepseek-api-key
+        key: reviewer-deepseek-api-key
 ---
-# arikkfir-reviewer's fine-grained token, for the report task only.
+# arikkfir-reviewer's fine-grained personal access token, for the report task only.
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: reviewer-github-token
+  name: reviewer-github-pat
 spec:
   refreshInterval: 1h
   secretStoreRef:
     kind: ClusterSecretStore
     name: gcp-secret-manager
   target:
-    name: reviewer-github-token
+    name: reviewer-github-pat
     creationPolicy: Owner
   data:
     - secretKey: token
       remoteRef:
-        key: reviewer-github-token
+        key: reviewer-github-pat
