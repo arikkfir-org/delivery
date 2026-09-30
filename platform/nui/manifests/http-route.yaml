@@ -10,6 +10,12 @@ spec:
   hostnames:
     - nui.dev.kfirs.com
   rules:
-    - backendRefs:
+    - filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: strip-cookies
+      backendRefs:
         - name: nui
           port: 31311
