@@ -11,7 +11,8 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
 - Pin everything: chart `targetRevision`, image tags, remote manifest URLs. Never `latest`, never a floating branch.
   The one exception is `apps/octomaton.yaml`: it follows `main` of `arikkfir-org/octomaton` (its `deploy/`) and runs
   the image of the synced commit.
-- Secrets never go in Git: use an `ExternalSecret` on `ClusterSecretStore` `gcp-secret-manager`.
+- Secrets never go in Git: use an `ExternalSecret` on `ClusterSecretStore` `gcp-secret-manager`, or, for a credential
+  only the cluster uses, on an ESO generator (a `Password` with `refreshPolicy: CreatedOnce`).
 - Services others depend on (ingress, sign-in, sites, Octomaton, NATS, KEDA) run at least two replicas, spread over
   nodes with `whenUnsatisfiable: ScheduleAnyway`, and a PodDisruptionBudget with `maxUnavailable: 1`. Never give a
   single replica a PodDisruptionBudget: it either blocks node drains or protects nothing.

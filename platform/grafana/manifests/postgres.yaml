@@ -1,6 +1,6 @@
 # Grafana's database: PostgreSQL on its own volume, reached only by Grafana's pods. Wave -1 has it ready before Grafana
-# starts. The superuser has no password: it signs in over the local socket only
-# (kubectl exec -n grafana postgres-0 -- psql -U postgres).
+# starts. People sign in as the superuser postgres, with the password in Secret Manager grafana-postgres-admin-password,
+# through kubectl port-forward -n grafana svc/postgres 5432 (or kubectl exec -n grafana postgres-0 -- psql -U postgres).
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -9,10 +9,12 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
 data:
-  # Applied before every start of the server, so it must stay idempotent. It also sets grafana's password, so a new one
-  # in Secret grafana-db applies on the next start.
+  # Applied before every start of the server, so it must stay idempotent. It also sets both passwords, so a new one in
+  # Secret postgres-admin or grafana-db applies on the next start.
   grafana.sql: |
+    \getenv postgres_password POSTGRES_PASSWORD
     \getenv grafana_password GRAFANA_DB_PASSWORD
+    ALTER ROLE postgres WITH PASSWORD :'postgres_password';
     SELECT 'CREATE ROLE grafana' WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'grafana') \gexec
     ALTER ROLE grafana WITH LOGIN PASSWORD :'grafana_password';
     SELECT 'CREATE DATABASE grafana OWNER grafana'
@@ -45,7 +47,7 @@ metadata:
     app.kubernetes.io/name: postgres
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
-    # Restart, and so apply the migrations again, when they or grafana's password change.
+    # Restart, and so apply the migrations again, when they or a password change.
     reloader.stakater.com/auto: "true"
 spec:
   serviceName: postgres
@@ -85,8 +87,8 @@ spec:
               docker_setup_env
               docker_create_db_directories
               if [ -z "$DATABASE_ALREADY_EXISTS" ]; then
+                docker_verify_minimum_env
                 docker_error_old_databases
-                # Without POSTGRES_PASSWORD the superuser gets no password, so the image's check for one is skipped.
                 docker_init_database_dir
                 pg_setup_hba_conf postgres
               fi
@@ -94,6 +96,14 @@ spec:
               docker_process_init_files /docker-entrypoint-initdb.d/*
               docker_temp_server_stop
           env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-admin
+                  key: password
+            # Passwords over TCP, localhost included (kubectl port-forward arrives there); trust over the socket only.
+            - name: POSTGRES_INITDB_ARGS
+              value: --auth-host=scram-sha-256 --auth-local=trust
             - name: GRAFANA_DB_PASSWORD
               valueFrom:
                 secretKeyRef:
