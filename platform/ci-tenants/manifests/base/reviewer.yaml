@@ -1,0 +1,69 @@
+# The pull request reviewer's objects (see the reference, "Pull request reviewer"). Its PipelineRun, from
+# arikkfir-org/tooling, runs every task as ServiceAccount reviewer and labels every pod kfirs.com/sandbox=true.
+
+# No RoleBinding, no mounted token, and no IAM role for its Workload Identity principal.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: reviewer
+automountServiceAccountToken: false
+---
+# Sandboxed pods reach the internet and nothing else: no pods, Services, nodes, metadata server (Workload Identity
+# credentials) or cluster DNS. They resolve names through public resolvers (dnsPolicy None in the PipelineRun).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sandbox
+spec:
+  podSelector:
+    matchLabels:
+      kfirs.com/sandbox: "true"
+  policyTypes:
+    - Ingress
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 169.254.0.0/16
+---
+# The model's API key, for the review task only.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: reviewer-deepseek-api-key
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: gcp-secret-manager
+  target:
+    name: reviewer-deepseek-api-key
+    creationPolicy: Owner
+  data:
+    - secretKey: api-key
+      remoteRef:
+        key: reviewer-deepseek-api-key
+---
+# arikkfir-reviewer's fine-grained personal access token, for the report task only.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: reviewer-github-pat
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: gcp-secret-manager
+  target:
+    name: reviewer-github-pat
+    creationPolicy: Owner
+  data:
+    - secretKey: token
+      remoteRef:
+        key: reviewer-github-pat
