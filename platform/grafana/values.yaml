@@ -29,13 +29,11 @@ grafana.ini:
     auto_assign_org_role: Admin
   database:
     type: postgres
-    host: postgres.hub.internal:5432
+    host: postgres.grafana.svc.cluster.local:5432
     name: grafana
     user: grafana
-    ssl_mode: require
-    # db-f1-micro allows about 25 connections; two replicas stay well under it.
-    max_open_conn: 10
-    max_idle_conn: 2
+    # Plain TCP inside the namespace: NetworkPolicy postgres admits only Grafana's pods.
+    ssl_mode: disable
   unified_alerting:
     ha_peers: grafana-headless.grafana.svc.cluster.local:9094
     ha_listen_address: ${POD_IP}:9094
@@ -56,8 +54,8 @@ datasources:
           authenticationType: gce
           defaultProject: arikkfir
 
-# State lives in the hub's PostgreSQL (Cloud SQL instance hub, database grafana), shared by both replicas, so pods keep
-# nothing and roll one at a time. Password: Secret grafana-db (ExternalSecret in manifests/).
+# State lives in PostgreSQL (StatefulSet postgres in manifests/), shared by both replicas, so pods keep nothing and roll
+# one at a time. Password: Secret grafana-db (ExternalSecret in manifests/).
 persistence:
   enabled: false
 
@@ -78,6 +76,10 @@ envValueFrom:
     secretKeyRef:
       name: grafana-db
       key: password
+# Restart when that password changes, as postgres does to apply it. The chart copies these annotations onto its other
+# objects too, where Reloader ignores them.
+annotations:
+  secret.reloader.stakater.com/reload: grafana-db
 
 # The replicas find each other through Service grafana-headless (port 9094) and share alert state, so each alert
 # notifies once.

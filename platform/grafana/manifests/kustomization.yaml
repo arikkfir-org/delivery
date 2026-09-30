@@ -4,3 +4,4 @@ resources:
   - external-secret.yaml
   - http-route.yaml
   - network-policy.yaml
+  - postgres.yaml
