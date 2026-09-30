@@ -4,6 +4,7 @@ resources:
   - service-account.yaml
   - config-map.yaml
   - deployment.yaml
+  - pod-disruption-budget.yaml
   - service.yaml
   - http-route.yaml
   - network-policy.yaml
