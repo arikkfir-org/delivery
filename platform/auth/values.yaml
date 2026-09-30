@@ -34,3 +34,19 @@ extraArgs:
 # Restart when the client or cookie secret (environment variables) rotates.
 deploymentAnnotations:
   reloader.stakater.com/auto: "true"
+
+# Every protected request is authorized here. Sessions live in cookies, so replicas share nothing: two of them, spread
+# over nodes when there are several, and at most one evicted at a time.
+replicaCount: 2
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+  minAvailable: null
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: oauth2-proxy
+        app.kubernetes.io/instance: auth

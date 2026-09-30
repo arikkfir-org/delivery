@@ -112,3 +112,19 @@ ingressRoute:
     matchRule: Host(`traefik.dev.kfirs.com`)
     entryPoints:
       - websecure
+
+# Every request enters through Traefik: two replicas, spread over nodes when there are several, and at most one of them
+# evicted at a time (node upgrades, drains, scale-down).
+deployment:
+  replicas: 2
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+topologySpreadConstraints:
+  - maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+    labelSelector:
+      matchLabels:
+        app.kubernetes.io/name: traefik
+        app.kubernetes.io/instance: traefik-traefik

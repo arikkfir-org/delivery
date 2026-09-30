@@ -12,6 +12,9 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   The one exception is `apps/octomaton.yaml`: it follows `main` of `arikkfir-org/octomaton` (its `deploy/`) and runs
   the image of the synced commit.
 - Secrets never go in Git: use an `ExternalSecret` on `ClusterSecretStore` `gcp-secret-manager`.
+- Services others depend on (ingress, sign-in, sites, Octomaton, NATS, KEDA) run at least two replicas, spread over
+  nodes with `whenUnsatisfiable: ScheduleAnyway`, and a PodDisruptionBudget with `maxUnavailable: 1`. Never give a
+  single replica a PodDisruptionBudget: it either blocks node drains or protects nothing.
 - New UIs go on the `protected` gateway, with a NetworkPolicy admitting only the `traefik` namespace to their pods.
   Select only those pods: namespaces with admission webhooks or aggregated APIs must never get a default-deny policy.
 - `public` gateway routes need the namespace label `kfirs.com/public-ingress: "true"` and a deliberate reason.
