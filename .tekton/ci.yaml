@@ -12,6 +12,15 @@ spec:
       value: main
   taskRunTemplate:
     serviceAccountName: pipeline
+  # Reserved once for all of the task's steps (step-level requests would add up as if the steps ran at once).
+  taskRunSpecs:
+    - pipelineTaskName: validate
+      computeResources:
+        requests:
+          cpu: 500m
+          memory: 512Mi
+        limits:
+          memory: 1Gi
   timeouts:
     pipeline: 30m
   workspaces:
