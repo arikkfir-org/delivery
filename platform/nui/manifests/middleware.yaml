@@ -1,0 +1,12 @@
+# NUI's server (fasthttp) refuses requests whose headers exceed 4 KiB, and oauth2-proxy's session cookies on .kfirs.com
+# alone can exceed that. NUI has no session of its own, so its requests go without cookies; the entry point's
+# ForwardAuth has already checked them.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-cookies
+  namespace: nats
+spec:
+  headers:
+    customRequestHeaders:
+      Cookie: ""
