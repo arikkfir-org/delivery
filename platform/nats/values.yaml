@@ -1,14 +1,23 @@
-# Single NATS server with JetStream on a file store; clients use nats://nats.nats.svc.cluster.local:4222.
+# Three clustered NATS servers with JetStream on a file store; clients use nats://nats.nats.svc.cluster.local:4222.
+# Each server has its own 50Gi volume (a volumeClaimTemplate), so a stream can keep up to three replicas.
 config:
   cluster:
-    enabled: false
+    enabled: true
+    replicas: 3
   jetstream:
     enabled: true
     fileStore:
       enabled: true
       pvc:
         enabled: true
-        size: 10Gi
+        size: 50Gi
+
+# Prefer separate nodes, without forcing the system pool to grow to three nodes.
+podTemplate:
+  topologySpreadConstraints:
+    kubernetes.io/hostname:
+      maxSkew: 1
+      whenUnsatisfiable: ScheduleAnyway
 
 natsBox:
   enabled: true
