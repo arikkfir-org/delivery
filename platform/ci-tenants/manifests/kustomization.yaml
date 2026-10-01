@@ -8,3 +8,4 @@ resources:
   - tenants/octomaton
   - tenants/tooling
   - tenants/docs
+  - tenants/fin
