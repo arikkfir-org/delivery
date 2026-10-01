@@ -20,8 +20,10 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   Select only those pods: namespaces with admission webhooks or aggregated APIs must never get a default-deny policy.
 - `public` gateway routes need the namespace label `kfirs.com/public-ingress: "true"` and a deliberate reason.
 - Keep the Application conventions: multi-source for charts, sync waves by dependency, `automated` prune + self-heal,
-  retry, `CreateNamespace=true`, `ServerSideApply=true` for large CRDs, `SkipDryRunOnMissingResource=true` for CRs whose
-  CRDs come from another Application. No resources finalizer on `argocd` (or any CRD owner).
+  retry, `CreateNamespace=true`, `ServerSideApply=true` for large CRDs (plus the compare option `ServerSideDiff=true`
+  when the Application also holds resources whose atomic lists get defaults, such as HTTPRoutes),
+  `SkipDryRunOnMissingResource=true` for CRs whose CRDs come from another Application. No resources finalizer on
+  `argocd` (or any CRD owner).
 - `TektonConfig`: check field names against the operator's Go types (`tektoncd/operator/pkg/apis/operator/v1alpha1`)
   for the pinned version, and validate it against the CRD schema in the operator's release manifest (CI cannot: the
   CRDs catalog has no schema for it).
