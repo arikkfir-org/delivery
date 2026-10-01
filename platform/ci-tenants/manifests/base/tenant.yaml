@@ -4,8 +4,8 @@ kind: Namespace
 metadata:
   name: ci-tenant
 ---
-# Identity of every PipelineRun in the namespace (Tekton default service account); GCP roles bind to it directly
-# through Workload Identity (see the reference, "GCP identities and permissions").
+# Identity of every PipelineRun that names no other ServiceAccount (Tekton's default). It gets no GCP role: a pipeline
+# that needs one names a ServiceAccount of its own (see the reference, "GCP identities and permissions").
 apiVersion: v1
 kind: ServiceAccount
 metadata:

@@ -1,0 +1,10 @@
+# Identity of tooling's publish pipeline (see the reference, "GCP identities and permissions"): terraform/gcp lets it
+# write the public arikkfir-claude bucket through Workload Identity. Octomaton refuses any run that names it unless the
+# run's branch is main.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ci-tooling-publish
+  annotations:
+    octomaton.dev/branches: main
+automountServiceAccountToken: false
