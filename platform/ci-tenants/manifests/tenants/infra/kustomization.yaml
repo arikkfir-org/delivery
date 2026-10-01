@@ -3,3 +3,4 @@ kind: Kustomization
 namespace: ci-infra
 resources:
   - ../../base
+  - terraform.yaml
