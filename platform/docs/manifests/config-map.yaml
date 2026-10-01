@@ -6,39 +6,137 @@ metadata:
   labels:
     app.kubernetes.io/name: docs
 data:
-  # Replaces the image's Caddyfile. No listings or index pages: pages are reached by direct links.
+  # Replaces the image's Caddyfile. The site overlays every repository's layer of the bucket and renders Markdown on
+  # request (see the reference, "Docs site").
   Caddyfile: |
     {
-      admin off
-      auto_https off
-      persist_config off
+    	admin off
+    	auto_https off
+    	persist_config off
+    }
+
+    # The overlay, in order: the docs repository's layer, every other repository's layer from A to Z, and, until the
+    # docs repository publishes its own layer, the bucket root (see the reference, "Docs site"). page.html repeats it.
+    (layers) {
+    	try_files /.layers/docs{path} /.layers/delivery{path} /.layers/fin{path} /.layers/infra{path} /.layers/octomaton{path} /.layers/tooling{path} {path}
     }
 
     :8080 {
-      root * /srv/site
-      log
-      log_skip /healthz
+    	root * /srv/site
+    	log
+    	log_skip /healthz
 
-      handle /healthz {
-        respond "ok" 200
-      }
+    	handle /healthz {
+    		respond "ok" 200
+    	}
 
-      # Hidden paths, such as the publish pipeline's .published-revision marker, are never served.
-      @hidden path_regexp /\.
-      handle @hidden {
-        respond 404
-      }
+    	# Hidden paths, the layers included, are never served.
+    	@hidden path_regexp /\.
+    	handle @hidden {
+    		respond 404
+    	}
 
-      # A directory is not a page.
-      @directory file {path}/
-      handle @directory {
-        respond 404
-      }
+    	# X.md.html renders X.md from the first layer that has it.
+    	@page path *.md.html
+    	handle @page {
+    		root * /etc/caddy
+    		rewrite * /page.html
+    		templates {
+    			root /srv/site
+    		}
+    		header Cache-Control "private, max-age=300"
+    		file_server
+    	}
 
-      handle {
-        header Cache-Control "private, max-age=300"
-        @markdown path *.md
-        header @markdown Content-Type "text/markdown; charset=utf-8"
-        file_server
-      }
+    	# Pages rendered before the composition were X.html: a missing X.html is now X.md.html.
+    	@legacy {
+    		path *.html
+    		not path *.md.html
+    		not file {
+    			import layers
+    		}
+    	}
+    	redir @legacy {http.request.uri.path.dir}{http.request.uri.path.file.base}.md.html 301
+
+    	# No listings or index pages: pages are reached by direct links.
+    	handle {
+    		import layers
+    		@directory path */
+    		respond @directory 404
+    		header Cache-Control "private, max-age=300"
+    		@markdown path *.md
+    		header @markdown Content-Type "text/markdown; charset=utf-8"
+    		file_server
+    	}
     }
+  # X.md.html: X.md from the first layer that has it, rendered with Caddy's markdown function. readFile never executes
+  # the document as a template.
+  page.html: |
+    {{- /* Renders X.md for a request to X.md.html, from the first layer that has it (the Caddyfile's overlay order). */ -}}
+    {{- $md := trimSuffix ".html" (placeholder "http.request.orig_uri.path") -}}
+    {{- $file := "" -}}
+    {{- range list "/.layers/docs" "/.layers/delivery" "/.layers/fin" "/.layers/infra" "/.layers/octomaton" "/.layers/tooling" "" -}}
+    {{- if and (not $file) (fileExists (print . $md)) }}{{ $file = print . $md }}{{ end -}}
+    {{- end -}}
+    {{- if not $file }}{{ httpError 404 }}{{ end -}}
+    {{- $text := readFile $file -}}
+    {{- $title := regexFind "(?m)^# .+$" $text | trimPrefix "# " | trim | default (base $md) -}}
+    {{- $title = regexReplaceAll "<[^>]+>|`" $title "" -}}
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ html $title }}</title>
+    <style>
+    :root {
+      color-scheme: light dark;
+      --fg: #1f2328; --muted: #59636e; --bg: #ffffff; --border: #d1d9e0; --subtle: #f6f8fa; --link: #0969da;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --fg: #e6edf3; --muted: #9198a1; --bg: #0d1117; --border: #3d444d; --subtle: #151b23; --link: #4493f8; }
+    }
+    html { background: var(--bg); }
+    body {
+      margin: 0; color: var(--fg); background: var(--bg);
+      font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    }
+    main { max-width: 56rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+    a { color: var(--link); text-underline-offset: .2em; }
+    h1, h2, h3, h4 { line-height: 1.25; margin: 1.8em 0 .6em; }
+    h1 { font-size: 2em; margin-top: .4em; }
+    h1, h2 { border-bottom: 1px solid var(--border); padding-bottom: .3em; }
+    h2 { font-size: 1.5em; }
+    code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    code { font-size: .875em; background: var(--subtle); padding: .15em .35em; border-radius: 6px; }
+    pre { background: var(--subtle); padding: 1rem; overflow-x: auto; border-radius: 6px; line-height: 1.45; }
+    pre code { background: none; padding: 0; font-size: .85em; }
+    pre.mermaid { background: none; text-align: center; }
+    table { border-collapse: collapse; display: block; overflow-x: auto; margin: 1em 0; }
+    th, td { border: 1px solid var(--border); padding: .4em .8em; text-align: left; vertical-align: top; }
+    th { background: var(--subtle); }
+    blockquote { margin: 1em 0; padding: 0 1em; color: var(--muted); border-left: .25em solid var(--border); }
+    img { max-width: 100%; }
+    hr { border: 0; border-top: 1px solid var(--border); }
+    </style>
+    </head>
+    <body>
+    <main>
+    {{ regexReplaceAll `href="(/[^/":#?][^":#?]*|[^/":#?][^":#?]*)\.md(#[^"]*)?"` (markdown $text) `href="${1}.md.html${2}"` }}
+    </main>
+    <script type="module">
+    for (const code of document.querySelectorAll("pre > code.language-mermaid")) {
+      const pre = document.createElement("pre");
+      pre.className = "mermaid";
+      pre.textContent = code.textContent;
+      code.parentElement.replaceWith(pre);
+    }
+    if (document.querySelector("pre.mermaid")) {
+      const { default: mermaid } = await import("https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs");
+      const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+      mermaid.initialize({ startOnLoad: false, theme: dark ? "dark" : "default" });
+      await mermaid.run({ querySelector: "pre.mermaid" });
+    }
+    </script>
+    </body>
+    </html>
