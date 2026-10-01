@@ -15,10 +15,10 @@ data:
     	persist_config off
     }
 
-    # The overlay, in order: the docs repository's layer, every other repository's layer from A to Z, and, until the
-    # docs repository publishes its own layer, the bucket root (see the reference, "Docs site"). page.html repeats it.
+    # The overlay, in order: the docs repository's layer, then every other repository's layer from A to Z (see the
+    # reference, "Docs site"). page.html repeats it.
     (layers) {
-    	try_files /.layers/docs{path} /.layers/delivery{path} /.layers/fin{path} /.layers/infra{path} /.layers/octomaton{path} /.layers/tooling{path} {path}
+    	try_files /.layers/docs{path} /.layers/delivery{path} /.layers/fin{path} /.layers/infra{path} /.layers/octomaton{path} /.layers/tooling{path}
     }
 
     :8080 {
@@ -61,9 +61,12 @@ data:
     		file_server
     	}
 
-    	# No listings or index pages: pages are reached by direct links.
+    	# No listings or index pages: pages are reached by direct links. try_files leaves a path that no layer has as it
+    	# is, so it would be served from the bucket root: only paths rewritten into a layer are served.
     	handle {
     		import layers
+    		@unpublished not path /.layers/*
+    		respond @unpublished 404
     		@directory path */
     		respond @directory 404
     		header Cache-Control "private, max-age=300"
@@ -78,7 +81,7 @@ data:
     {{- /* Renders X.md for a request to X.md.html, from the first layer that has it (the Caddyfile's overlay order). */ -}}
     {{- $md := trimSuffix ".html" (placeholder "http.request.orig_uri.path") -}}
     {{- $file := "" -}}
-    {{- range list "/.layers/docs" "/.layers/delivery" "/.layers/fin" "/.layers/infra" "/.layers/octomaton" "/.layers/tooling" "" -}}
+    {{- range list "/.layers/docs" "/.layers/delivery" "/.layers/fin" "/.layers/infra" "/.layers/octomaton" "/.layers/tooling" -}}
     {{- if and (not $file) (fileExists (print . $md)) }}{{ $file = print . $md }}{{ end -}}
     {{- end -}}
     {{- if not $file }}{{ httpError 404 }}{{ end -}}
