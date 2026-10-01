@@ -34,7 +34,7 @@ spec:
     disabled: true
   pipeline:
     default-service-account: pipeline
-    # Every TaskRun pod, and every affinity-assistant pod, runs on the Spot "ci" node pool.
+    # Every TaskRun pod, and every affinity-assistant pod, runs on the "ci" node pool.
     default-pod-template: |
       nodeSelector:
         kfirs.com/pool: ci
