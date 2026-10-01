@@ -48,15 +48,18 @@ data:
     		file_server
     	}
 
-    	# Pages rendered before the composition were X.html: a missing X.html is now X.md.html.
-    	@legacy {
-    		path *.html
-    		not path *.md.html
-    		not file {
+    	# Pages rendered before the composition were X.html: a missing X.html is now X.md.html. Only .html requests look
+    	# for the file, so /healthz never touches the bucket.
+    	@html path *.html
+    	handle @html {
+    		@missing not file {
     			import layers
     		}
+    		redir @missing {http.request.uri.path.dir}{http.request.uri.path.file.base}.md.html 301
+    		import layers
+    		header Cache-Control "private, max-age=300"
+    		file_server
     	}
-    	redir @legacy {http.request.uri.path.dir}{http.request.uri.path.file.base}.md.html 301
 
     	# No listings or index pages: pages are reached by direct links.
     	handle {
