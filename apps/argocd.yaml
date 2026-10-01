@@ -8,6 +8,10 @@ metadata:
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "2"
+    # Synced with server-side apply, the Application would diff by structured merge, which can't add CRD defaults: the
+    # HTTPRoute's atomic lists (parentRefs, rules, backendRefs) would never match the live, defaulted route. A
+    # server-side dry run adds them.
+    argocd.argoproj.io/compare-options: ServerSideDiff=true
 spec:
   project: default
   destination:

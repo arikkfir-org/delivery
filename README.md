@@ -30,6 +30,9 @@ Each file there is an Application in namespace `argocd`, project `default`:
   picks up a newer commit), and creates its namespace. Namespace labels come from `managedNamespaceMetadata`
   (for example `kfirs.com/public-ingress: "true"` on `auth` and `octomaton`). `ServerSideApply=true` is set where CRDs
   are too large for client-side apply; `SkipDryRunOnMissingResource=true` where resources use CRDs of another component.
+  Such an Application diffs by structured merge, which can't add CRD defaults, so one that also holds resources whose
+  atomic lists get defaults (`argocd`, for its HTTPRoute) diffs server-side:
+  `argocd.argoproj.io/compare-options: ServerSideDiff=true`.
 - `argocd` manages Argo CD itself with the chart and release name Terraform bootstrapped. Its `argocd-cm` restores the
   health check for `argoproj.io/Application`, so the root Application's sync waves wait for each wave to be healthy:
 
