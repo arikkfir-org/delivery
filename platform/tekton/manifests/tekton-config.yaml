@@ -34,16 +34,12 @@ spec:
     disabled: true
   pipeline:
     default-service-account: pipeline
-    # Every TaskRun pod, and every affinity-assistant pod, runs on the "ci" node pool.
+    # No affinity assistant. It pins every pod that shares a run's volume to the node holding it, so on a full node they
+    # wait: the cluster autoscaler can't add a node they would fit on. Without it, each pod goes wherever it fits and
+    # the volume follows. Tasks sharing a volume must then run one after another, as the reviewer's do.
+    coschedule: disabled
+    # Every TaskRun pod runs on the "ci" node pool.
     default-pod-template: |
-      nodeSelector:
-        kfirs.com/pool: ci
-      tolerations:
-        - key: kfirs.com/pool
-          operator: Equal
-          value: ci
-          effect: NoSchedule
-    default-affinity-assistant-pod-template: |
       nodeSelector:
         kfirs.com/pool: ci
       tolerations:
