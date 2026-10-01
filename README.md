@@ -63,7 +63,7 @@ resources deliberately, or cascade-delete the Application before removing its fi
 
 ## Add a CI tenant
 
-A repository runs its CI in namespace `ci-<repository>` (`.github` uses `ci-github`):
+A repository runs its CI in namespace `ci-<repository>` (`.github` has no CI):
 
 1. Copy a directory under `platform/ci-tenants/manifests/tenants/`, set its `namespace`, and list it in
    `platform/ci-tenants/manifests/kustomization.yaml`. This creates the namespace, the `pipeline` ServiceAccount and the

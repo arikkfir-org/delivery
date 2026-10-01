@@ -1,9 +1,8 @@
-# CI tenants: one namespace per repository (ci-<repository>; ".github" is "ci-github").
+# CI tenants: one namespace per repository with CI (ci-<repository>); .github has none.
 # To onboard a repository: copy a directory under tenants/, change its "namespace", and add it below.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - tenants/github
   - tenants/infra
   - tenants/delivery
   - tenants/octomaton
