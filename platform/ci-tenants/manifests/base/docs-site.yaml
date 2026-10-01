@@ -1,0 +1,20 @@
+# Identities of the docs site's organization pipelines, which arikkfir-org/tooling declares (see the reference, "Docs
+# site"). terraform/gcp grants their roles on bucket arikkfir-docs to their Workload Identity principals; neither needs
+# a Kubernetes API token.
+
+# The Docs check, on pull requests and merge groups: may list the bucket's object names, and read nothing.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: docs-reader
+automountServiceAccountToken: false
+---
+# docs-publish, on pushes to main: may write this repository's layer only. Octomaton refuses any run that names it
+# unless the run's branch is main.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: docs-publisher
+  annotations:
+    octomaton.dev/branches: main
+automountServiceAccountToken: false
