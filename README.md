@@ -45,8 +45,10 @@ operators' webhooks; in `traefik` the Certificates (the wildcard and `octomaton-
 that reference their Secrets.
 
 Secrets never live in Git: each one is an `ExternalSecret` reading Secret Manager through the `ClusterSecretStore`
-`gcp-secret-manager`. Every UI is served on the `protected` gateway, behind the oauth2-proxy interceptor; only
-`auth.kfirs.com/oauth2` and `octomaton.dev` (Octomaton's webhook and Go import page) use the `public` gateway.
+`gcp-secret-manager`. A credential only the cluster uses is generated instead, by an ESO `Password` generator with
+`refreshPolicy: CreatedOnce` (Grafana's database password). Every UI is served on the `protected` gateway, behind the
+oauth2-proxy interceptor; only `auth.kfirs.com/oauth2` and `octomaton.dev` (Octomaton's webhook and Go import page) use
+the `public` gateway.
 
 Removing a file from `apps/` deletes the Application but not its resources (no cascading finalizer). Delete the
 resources deliberately, or cascade-delete the Application before removing its file.
