@@ -1,0 +1,18 @@
+# Identities of infra's Terraform pipelines (see the reference, "Terraform applies"). terraform/gcp binds their GCP
+# roles to them through Workload Identity; neither needs a Kubernetes API token.
+
+# Plans on pull requests and in the merge queue, with read-only roles.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ci-infra-plan
+automountServiceAccountToken: false
+---
+# Applies merges to main. Octomaton refuses any run that names it unless the run's branch is main.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ci-infra-apply
+  annotations:
+    octomaton.dev/branches: main
+automountServiceAccountToken: false
