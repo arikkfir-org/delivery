@@ -12,7 +12,6 @@ hosts and identities follow the hub reference (`docs/hub/reference.md` in
 apps/<component>.yaml                One Argo CD Application per component (synced by the root Application)
 platform/<component>/values.yaml     Helm values, for chart-based components
 platform/<component>/manifests/      Plain manifests with a kustomization.yaml, where needed
-platform/<component>/<chart>/        A chart of this repository's own, where Applications deploy one thing many times
 .octomaton.yaml, .tekton/ci.yaml   CI for this repository (run by Octomaton on Tekton)
 ```
 
@@ -27,14 +26,16 @@ Each file there is an Application in namespace `argocd`, project `default`:
 - `octomaton` is the exception: its manifests live with its code, in `deploy/` of `arikkfir-org/octomaton`. Its
   Application follows that repository's `main` and sets the image tag to `${ARGOCD_APP_REVISION_SHORT}`, the short SHA
   of the synced commit, which Octomaton's `release` publishes on every push. A merge there deploys itself.
-- `fin` deploys Fin's environments the same way
-  ([design](https://github.com/arikkfir-org/fin/blob/main/docs/fin/designs/environments.md)): production from
-  `arikkfir-org/fin`'s `main`, and a preview of every open pull request from its head commit, through two
-  ApplicationSets. Each environment is two Applications in namespace `fin-<environment>`: Fin's own chart
-  (`deploy/chart` there), in AppProject `fin` or `fin-previews`, which allow only the workloads' kinds, and the edge
-  (`platform/fin/edge`, from `main` here), which holds the namespace, its quota, the certificate, Gateway and routes,
-  and the database's passwords. Argo CD reads `fin`, an internal repository, and lists its pull requests with its own
-  GitHub App (Secret `argocd/github-app`).
+- `fin-environments` deploys Fin the same way
+  ([design](https://github.com/arikkfir-org/fin/blob/main/docs/fin/designs/environments.md)). `deploy/` of
+  `arikkfir-org/fin` (Kustomize) is production as written: Application `fin` deploys it from that repository's `main`
+  into namespace `fin`, and ApplicationSet `fin-pull-requests` deploys each open pull request's head commit into
+  `fin-pr-<number>`, overriding what differs in its `kustomize` options (images, namespace, replicas, and patches such
+  as the host names). Fin's code holds its own Namespace, Gateway, routes, certificate and ExternalSecrets, so
+  AppProjects `fin` and `fin-pull-requests` admit only its kinds, admission policies hold what they may say, and
+  `gcp-secret-manager` serves no pull request (all in `platform/fin/manifests` but the store's conditions). Argo CD
+  reads `fin`, an internal repository, and lists its pull requests with its own GitHub App (Secret
+  `argocd/github-app`).
 - Every Application syncs automatically with prune and self-heal, retries with backoff (`refresh: true`, so a retry
   picks up a newer commit), and creates its namespace. Namespace labels come from `managedNamespaceMetadata`
   (for example `kfirs.com/public-ingress: "true"` on `auth`, `octomaton`, `docs` and `keycloak`). `ServerSideApply=true` is set where CRDs
@@ -50,7 +51,7 @@ Each file there is an Application in namespace `argocd`, project `default`:
 | 1 | `gateway-api`, `cert-manager`, `external-secrets` |
 | 2 | `argocd` |
 | 3 | `traefik`, `tekton-operator`, `keda`, `reloader`, `nats`, `keycloak-operator` |
-| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton`, `docs`, `ci-tenants`, `keycloak`, `fin` |
+| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton`, `docs`, `ci-tenants`, `keycloak`, `fin-environments` |
 
 Within an Application, waves order dependent resources as well: ClusterIssuers and the ClusterSecretStore wait for their
 operators' webhooks; in `traefik` the Certificates (the wildcard and `octomaton-dev`) are issued before the Gateways
@@ -95,10 +96,8 @@ yamllint --strict .
 for k in $(find platform -name kustomization.yaml); do kubectl kustomize "$(dirname "$k")" >/dev/null; done
 helm template traefik traefik --repo https://traefik.github.io/charts --version 41.6.0 -n traefik \
   -f platform/traefik/values.yaml >/dev/null   # likewise for every chart-based component
-helm template fin-edge platform/fin/edge -n fin-pr-1 --set environment=pr-1 \
-  --set hosts.app=app.pr-1.fin.dev.kfirs.com,hosts.api=api.pr-1.fin.dev.kfirs.com >/dev/null   # charts of this repo
 ```
 
-CI (`.tekton/ci.yaml`) runs yamllint, renders every kustomization and this repository's charts, and validates `apps/`
-and the rendered manifests with kubeconform against the [CRDs-catalog](https://github.com/datreeio/CRDs-catalog)
-schemas.
+CI (`.tekton/ci.yaml`) runs yamllint, renders every kustomization, and validates `apps/` and the rendered manifests
+with kubeconform against the [CRDs-catalog](https://github.com/datreeio/CRDs-catalog) schemas. `fin`'s own CI renders
+its `deploy/` with the `kustomize` options of this repository's `main`, as Argo CD does.

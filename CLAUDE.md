@@ -11,11 +11,14 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
 - Pin everything: chart `targetRevision`, image tags, remote manifest URLs. Never `latest`, never a floating branch.
   The exceptions run the image of the commit they sync: `apps/octomaton.yaml` follows `main` of
   `arikkfir-org/octomaton` (its `deploy/`), and Fin's environments (`platform/fin/manifests`) follow `main` of
-  `arikkfir-org/fin` (production) and each pull request's head commit (previews).
-- Fin's chart comes from pull requests: AppProjects `fin` and `fin-previews` allow only its workloads' kinds in its
-  own namespace. Never widen them; whatever claims a host name, reads Secret Manager or shapes the namespace belongs in
-  the edge (`platform/fin/edge`), and the edge's templates use a pull request's number and head SHA only. A preview's
-  chart can read every Secret in its namespace, so the edge never puts a Secret Manager value in a preview.
+  `arikkfir-org/fin` (production) and each pull request's head commit (its own environment).
+- Fin's `deploy/` comes from pull requests and holds its own Namespace, Gateway, routes, certificate and
+  ExternalSecrets. Overrides go in the `kustomize` options of Application `fin` and ApplicationSet `fin-pull-requests`,
+  and the template uses a pull request's number and head SHA only. Admit a new kind to AppProjects `fin` and
+  `fin-pull-requests` only with an admission policy that holds what it may say, as `platform/fin/manifests` does for
+  namespaces, Services, Gateways, routes, certificates and ExternalSecrets; never RBAC, ServiceAccounts, Secrets,
+  secret stores or other generators, Issuers or ReferenceGrants. A pull request's namespace must keep its
+  `kfirs.com/pull-request` label: it keeps `gcp-secret-manager` out of its reach.
 - Secrets never go in Git: use an `ExternalSecret` on `ClusterSecretStore` `gcp-secret-manager`, or, for a credential
   only the cluster uses, on an ESO generator (a `Password` with `refreshPolicy: CreatedOnce`).
 - Services others depend on (ingress, sign-in, sites, Octomaton, NATS, KEDA) run at least two replicas, spread over
