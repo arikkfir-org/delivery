@@ -1,0 +1,12 @@
+# The operator creates none.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: keycloak
+  namespace: keycloak
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: keycloak
+      app.kubernetes.io/instance: keycloak

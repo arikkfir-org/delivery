@@ -1,0 +1,5 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  # Keycloak's own operator release: CRDs, RBAC and the operator, which watches namespace keycloak only.
+  - https://github.com/keycloak/keycloak-k8s-resources//kubernetes?ref=26.8.0
