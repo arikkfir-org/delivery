@@ -6,7 +6,7 @@ metadata:
   namespace: traefik
 spec:
   forwardAuth:
-    # oauth2-proxy answers 202 (static upstream) for a valid session, or starts the Descope login otherwise.
+    # oauth2-proxy answers 202 (static upstream) for a valid session, or starts the Keycloak login otherwise.
     address: http://oauth2-proxy.auth.svc.cluster.local/
     trustForwardHeader: true
     authResponseHeaders:
