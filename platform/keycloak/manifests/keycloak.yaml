@@ -1,0 +1,80 @@
+# Keycloak itself, run by the operator (apps/keycloak-operator.yaml). Wave 1 waits for the database.
+apiVersion: k8s.keycloak.org/v2beta1
+kind: Keycloak
+metadata:
+  name: keycloak
+  namespace: keycloak
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  instances: 2
+  image: quay.io/keycloak/keycloak:26.8.0
+  # Naming an image makes the operator start it --optimized, which the stock image, never built for PostgreSQL or the
+  # file vault, can't run.
+  startOptimized: false
+  db:
+    vendor: postgres
+    host: postgres
+    database: keycloak
+    usernameSecret:
+      name: keycloak-db
+      key: username
+    passwordSecret:
+      name: keycloak-db
+      key: password
+  http:
+    httpEnabled: true
+  hostname:
+    hostname: https://id.kfirs.com
+    admin: https://admin.id.kfirs.com
+    # Terraform reaches the admin API through the in-cluster Service.
+    backchannelDynamic: true
+  proxy:
+    headers: xforwarded
+  ingress:
+    enabled: false
+  bootstrapAdmin:
+    service:
+      secret: keycloak-bootstrap-admin
+  additionalOptions:
+    - name: vault
+      value: file
+    - name: vault-dir
+      value: /opt/keycloak/vault
+  networkPolicy:
+    enabled: true
+    http:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: traefik
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: ci-infra
+  scheduling:
+    topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: keycloak
+            app.kubernetes.io/instance: keycloak
+  resources:
+    requests:
+      cpu: 250m
+      memory: 1536Mi
+    limits:
+      memory: 2Gi
+  unsupported:
+    podTemplate:
+      spec:
+        containers:
+          - name: keycloak
+            volumeMounts:
+              - name: vault
+                mountPath: /opt/keycloak/vault
+                readOnly: true
+        volumes:
+          - name: vault
+            secret:
+              secretName: keycloak-vault

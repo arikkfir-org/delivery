@@ -28,7 +28,7 @@ Each file there is an Application in namespace `argocd`, project `default`:
   of the synced commit, which Octomaton's `release` publishes on every push. A merge there deploys itself.
 - Every Application syncs automatically with prune and self-heal, retries with backoff (`refresh: true`, so a retry
   picks up a newer commit), and creates its namespace. Namespace labels come from `managedNamespaceMetadata`
-  (for example `kfirs.com/public-ingress: "true"` on `auth`, `octomaton` and `docs`). `ServerSideApply=true` is set where CRDs
+  (for example `kfirs.com/public-ingress: "true"` on `auth`, `octomaton`, `docs` and `keycloak`). `ServerSideApply=true` is set where CRDs
   are too large for client-side apply; `SkipDryRunOnMissingResource=true` where resources use CRDs of another component.
   Such an Application diffs by structured merge, which can't add CRD defaults, so one that also holds resources whose
   atomic lists get defaults (`argocd`, for its HTTPRoute) diffs server-side:
@@ -40,8 +40,8 @@ Each file there is an Application in namespace `argocd`, project `default`:
 | --- | --- |
 | 1 | `gateway-api`, `cert-manager`, `external-secrets` |
 | 2 | `argocd` |
-| 3 | `traefik`, `tekton-operator`, `keda`, `reloader`, `nats` |
-| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton`, `docs`, `ci-tenants` |
+| 3 | `traefik`, `tekton-operator`, `keda`, `reloader`, `nats`, `keycloak-operator` |
+| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton`, `docs`, `ci-tenants`, `keycloak` |
 
 Within an Application, waves order dependent resources as well: ClusterIssuers and the ClusterSecretStore wait for their
 operators' webhooks; in `traefik` the Certificates (the wildcard and `octomaton-dev`) are issued before the Gateways
@@ -50,8 +50,9 @@ that reference their Secrets.
 Secrets never live in Git: each one is an `ExternalSecret` reading Secret Manager through the `ClusterSecretStore`
 `gcp-secret-manager`. A credential only the cluster uses is generated instead, by an ESO `Password` generator with
 `refreshPolicy: CreatedOnce` (Grafana's database password). Every UI is served on the `protected` gateway, behind the
-oauth2-proxy interceptor; only `auth.kfirs.com/oauth2`, `octomaton.dev` (Octomaton's webhook and Go import page) and
-`legal.kfirs.com` (the docs site's privacy policy and terms of service, exact paths only) use the `public` gateway.
+oauth2-proxy interceptor; only `auth.kfirs.com/oauth2`, `octomaton.dev` (Octomaton's webhook and Go import page),
+`legal.kfirs.com` (the docs site's privacy policy and terms of service, exact paths only) and `id.kfirs.com` (Keycloak's
+realm `hub`) use the `public` gateway.
 
 Removing a file from `apps/` deletes the Application but not its resources (no cascading finalizer). Delete the
 resources deliberately, or cascade-delete the Application before removing its file.

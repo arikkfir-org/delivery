@@ -11,6 +11,8 @@ spec:
   dnsNames:
     - "*.kfirs.com"
     - "*.dev.kfirs.com"
+    # The Keycloak admin console (protected gateway): two levels deep, so *.kfirs.com does not cover it.
+    - admin.id.kfirs.com
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer

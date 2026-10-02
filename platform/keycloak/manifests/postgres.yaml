@@ -1,0 +1,174 @@
+# Keycloak's database: one PostgreSQL on its own volume, reached only by Keycloak's pods, the same shape as Grafana's.
+# Wave 0 has it ready before Keycloak (wave 1). People connect with kubectl exec -n keycloak postgres-0 -- psql -U keycloak.
+
+# Role keycloak's password: generated once, in the cluster, and never rotated.
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  name: keycloak-db
+  namespace: keycloak
+spec:
+  length: 32
+  digits: 8
+  # Letters and digits only, so the password needs no quoting in a connection string.
+  symbols: 0
+  noUpper: false
+  allowRepeat: true
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: keycloak-db
+  namespace: keycloak
+spec:
+  refreshPolicy: CreatedOnce
+  target:
+    name: keycloak-db
+    creationPolicy: Owner
+    template:
+      data:
+        username: keycloak
+        password: "{{ .password }}"
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: Password
+          name: keycloak-db
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: keycloak
+  labels:
+    app.kubernetes.io/name: postgres
+spec:
+  selector:
+    app.kubernetes.io/name: postgres
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: postgres
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: keycloak
+  labels:
+    app.kubernetes.io/name: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgres
+    spec:
+      automountServiceAccountToken: false
+      # The image reads POSTGRES_* variables, and Service links would add POSTGRES_PORT and others.
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        # The image's postgres user.
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: postgres
+          image: docker.io/library/postgres:18.6-trixie
+          ports:
+            - name: postgres
+              containerPort: 5432
+              protocol: TCP
+          # The image creates role and database keycloak on the volume's first start.
+          env:
+            - name: POSTGRES_USER
+              value: keycloak
+            - name: POSTGRES_DB
+              value: keycloak
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db
+                  key: password
+            # Passwords over TCP, localhost included (kubectl port-forward arrives there); trust over the socket only.
+            - name: POSTGRES_INITDB_ARGS
+              value: --auth-host=scram-sha-256 --auth-local=trust
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - --host=127.0.0.1
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - --host=127.0.0.1
+            periodSeconds: 5
+            timeoutSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql
+            - name: run
+              mountPath: /var/run/postgresql
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 10Gi
+---
+# Only Keycloak's pods reach the database: its servers, and the update job the operator runs under strategy Auto,
+# which shares only the instance label (app=keycloak-update-job).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres
+  namespace: keycloak
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/instance: keycloak
+      ports:
+        - protocol: TCP
+          port: 5432

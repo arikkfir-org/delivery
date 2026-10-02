@@ -1,0 +1,35 @@
+# Keycloak, its database and its routes (platform/keycloak), run by the operator of keycloak-operator (wave 3).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: keycloak
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: keycloak
+  source:
+    repoURL: https://github.com/arikkfir-org/delivery
+    targetRevision: main
+    path: platform/keycloak/manifests
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    # Realm hub is public at id.kfirs.com.
+    managedNamespaceMetadata:
+      labels:
+        kfirs.com/public-ingress: "true"
+    retry:
+      limit: 10
+      refresh: true
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+    syncOptions:
+      - CreateNamespace=true
+      - SkipDryRunOnMissingResource=true
