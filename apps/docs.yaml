@@ -18,6 +18,9 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    managedNamespaceMetadata:
+      labels:
+        kfirs.com/public-ingress: "true"
     retry:
       limit: 10
       refresh: true
