@@ -28,7 +28,7 @@ Each file there is an Application in namespace `argocd`, project `default`:
   of the synced commit, which Octomaton's `release` publishes on every push. A merge there deploys itself.
 - Every Application syncs automatically with prune and self-heal, retries with backoff (`refresh: true`, so a retry
   picks up a newer commit), and creates its namespace. Namespace labels come from `managedNamespaceMetadata`
-  (for example `kfirs.com/public-ingress: "true"` on `auth` and `octomaton`). `ServerSideApply=true` is set where CRDs
+  (for example `kfirs.com/public-ingress: "true"` on `auth`, `octomaton` and `docs`). `ServerSideApply=true` is set where CRDs
   are too large for client-side apply; `SkipDryRunOnMissingResource=true` where resources use CRDs of another component.
   Such an Application diffs by structured merge, which can't add CRD defaults, so one that also holds resources whose
   atomic lists get defaults (`argocd`, for its HTTPRoute) diffs server-side:
@@ -50,8 +50,8 @@ that reference their Secrets.
 Secrets never live in Git: each one is an `ExternalSecret` reading Secret Manager through the `ClusterSecretStore`
 `gcp-secret-manager`. A credential only the cluster uses is generated instead, by an ESO `Password` generator with
 `refreshPolicy: CreatedOnce` (Grafana's database password). Every UI is served on the `protected` gateway, behind the
-oauth2-proxy interceptor; only `auth.kfirs.com/oauth2` and `octomaton.dev` (Octomaton's webhook and Go import page) use
-the `public` gateway.
+oauth2-proxy interceptor; only `auth.kfirs.com/oauth2`, `octomaton.dev` (Octomaton's webhook and Go import page) and
+`legal.kfirs.com` (the docs site's privacy policy and terms of service, exact paths only) use the `public` gateway.
 
 Removing a file from `apps/` deletes the Application but not its resources (no cascading finalizer). Delete the
 resources deliberately, or cascade-delete the Application before removing its file.
