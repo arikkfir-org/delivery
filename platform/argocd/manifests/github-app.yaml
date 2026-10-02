@@ -1,0 +1,32 @@
+# Argo CD's GitHub App, read-only (Contents, Pull requests, Metadata), installed on fin: Argo CD reads fin, an internal
+# repository, with it, and the previews' ApplicationSets list fin's pull requests with it (appSecretName). Argo CD
+# finds the App's installation itself. The owner creates the App and sets argocd-github-app-* in Secret Manager.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: github-app
+  namespace: argocd
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: gcp-secret-manager
+  target:
+    name: github-app
+    creationPolicy: Owner
+    template:
+      metadata:
+        labels:
+          argocd.argoproj.io/secret-type: repo-creds
+      data:
+        type: git
+        url: https://github.com/arikkfir-org/fin
+        githubAppID: "{{ .id }}"
+        githubAppPrivateKey: "{{ .privateKey }}"
+  data:
+    - secretKey: id
+      remoteRef:
+        key: argocd-github-app-id
+    - secretKey: privateKey
+      remoteRef:
+        key: argocd-github-app-private-key
