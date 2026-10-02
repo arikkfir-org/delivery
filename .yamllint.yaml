@@ -2,6 +2,8 @@ extends: default
 
 ignore: |
   .ci/
+  # Helm templates are YAML only once rendered; CI lints and validates the rendered charts.
+  platform/*/*/templates/
 
 rules:
   document-start: disable

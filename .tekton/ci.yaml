@@ -80,12 +80,13 @@ spec:
                 set -eu
                 yamllint --strict .
 
-            - name: kustomize
+            - name: render
               image: docker.io/alpine/k8s:1.37.1
               workingDir: $(workspaces.source.path)
               script: |
                 #!/bin/sh
-                # Render every kustomization (including remote resources) into .ci/rendered/ for kubeconform.
+                # Render every kustomization (including remote resources), and this repository's own charts as their
+                # Applications deploy them, into .ci/rendered/ for kubeconform.
                 set -eu
                 find platform -name kustomization.yaml | sort | while read -r k; do
                   dir="${k%/kustomization.yaml}"
@@ -93,6 +94,16 @@ spec:
                   mkdir -p ".ci/rendered/${dir}"
                   kubectl kustomize "${dir}" > ".ci/rendered/${dir}/manifests.yaml"
                 done
+                # Fin's edge, as production (platform/fin/manifests/production.yaml) and as a preview (previews.yaml).
+                edge=platform/fin/edge
+                mkdir -p ".ci/rendered/${edge}"
+                helm lint --strict "${edge}" --set environment=production \
+                  --set hosts.app=app.fin.kfirs.com,hosts.api=api.fin.kfirs.com
+                helm template fin-edge "${edge}" -n fin-production --set environment=production,keepNamespace=true \
+                  --set hosts.app=app.fin.kfirs.com,hosts.api=api.fin.kfirs.com > ".ci/rendered/${edge}/production.yaml"
+                helm template fin-edge "${edge}" -n fin-pr-1 --set environment=pr-1 \
+                  --set hosts.app=app.pr-1.fin.dev.kfirs.com,hosts.api=api.pr-1.fin.dev.kfirs.com \
+                  > ".ci/rendered/${edge}/preview.yaml"
 
             - name: kubeconform
               image: ghcr.io/yannh/kubeconform:v0.8.0-alpine
