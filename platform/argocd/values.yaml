@@ -11,9 +11,9 @@ configs:
   cm:
     url: https://argocd.dev.kfirs.com
     oidc.config: |
-      name: Descope
-      issuer: https://api.descope.com/P3JyPV2qsSrMLUpVPTGcBNRHlSkv
-      clientID: P3JyPV2qsSrMLUpVPTGcBNRHlSkv
+      name: Keycloak
+      issuer: https://id.kfirs.com/realms/hub
+      clientID: hub
       clientSecret: $argocd-oidc:clientSecret
       requestedScopes:
         - openid
@@ -50,7 +50,7 @@ configs:
   rbac:
     policy.default: role:admin
 
-# Users log in through Descope directly (oidc.config); Dex is not needed.
+# Users log in through Keycloak directly (oidc.config); Dex is not needed.
 dex:
   enabled: false
 
