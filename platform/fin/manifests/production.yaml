@@ -22,6 +22,7 @@ spec:
       images:
         - "fin-api=me-west1-docker.pkg.dev/arikkfir/images/fin-api:${ARGOCD_APP_REVISION_SHORT}"
         - "fin-web=me-west1-docker.pkg.dev/arikkfir/images/fin-web:${ARGOCD_APP_REVISION_SHORT}"
+        - "fin-migrations=me-west1-docker.pkg.dev/arikkfir/images/fin-migrations:${ARGOCD_APP_REVISION_SHORT}"
   syncPolicy:
     automated:
       prune: true

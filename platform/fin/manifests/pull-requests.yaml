@@ -45,6 +45,7 @@ spec:
           images:
             - "fin-api=me-west1-docker.pkg.dev/arikkfir/previews/fin-api:${ARGOCD_APP_REVISION_SHORT}"
             - "fin-web=me-west1-docker.pkg.dev/arikkfir/previews/fin-web:${ARGOCD_APP_REVISION_SHORT}"
+            - "fin-migrations=me-west1-docker.pkg.dev/arikkfir/previews/fin-migrations:${ARGOCD_APP_REVISION_SHORT}"
           # A pull request has no availability to keep.
           replicas:
             - name: api
@@ -101,23 +102,6 @@ spec:
                 - op: replace
                   path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage
                   value: 1Gi
-            # Every deployment starts from what its migrations create.
-            - target:
-                kind: Job
-                name: migrate
-              patch: |-
-                apiVersion: batch/v1
-                kind: Job
-                metadata:
-                  name: migrate
-                spec:
-                  template:
-                    spec:
-                      containers:
-                        - name: migrate
-                          env:
-                            - name: FIN_DATABASE_RESET
-                              value: "true"
             # Production's arik password is in Secret Manager; a pull request generates its own, like the others.
             - target:
                 kind: ExternalSecret
@@ -136,6 +120,9 @@ spec:
                             apiVersion: generators.external-secrets.io/v1alpha1
                             kind: Password
                             name: db
+          # Every deployment starts from what its migrations create: Job migrate resets the schema first.
+          components:
+            - components/reset-database
       syncPolicy:
         automated:
           prune: true

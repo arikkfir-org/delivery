@@ -30,12 +30,12 @@ Each file there is an Application in namespace `argocd`, project `default`:
   ([design](https://github.com/arikkfir-org/fin/blob/main/docs/fin/designs/environments.md)). `deploy/` of
   `arikkfir-org/fin` (Kustomize) is production as written: Application `fin` deploys it from that repository's `main`
   into namespace `fin`, and ApplicationSet `fin-pull-requests` deploys each open pull request's head commit into
-  `fin-pr-<number>`, overriding what differs in its `kustomize` options (images, namespace, replicas, and patches such
-  as the host names). Fin's code holds its own Namespace, Gateway, routes, certificate and ExternalSecrets, so
-  AppProjects `fin` and `fin-pull-requests` admit only its kinds, admission policies hold what they may say, and
-  `gcp-secret-manager` serves no pull request (all in `platform/fin/manifests` but the store's conditions). Argo CD
-  reads `fin`, an internal repository, and lists its pull requests with its own GitHub App (Secret
-  `argocd/github-app`).
+  `fin-pr-<number>`, overriding what differs in its `kustomize` options (images, namespace, replicas, patches such as
+  the host names, and the component that resets the database). Fin's code holds its own Namespace, Gateway, routes,
+  certificate and ExternalSecrets, so AppProjects `fin` and `fin-pull-requests` admit only its kinds, admission
+  policies hold what they may say, and `gcp-secret-manager` serves no pull request (all in `platform/fin/manifests` but
+  the store's conditions). Argo CD reads `fin`, an internal repository, and lists its pull requests with its own GitHub
+  App (Secret `argocd/github-app`).
 - Every Application syncs automatically with prune and self-heal, retries with backoff (`refresh: true`, so a retry
   picks up a newer commit), and creates its namespace. Namespace labels come from `managedNamespaceMetadata`
   (for example `kfirs.com/public-ingress: "true"` on `auth`, `octomaton`, `docs` and `keycloak`). `ServerSideApply=true` is set where CRDs
