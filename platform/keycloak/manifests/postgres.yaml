@@ -151,7 +151,8 @@ spec:
           requests:
             storage: 10Gi
 ---
-# Only Keycloak's pods reach the database.
+# Only Keycloak's pods reach the database: its servers, and the update job the operator runs under strategy Auto,
+# which shares only the instance label (app=keycloak-update-job).
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -167,7 +168,6 @@ spec:
     - from:
         - podSelector:
             matchLabels:
-              app: keycloak
               app.kubernetes.io/instance: keycloak
       ports:
         - protocol: TCP
