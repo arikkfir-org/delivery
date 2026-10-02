@@ -1,7 +1,8 @@
 # Wave 2: the operator creates keycloak-service only once Keycloak (wave 1) exists, and Argo CD marks a route whose
 # backend is missing Degraded, which would fail the sync before Keycloak is ever created.
 
-# Public: the hub realm (login, the Google callback, OIDC endpoints, the account console) and static resources.
+# Public: the hub realm (login, the Google callback, OIDC endpoints, the account console) and static resources. The
+# admin console signs in against this frontend hostname, so realm master is here too, but only behind the hub's sign-in.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -26,8 +27,21 @@ spec:
       backendRefs:
         - name: keycloak-service
           port: 8080
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /realms/master
+      filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: oidc
+      backendRefs:
+        - name: keycloak-service
+          port: 8080
 ---
-# The admin console and the master realm, only behind the hub's sign-in.
+# The admin console and the master realm, only behind the hub's sign-in. Keycloak redirects / to the console.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -43,6 +57,9 @@ spec:
     - admin.id.kfirs.com
   rules:
     - matches:
+        - path:
+            type: Exact
+            value: /
         - path:
             type: PathPrefix
             value: /admin
