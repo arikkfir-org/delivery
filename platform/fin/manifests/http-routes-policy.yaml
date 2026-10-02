@@ -1,0 +1,58 @@
+# In a Fin namespace an HTTPRoute names hosts under the environment's own domain (production: .fin.kfirs.com, pull
+# request <n>: .pr-<n>.fin.dev.kfirs.com) and attaches to its own namespace's Gateway, never to traefik/protected,
+# which takes routes for any *.kfirs.com host from every namespace. Every rule removes Cookie: browsers send the hub's
+# session cookie (domain .kfirs.com) to Fin's hosts too, the sign-in has read it by then, and Fin's code never gets it.
+# Matched by the namespace's name. Wave -1: in force before any deployment.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: fin-http-routes
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - gateway.networking.k8s.io
+        apiVersions:
+          - "*"
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - httproutes
+  matchConditions:
+    - name: fin
+      expression: "request.namespace == 'fin' || request.namespace.startsWith('fin-pr-')"
+  variables:
+    - name: domain
+      expression: >-
+        request.namespace == 'fin' ? '.fin.kfirs.com' : '.' + request.namespace.substring(4) + '.fin.dev.kfirs.com'
+  validations:
+    - expression: >-
+        has(object.spec.hostnames) && size(object.spec.hostnames) > 0
+        && object.spec.hostnames.all(h, h.endsWith(variables.domain))
+      messageExpression: "'An HTTPRoute in ' + request.namespace + ' names hosts, all under ' + variables.domain"
+    - expression: >-
+        !has(object.spec.parentRefs)
+        || object.spec.parentRefs.all(p, (!has(p.namespace) || p.namespace == request.namespace)
+          && (!has(p.kind) || p.kind == 'Gateway'))
+      message: An HTTPRoute in a Fin environment attaches to a Gateway in its own namespace only.
+    - expression: >-
+        has(object.spec.rules) && object.spec.rules.all(r, has(r.filters)
+          && r.filters.exists(f, f.type == 'RequestHeaderModifier' && has(f.requestHeaderModifier)
+            && has(f.requestHeaderModifier.remove)
+            && f.requestHeaderModifier.remove.exists(name, name.lowerAscii() == 'cookie')))
+      message: Every rule of an HTTPRoute in a Fin environment removes the Cookie header.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: fin-http-routes
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: fin-http-routes
+  validationActions:
+    - Deny

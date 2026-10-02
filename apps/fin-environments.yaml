@@ -1,11 +1,11 @@
-# Fin's environments (platform/fin): the projects of its workloads, production's two Applications, the ApplicationSets
-# of pull requests' previews, and the admission policy that keeps their Services inside the cluster. Wave 4: the edge
-# needs cert-manager, External Secrets and Traefik's Gateway API. No resources finalizer: removing this file must never
-# delete production.
+# Fin's environments (platform/fin): production's Application fin, the ApplicationSet of pull requests' deployments,
+# their projects, and the admission policies that hold what Fin's code deploys to its own namespaces and host names.
+# Wave 4: Fin's deployment needs cert-manager, External Secrets and Traefik's Gateway API. No resources finalizer:
+# removing this file must never delete production.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: fin
+  name: fin-environments
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "4"

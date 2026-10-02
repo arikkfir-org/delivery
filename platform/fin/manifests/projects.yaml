@@ -1,7 +1,8 @@
-# The projects of Fin's workloads. Fin's chart (deploy/chart in arikkfir-org/fin) comes from the environment's commit, a
-# pull request's included, so these allow only the kinds it needs, in its environment's namespace: no cluster-scoped
-# kind, no RBAC, no ServiceAccount, no Secret or ExternalSecret, no route, Gateway or Certificate. The edge
-# (platform/fin/edge, from main) holds those, in project default. Wave -1: before the Applications that name them.
+# The projects of Fin's deployments. Their source, deploy/ in arikkfir-org/fin, comes from fin's main for production
+# and from each pull request's head commit for its deployment, so these admit only what it needs: the environment's
+# Namespace and, in it, its workloads, database, secrets, certificate, Gateway and routes. Never RBAC, ServiceAccounts,
+# Secrets, secret stores or generators other than Password, Issuers, CertificateRequests or ReferenceGrants. The
+# admission policies here hold what the admitted kinds may do. Wave -1: before the Applications that name them.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -10,13 +11,16 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
 spec:
-  description: Fin's production workloads, from fin's main.
+  description: Fin's production, from fin's main.
   sourceRepos:
     - https://github.com/arikkfir-org/fin
   destinations:
     - server: https://kubernetes.default.svc
-      namespace: fin-production
-  clusterResourceWhitelist: []
+      namespace: fin
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+      name: fin
   namespaceResourceWhitelist:
     - group: apps
       kind: Deployment
@@ -26,28 +30,43 @@ spec:
       kind: Service
     - group: ""
       kind: ConfigMap
+    - group: ""
+      kind: ResourceQuota
     - group: batch
       kind: Job
     - group: policy
       kind: PodDisruptionBudget
     - group: networking.k8s.io
       kind: NetworkPolicy
+    - group: cert-manager.io
+      kind: Certificate
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+    - group: external-secrets.io
+      kind: ExternalSecret
+    - group: generators.external-secrets.io
+      kind: Password
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
-  name: fin-previews
+  name: fin-pull-requests
   namespace: argocd
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
 spec:
-  description: Pull requests' previews of Fin, from their head commits.
+  description: Fin's pull requests' deployments, from their head commits.
   sourceRepos:
     - https://github.com/arikkfir-org/fin
   destinations:
     - server: https://kubernetes.default.svc
       namespace: fin-pr-*
-  clusterResourceWhitelist: []
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+      name: fin-pr-*
   namespaceResourceWhitelist:
     - group: apps
       kind: Deployment
@@ -57,9 +76,21 @@ spec:
       kind: Service
     - group: ""
       kind: ConfigMap
+    - group: ""
+      kind: ResourceQuota
     - group: batch
       kind: Job
     - group: policy
       kind: PodDisruptionBudget
     - group: networking.k8s.io
       kind: NetworkPolicy
+    - group: cert-manager.io
+      kind: Certificate
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+    - group: external-secrets.io
+      kind: ExternalSecret
+    - group: generators.external-secrets.io
+      kind: Password

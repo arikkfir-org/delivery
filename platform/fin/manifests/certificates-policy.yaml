@@ -1,0 +1,47 @@
+# ClusterIssuer letsencrypt answers DNS-01 for the whole kfirs.com zone, and any pod in a namespace can mount the
+# certificate's Secret, private key included. So in a Fin namespace a Certificate names hosts under the environment's
+# own domain only (production: .fin.kfirs.com, pull request <n>: .pr-<n>.fin.dev.kfirs.com). Matched by the
+# namespace's name. Wave -1: in force before any deployment.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: fin-certificates
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - cert-manager.io
+        apiVersions:
+          - "*"
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - certificates
+  matchConditions:
+    - name: fin
+      expression: "request.namespace == 'fin' || request.namespace.startsWith('fin-pr-')"
+  variables:
+    - name: domain
+      expression: >-
+        request.namespace == 'fin' ? '.fin.kfirs.com' : '.' + request.namespace.substring(4) + '.fin.dev.kfirs.com'
+  validations:
+    - expression: >-
+        has(object.spec.dnsNames) && size(object.spec.dnsNames) > 0
+        && object.spec.dnsNames.all(n, n.endsWith(variables.domain))
+        && (!has(object.spec.commonName) || object.spec.commonName.endsWith(variables.domain))
+      messageExpression: "'A Certificate in ' + request.namespace + ' names hosts, all under ' + variables.domain"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: fin-certificates
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: fin-certificates
+  validationActions:
+    - Deny

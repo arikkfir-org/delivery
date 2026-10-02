@@ -1,10 +1,12 @@
-# Fin's environments run code from pull requests, and nothing reaches them but through their own Gateway (the edge):
-# none of their Services may face beyond the cluster, or take other workloads' traffic through external IPs. Selects
-# the namespaces the edge labels kfirs.com/fin-environment.
+# Nothing reaches Fin's environments but through their own Gateway: none of their Services may face beyond the cluster,
+# or take other workloads' traffic through external IPs. Matched by the namespace's name, which Fin's code can't
+# change, unlike its labels. Wave -1: in force before any deployment.
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:
   name: fin-cluster-ip-services
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
 spec:
   failurePolicy: Fail
   matchConstraints:
@@ -18,22 +20,22 @@ spec:
           - UPDATE
         resources:
           - services
+  matchConditions:
+    - name: fin
+      expression: "request.namespace == 'fin' || request.namespace.startsWith('fin-pr-')"
   validations:
     - expression: "!has(object.spec.type) || object.spec.type == 'ClusterIP'"
-      message: A Service in a Fin environment must be of type ClusterIP.
+      message: A Service in a Fin environment is of type ClusterIP.
     - expression: "!has(object.spec.externalIPs) || size(object.spec.externalIPs) == 0"
-      message: A Service in a Fin environment must have no external IPs.
+      message: A Service in a Fin environment has no external IPs.
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding
 metadata:
   name: fin-cluster-ip-services
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
 spec:
   policyName: fin-cluster-ip-services
   validationActions:
     - Deny
-  matchResources:
-    namespaceSelector:
-      matchExpressions:
-        - key: kfirs.com/fin-environment
-          operator: Exists

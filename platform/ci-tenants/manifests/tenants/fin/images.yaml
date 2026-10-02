@@ -10,7 +10,8 @@ metadata:
     octomaton.dev/branches: main
 automountServiceAccountToken: false
 ---
-# preview: pull requests' images, to previews, so any branch may use it. Only previews pull from previews.
+# preview: pull requests' images, to previews, so any branch may use it. Only pull requests' deployments pull from
+# previews.
 apiVersion: v1
 kind: ServiceAccount
 metadata:

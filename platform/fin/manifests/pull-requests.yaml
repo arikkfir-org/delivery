@@ -1,0 +1,151 @@
+# A deployment of every open pull request into fin's main: namespace fin-pr-<number>, at
+# app.pr-<number>.fin.dev.kfirs.com and api.pr-<number>.fin.dev.kfirs.com, running the pull request's head commit with a
+# database reset on every sync. The generator lists fin's pull requests through Argo CD's GitHub App (Secret github-app,
+# platform/argocd) every minute; when one closes, its Application goes and the resources finalizer deletes the
+# deployment, namespace and database included. The template uses only the pull request's number and head SHA, never
+# its branch or title. No CreateNamespace: deploy/ holds the Namespace, which Argo CD creates before anything else.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: fin-pull-requests
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  generators:
+    - pullRequest:
+        github:
+          owner: arikkfir-org
+          repo: fin
+          appSecretName: github-app
+        filters:
+          - targetBranchMatch: ^main$
+        requeueAfterSeconds: 60
+  template:
+    metadata:
+      name: "fin-pr-{{ .number }}"
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: fin-pull-requests
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "fin-pr-{{ .number }}"
+      # deploy/ as written is production; this is what differs for a pull request. The patches run before deploy/'s
+      # replacements, so ConfigMap environment's data reaches every host name and FIN_ENVIRONMENT.
+      source:
+        repoURL: https://github.com/arikkfir-org/fin
+        targetRevision: "{{ .head_sha }}"
+        path: deploy
+        kustomize:
+          namespace: "fin-pr-{{ .number }}"
+          # Fin's preview pipeline publishes every pushed commit's images to previews, which only these deployments
+          # pull from.
+          images:
+            - "fin-api=me-west1-docker.pkg.dev/arikkfir/previews/fin-api:${ARGOCD_APP_REVISION_SHORT}"
+            - "fin-web=me-west1-docker.pkg.dev/arikkfir/previews/fin-web:${ARGOCD_APP_REVISION_SHORT}"
+          # A pull request has no availability to keep.
+          replicas:
+            - name: api
+              count: 1
+            - name: web
+              count: 1
+          patches:
+            - target:
+                kind: ConfigMap
+                name: environment
+              patch: |-
+                - op: replace
+                  path: /data
+                  value:
+                    name: "pr-{{ .number }}"
+                    app: "app.pr-{{ .number }}.fin.dev.kfirs.com"
+                    api: "api.pr-{{ .number }}.fin.dev.kfirs.com"
+            # Keeps Secret Manager out of the namespace's reach (ClusterSecretStore gcp-secret-manager's conditions),
+            # and lets the namespace go with the pull request.
+            - target:
+                kind: Namespace
+              patch: |-
+                - op: add
+                  path: /metadata/labels/kfirs.com~1pull-request
+                  value: "true"
+                - op: remove
+                  path: /metadata/annotations/argocd.argoproj.io~1sync-options
+            - target:
+                kind: ResourceQuota
+                name: fin
+              patch: |-
+                - op: replace
+                  path: /spec/hard
+                  value:
+                    requests.cpu: "1"
+                    requests.memory: 2Gi
+                    limits.memory: 4Gi
+                    pods: "10"
+                    persistentvolumeclaims: "1"
+                    requests.storage: 5Gi
+            # One replica each: a budget would block node drains or protect nothing.
+            - target:
+                kind: PodDisruptionBudget
+              patch: |-
+                $patch: delete
+                apiVersion: policy/v1
+                kind: PodDisruptionBudget
+                metadata:
+                  name: any
+            - target:
+                kind: StatefulSet
+                name: postgres
+              patch: |-
+                - op: replace
+                  path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage
+                  value: 1Gi
+            # Every deployment starts from what its migrations create.
+            - target:
+                kind: Job
+                name: migrate
+              patch: |-
+                apiVersion: batch/v1
+                kind: Job
+                metadata:
+                  name: migrate
+                spec:
+                  template:
+                    spec:
+                      containers:
+                        - name: migrate
+                          env:
+                            - name: FIN_DATABASE_RESET
+                              value: "true"
+            # Production's arik password is in Secret Manager; a pull request generates its own, like the others.
+            - target:
+                kind: ExternalSecret
+                name: db-arik
+              patch: |-
+                - op: replace
+                  path: /spec
+                  value:
+                    refreshPolicy: CreatedOnce
+                    target:
+                      name: db-arik
+                      creationPolicy: Owner
+                    dataFrom:
+                      - sourceRef:
+                          generatorRef:
+                            apiVersion: generators.external-secrets.io/v1alpha1
+                            kind: Password
+                            name: db
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        retry:
+          limit: 10
+          refresh: true
+          backoff:
+            duration: 10s
+            factor: 2
+            maxDuration: 5m
+        syncOptions:
+          - SkipDryRunOnMissingResource=true

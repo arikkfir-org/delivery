@@ -1,6 +1,0 @@
-apiVersion: v2
-name: fin-edge
-description: One Fin environment's edge, which Fin's own chart never holds. See values.yaml.
-type: application
-# Never released on its own: Argo CD renders it from main.
-version: 0.0.0

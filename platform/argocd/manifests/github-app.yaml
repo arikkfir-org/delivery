@@ -1,5 +1,5 @@
 # Argo CD's GitHub App, read-only (Contents, Pull requests, Metadata), installed on fin: Argo CD reads fin, an internal
-# repository, with it, and the previews' ApplicationSets list fin's pull requests with it (appSecretName). Argo CD
+# repository, with it, and ApplicationSet fin-pull-requests lists fin's pull requests with it (appSecretName). Argo CD
 # finds the App's installation itself. The owner creates the App and sets argocd-github-app-* in Secret Manager.
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret

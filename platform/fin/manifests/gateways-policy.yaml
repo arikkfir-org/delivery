@@ -1,0 +1,53 @@
+# Fin's deployments bring their own Gateway, for host names that need their own certificate. Traefik turns every
+# Gateway of its class into routers on the entry point its listeners' port selects, so in a Fin namespace each listener
+# names a host under the environment's own domain (production: .fin.kfirs.com, pull request <n>:
+# .pr-<n>.fin.dev.kfirs.com), takes routes from its own namespace only, and is HTTPS on 8443: the protected entry point,
+# behind the hub's sign-in, never the public one. Matched by the namespace's name. Wave -1: in force before any
+# deployment.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: fin-gateways
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - gateway.networking.k8s.io
+        apiVersions:
+          - "*"
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - gateways
+  matchConditions:
+    - name: fin
+      expression: "request.namespace == 'fin' || request.namespace.startsWith('fin-pr-')"
+  variables:
+    - name: domain
+      expression: >-
+        request.namespace == 'fin' ? '.fin.kfirs.com' : '.' + request.namespace.substring(4) + '.fin.dev.kfirs.com'
+  validations:
+    - expression: "object.spec.listeners.all(l, has(l.hostname) && l.hostname.endsWith(variables.domain))"
+      messageExpression: >-
+        'Every listener of a Gateway in ' + request.namespace + ' names a host under ' + variables.domain
+    - expression: "object.spec.listeners.all(l, l.port == 8443 && l.protocol == 'HTTPS')"
+      message: Every listener of a Gateway in a Fin environment is HTTPS on port 8443, behind the hub's sign-in.
+    - expression: >-
+        object.spec.listeners.all(l, !has(l.allowedRoutes) || !has(l.allowedRoutes.namespaces)
+          || !has(l.allowedRoutes.namespaces.from) || l.allowedRoutes.namespaces.from == 'Same')
+      message: Every listener of a Gateway in a Fin environment takes routes from its own namespace only.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: fin-gateways
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: fin-gateways
+  validationActions:
+    - Deny
