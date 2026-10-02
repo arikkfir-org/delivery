@@ -1,8 +1,9 @@
 # The database's passwords, which Fin's chart reads from Secrets db-<role> (key password). PostgreSQL sets them on its
 # roles before every start.
 
-# Roles postgres, migrator and backend: generated once in the cluster and never rotated. Deleting a Secret generates a
-# new password, which Reloader rolls out to PostgreSQL and the workloads.
+# Generated once in the cluster and never rotated: the passwords of roles postgres, migrator and backend, and of arik
+# outside production. Deleting a Secret generates a new password, which Reloader rolls out to PostgreSQL and the
+# workloads.
 apiVersion: generators.external-secrets.io/v1alpha1
 kind: Password
 metadata:
@@ -14,7 +15,11 @@ spec:
   symbols: 0
   noUpper: false
   allowRepeat: true
-{{- range $role := list "postgres" "migrator" "backend" }}
+{{- $generated := list "postgres" "migrator" "backend" }}
+{{- if not .Values.arikPasswordFromSecretManager }}
+{{- $generated = append $generated "arik" }}
+{{- end }}
+{{- range $role := $generated }}
 ---
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -32,9 +37,10 @@ spec:
           kind: Password
           name: db
 {{- end }}
+{{- if .Values.arikPasswordFromSecretManager }}
 ---
-# Role arik, the superuser people sign in as: the same password in every environment, which the owner sets in Secret
-# Manager.
+# Production's role arik, the superuser people sign in as: the owner sets its password in Secret Manager. Never in a
+# preview, whose chart, a pull request's, can read every Secret in its namespace.
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
@@ -51,3 +57,4 @@ spec:
     - secretKey: password
       remoteRef:
         key: fin-postgres-arik-password
+{{- end }}

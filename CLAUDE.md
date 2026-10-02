@@ -14,7 +14,8 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   `arikkfir-org/fin` (production) and each pull request's head commit (previews).
 - Fin's chart comes from pull requests: AppProjects `fin` and `fin-previews` allow only its workloads' kinds in its
   own namespace. Never widen them; whatever claims a host name, reads Secret Manager or shapes the namespace belongs in
-  the edge (`platform/fin/edge`), and the edge's templates use a pull request's number and head SHA only.
+  the edge (`platform/fin/edge`), and the edge's templates use a pull request's number and head SHA only. A preview's
+  chart can read every Secret in its namespace, so the edge never puts a Secret Manager value in a preview.
 - Secrets never go in Git: use an `ExternalSecret` on `ClusterSecretStore` `gcp-secret-manager`, or, for a credential
   only the cluster uses, on an ESO generator (a `Password` with `refreshPolicy: CreatedOnce`).
 - Services others depend on (ingress, sign-in, sites, Octomaton, NATS, KEDA) run at least two replicas, spread over

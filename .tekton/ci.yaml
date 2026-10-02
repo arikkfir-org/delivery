@@ -99,7 +99,8 @@ spec:
                 mkdir -p ".ci/rendered/${edge}"
                 helm lint --strict "${edge}" --set environment=production \
                   --set hosts.app=app.fin.kfirs.com,hosts.api=api.fin.kfirs.com
-                helm template fin-edge "${edge}" -n fin-production --set environment=production,keepNamespace=true \
+                helm template fin-edge "${edge}" -n fin-production \
+                  --set environment=production,keepNamespace=true,arikPasswordFromSecretManager=true \
                   --set hosts.app=app.fin.kfirs.com,hosts.api=api.fin.kfirs.com > ".ci/rendered/${edge}/production.yaml"
                 helm template fin-edge "${edge}" -n fin-pr-1 --set environment=pr-1 \
                   --set hosts.app=app.pr-1.fin.dev.kfirs.com,hosts.api=api.pr-1.fin.dev.kfirs.com \
