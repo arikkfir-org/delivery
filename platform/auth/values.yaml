@@ -8,7 +8,8 @@ config:
   requiredSecretKeys:
     - client-secret
     - cookie-secret
-  # Descope decides who signs in (only users of its project can), so every email it authenticates is admitted.
+  # Keycloak decides who signs in (only the users terraform/keycloak declares), so every email it authenticates is
+  # admitted.
   emailDomains:
     - "*"
   upstreams:
@@ -16,15 +17,16 @@ config:
 
 extraArgs:
   provider: oidc
-  oidc-issuer-url: https://api.descope.com/P3JyPV2qsSrMLUpVPTGcBNRHlSkv
-  client-id: P3JyPV2qsSrMLUpVPTGcBNRHlSkv
-  # offline_access yields a refresh token, which cookie-refresh uses to renew the session's tokens.
-  scope: openid email profile offline_access
+  oidc-issuer-url: https://id.kfirs.com/realms/hub
+  client-id: hub
+  # No offline_access: Keycloak sets no SSO cookie when it is requested at first login. The refresh token that
+  # cookie-refresh uses lives as long as the realm's SSO session.
+  scope: openid email profile
   cookie-refresh: 5m
   redirect-url: https://auth.kfirs.com/oauth2/callback
   reverse-proxy: true
   set-xauthrequest: true
-  # Adds "Authorization: Bearer <ID token>" to the response; only Argo CD's descope-token middleware copies it upstream.
+  # Adds "Authorization: Bearer <ID token>" to the response; only Argo CD's id-token middleware copies it upstream.
   set-authorization-header: true
   skip-provider-button: true
   cookie-domain: .kfirs.com

@@ -1,26 +1,24 @@
+# Keycloak's own operator release (platform/keycloak-operator). Its CRDs are too large for client-side apply.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: docs
+  name: keycloak-operator
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: "4"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   project: default
   destination:
     server: https://kubernetes.default.svc
-    namespace: docs
+    namespace: keycloak
   source:
     repoURL: https://github.com/arikkfir-org/delivery
     targetRevision: main
-    path: platform/docs/manifests
+    path: platform/keycloak-operator/manifests
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
-    managedNamespaceMetadata:
-      labels:
-        kfirs.com/public-ingress: "true"
     retry:
       limit: 10
       refresh: true
@@ -30,4 +28,4 @@ spec:
         maxDuration: 5m
     syncOptions:
       - CreateNamespace=true
-      - SkipDryRunOnMissingResource=true
+      - ServerSideApply=true

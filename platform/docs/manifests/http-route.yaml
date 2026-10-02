@@ -16,3 +16,36 @@ spec:
     - backendRefs:
         - name: docs
           port: 80
+---
+# The privacy policy and terms of service, public for the Google OAuth app's branding. X.html redirects to X.md.html,
+# which tos.md also links to.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: legal
+  namespace: docs
+  labels:
+    app.kubernetes.io/name: docs
+spec:
+  parentRefs:
+    - name: public
+      namespace: traefik
+  hostnames:
+    - legal.kfirs.com
+  rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /privacy.html
+        - path:
+            type: Exact
+            value: /privacy.md.html
+        - path:
+            type: Exact
+            value: /tos.html
+        - path:
+            type: Exact
+            value: /tos.md.html
+      backendRefs:
+        - name: docs
+          port: 80
