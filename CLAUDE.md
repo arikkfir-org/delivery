@@ -9,8 +9,12 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
 - `docs/hub/reference.md` (arikkfir-org/docs) is the contract. Names, namespaces, hosts, versions and identities must
   match it; if one has to change, change the reference first.
 - Pin everything: chart `targetRevision`, image tags, remote manifest URLs. Never `latest`, never a floating branch.
-  The one exception is `apps/octomaton.yaml`: it follows `main` of `arikkfir-org/octomaton` (its `deploy/`) and runs
-  the image of the synced commit.
+  The exceptions run the image of the commit they sync: `apps/octomaton.yaml` follows `main` of
+  `arikkfir-org/octomaton` (its `deploy/`), and Fin's environments (`platform/fin/manifests`) follow `main` of
+  `arikkfir-org/fin` (production) and each pull request's head commit (previews).
+- Fin's chart comes from pull requests: AppProjects `fin` and `fin-previews` allow only its workloads' kinds in its
+  own namespace. Never widen them; whatever claims a host name, reads Secret Manager or shapes the namespace belongs in
+  the edge (`platform/fin/edge`), and the edge's templates use a pull request's number and head SHA only.
 - Secrets never go in Git: use an `ExternalSecret` on `ClusterSecretStore` `gcp-secret-manager`, or, for a credential
   only the cluster uses, on an ESO generator (a `Password` with `refreshPolicy: CreatedOnce`).
 - Services others depend on (ingress, sign-in, sites, Octomaton, NATS, KEDA) run at least two replicas, spread over

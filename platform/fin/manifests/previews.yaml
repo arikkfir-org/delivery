@@ -1,0 +1,130 @@
+# A preview of every open pull request into fin's main: namespace fin-pr-<number>, at app.pr-<number>.fin.dev.kfirs.com
+# and api.pr-<number>.fin.dev.kfirs.com, running the pull request's head commit with a database reset on every sync.
+# Each ApplicationSet lists fin's pull requests through Argo CD's GitHub App (Secret github-app, platform/argocd) every
+# minute; when one closes, its Applications go and their resources finalizers delete the environment, namespace and
+# database included. The templates use only the pull request's number and head SHA, never its branch or title.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: fin-preview-edges
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  generators:
+    - pullRequest:
+        github:
+          owner: arikkfir-org
+          repo: fin
+          appSecretName: github-app
+        filters:
+          - targetBranchMatch: ^main$
+        requeueAfterSeconds: 60
+  template:
+    metadata:
+      name: "fin-pr-{{ .number }}-edge"
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: default
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "fin-pr-{{ .number }}"
+      source:
+        repoURL: https://github.com/arikkfir-org/delivery
+        targetRevision: main
+        path: platform/fin/edge
+        helm:
+          releaseName: fin-edge
+          valuesObject:
+            environment: "pr-{{ .number }}"
+            hosts:
+              app: "app.pr-{{ .number }}.fin.dev.kfirs.com"
+              api: "api.pr-{{ .number }}.fin.dev.kfirs.com"
+            quota:
+              requests.cpu: "1"
+              requests.memory: 2Gi
+              limits.memory: 4Gi
+              pods: "10"
+              persistentvolumeclaims: "1"
+              requests.storage: 5Gi
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        retry:
+          limit: 10
+          refresh: true
+          backoff:
+            duration: 10s
+            factor: 2
+            maxDuration: 5m
+        syncOptions:
+          - CreateNamespace=true
+          - SkipDryRunOnMissingResource=true
+---
+# The workloads run the pull request's head commit, with its images from the previews repository, which fin's preview
+# pipeline publishes for every push to the pull request. One replica each: a preview has no availability to keep. No
+# CreateNamespace: project fin-previews allows no Namespace, so syncs fail and retry until the edge has created it.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: fin-previews
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions:
+    - missingkey=error
+  generators:
+    - pullRequest:
+        github:
+          owner: arikkfir-org
+          repo: fin
+          appSecretName: github-app
+        filters:
+          - targetBranchMatch: ^main$
+        requeueAfterSeconds: 60
+  template:
+    metadata:
+      name: "fin-pr-{{ .number }}"
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: fin-previews
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "fin-pr-{{ .number }}"
+      source:
+        repoURL: https://github.com/arikkfir-org/fin
+        targetRevision: "{{ .head_sha }}"
+        path: deploy/chart
+        helm:
+          releaseName: fin
+          parameters:
+            - name: version
+              value: $ARGOCD_APP_REVISION_SHORT
+          valuesObject:
+            environment: "pr-{{ .number }}"
+            registry: me-west1-docker.pkg.dev/arikkfir/previews
+            hosts:
+              app: "app.pr-{{ .number }}.fin.dev.kfirs.com"
+              api: "api.pr-{{ .number }}.fin.dev.kfirs.com"
+            resetDatabase: true
+            api:
+              replicas: 1
+            web:
+              replicas: 1
+            postgres:
+              storage: 1Gi
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        retry:
+          limit: 10
+          refresh: true
+          backoff:
+            duration: 10s
+            factor: 2
+            maxDuration: 5m

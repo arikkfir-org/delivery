@@ -1,0 +1,53 @@
+# The database's passwords, which Fin's chart reads from Secrets db-<role> (key password). PostgreSQL sets them on its
+# roles before every start.
+
+# Roles postgres, migrator and backend: generated once in the cluster and never rotated. Deleting a Secret generates a
+# new password, which Reloader rolls out to PostgreSQL and the workloads.
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  name: db
+spec:
+  length: 32
+  digits: 8
+  # Letters and digits only, so a password needs no quoting in a connection string.
+  symbols: 0
+  noUpper: false
+  allowRepeat: true
+{{- range $role := list "postgres" "migrator" "backend" }}
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: db-{{ $role }}
+spec:
+  refreshPolicy: CreatedOnce
+  target:
+    name: db-{{ $role }}
+    creationPolicy: Owner
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: Password
+          name: db
+{{- end }}
+---
+# Role arik, the superuser people sign in as: the same password in every environment, which the owner sets in Secret
+# Manager.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: db-arik
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: gcp-secret-manager
+  target:
+    name: db-arik
+    creationPolicy: Owner
+  data:
+    - secretKey: password
+      remoteRef:
+        key: fin-postgres-arik-password

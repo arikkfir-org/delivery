@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Release.Namespace }}
+  labels:
+    # Selects the environment for ValidatingAdmissionPolicy fin-cluster-ip-services (manifests/).
+    kfirs.com/fin-environment: {{ required "environment is required" .Values.environment | quote }}
+    # The restricted profile holds whatever the environment's chart asks for.
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+  {{- if .Values.keepNamespace }}
+  annotations:
+    argocd.argoproj.io/sync-options: Delete=false,Prune=false
+  {{- end }}
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: fin
+spec:
+  hard:
+    {{- toYaml .Values.quota | nindent 4 }}

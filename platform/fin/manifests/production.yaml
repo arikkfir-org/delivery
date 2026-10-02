@@ -1,0 +1,77 @@
+# Fin's production: namespace fin-production, at app.fin.kfirs.com and api.fin.kfirs.com. No resources finalizer:
+# deleting either Application leaves the environment, and its database, running.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fin-production-edge
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fin-production
+  source:
+    repoURL: https://github.com/arikkfir-org/delivery
+    targetRevision: main
+    path: platform/fin/edge
+    helm:
+      releaseName: fin-edge
+      valuesObject:
+        environment: production
+        hosts:
+          app: app.fin.kfirs.com
+          api: api.fin.kfirs.com
+        keepNamespace: true
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 10
+      refresh: true
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+    syncOptions:
+      - CreateNamespace=true
+      - SkipDryRunOnMissingResource=true
+---
+# Fin's chart lives with its code. Argo CD follows fin's main and runs the images of the synced commit, which fin's
+# release publishes for every push to main, tagged with the commit's short SHA. Each sync migrates the database first
+# (the chart's migrate Job). The namespace comes from fin-production-edge: until it exists, syncs fail and retry.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fin-production
+  namespace: argocd
+spec:
+  project: fin
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fin-production
+  source:
+    repoURL: https://github.com/arikkfir-org/fin
+    targetRevision: main
+    path: deploy/chart
+    helm:
+      releaseName: fin
+      parameters:
+        - name: version
+          value: $ARGOCD_APP_REVISION_SHORT
+      valuesObject:
+        environment: production
+        hosts:
+          app: app.fin.kfirs.com
+          api: api.fin.kfirs.com
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 10
+      refresh: true
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m

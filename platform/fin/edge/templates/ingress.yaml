@@ -1,0 +1,71 @@
+# The environment's host names. They need a certificate of their own (*.kfirs.com covers one label only), so the
+# environment has its own Gateway, on Traefik's protected entry point (port 8443, websecure): the hub's sign-in guards
+# every request, as it guards traefik/protected's routes. Wave 1 issues the certificate before the Gateway (wave 2)
+# references its Secret.
+{{- $app := required "hosts.app is required" .Values.hosts.app }}
+{{- $api := required "hosts.api is required" .Values.hosts.api }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: fin
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  secretName: fin-tls
+  dnsNames:
+    - {{ $app }}
+    - {{ $api }}
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: letsencrypt
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: fin
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  gatewayClassName: traefik
+  listeners:
+    {{- range $name, $host := dict "app" $app "api" $api }}
+    - name: {{ $name }}
+      protocol: HTTPS
+      port: 8443
+      hostname: {{ $host }}
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: fin-tls
+      allowedRoutes:
+        namespaces:
+          from: Same
+    {{- end }}
+{{- range $name, $backend := dict "app" "web" "api" "api" }}
+---
+# Fin's chart serves the {{ $name }} as Service {{ $backend }}, port 80. Browsers send the hub's session cookie (domain
+# .kfirs.com) here too; the sign-in has read it by now, and code from a pull request never gets it.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ $name }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  parentRefs:
+    - name: fin
+      sectionName: {{ $name }}
+  hostnames:
+    - {{ index $.Values.hosts $name }}
+  rules:
+    - filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove:
+              - Cookie
+      backendRefs:
+        - name: {{ $backend }}
+          port: 80
+{{- end }}

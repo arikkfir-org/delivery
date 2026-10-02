@@ -1,0 +1,65 @@
+# The projects of Fin's workloads. Fin's chart (deploy/chart in arikkfir-org/fin) comes from the environment's commit, a
+# pull request's included, so these allow only the kinds it needs, in its environment's namespace: no cluster-scoped
+# kind, no RBAC, no ServiceAccount, no Secret or ExternalSecret, no route, Gateway or Certificate. The edge
+# (platform/fin/edge, from main) holds those, in project default. Wave -1: before the Applications that name them.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: fin
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  description: Fin's production workloads, from fin's main.
+  sourceRepos:
+    - https://github.com/arikkfir-org/fin
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: fin-production
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist:
+    - group: apps
+      kind: Deployment
+    - group: apps
+      kind: StatefulSet
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ConfigMap
+    - group: batch
+      kind: Job
+    - group: policy
+      kind: PodDisruptionBudget
+    - group: networking.k8s.io
+      kind: NetworkPolicy
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: fin-previews
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  description: Pull requests' previews of Fin, from their head commits.
+  sourceRepos:
+    - https://github.com/arikkfir-org/fin
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: fin-pr-*
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist:
+    - group: apps
+      kind: Deployment
+    - group: apps
+      kind: StatefulSet
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ConfigMap
+    - group: batch
+      kind: Job
+    - group: policy
+      kind: PodDisruptionBudget
+    - group: networking.k8s.io
+      kind: NetworkPolicy
