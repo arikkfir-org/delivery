@@ -52,7 +52,7 @@ Secrets never live in Git: each one is an `ExternalSecret` reading Secret Manage
 `refreshPolicy: CreatedOnce` (Grafana's database password). Every UI is served on the `protected` gateway, behind the
 oauth2-proxy interceptor; only `auth.kfirs.com/oauth2`, `octomaton.dev` (Octomaton's webhook and Go import page),
 `legal.kfirs.com` (the docs site's privacy policy and terms of service, exact paths only) and `id.kfirs.com` (Keycloak's
-realm `hub`) use the `public` gateway.
+realm `hub`, and realm `master` behind the interceptor) use the `public` gateway.
 
 Removing a file from `apps/` deletes the Application but not its resources (no cascading finalizer). Delete the
 resources deliberately, or cascade-delete the Application before removing its file.
