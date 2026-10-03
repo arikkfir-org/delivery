@@ -9,8 +9,8 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
 - `docs/hub/reference.md` (arikkfir-org/docs) is the contract. Names, namespaces, hosts, versions and identities must
   match it; if one has to change, change the reference first.
 - Pin everything: chart `targetRevision`, image tags, remote manifest URLs. Never `latest`, never a floating branch.
-  The exceptions run the image of the commit they sync: `apps/octomaton.yaml` follows `main` of
-  `arikkfir-org/octomaton` (its `deploy/`), and Fin's environments (`platform/fin/manifests`) follow `main` of
+  The exceptions run the image of the commit they sync: Application `octomaton` (`platform/octomaton/manifests`)
+  follows `main` of `arikkfir-org/octomaton` (its `deploy/`), and Fin's environments (`platform/fin/manifests`) follow `main` of
   `arikkfir-org/fin` (production) and each pull request's head commit (its own environment).
 - Fin's `deploy/` comes from pull requests and holds its own Namespace, Gateway, routes, certificate and
   ExternalSecrets; a pull request's deployment drops the Gateway and certificate, and its routes attach to the shared
@@ -21,6 +21,10 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   ExternalSecrets (Gateways and certificates in `fin` only); never RBAC, ServiceAccounts, Secrets, secret stores or
   other generators, Issuers or ReferenceGrants. A pull request's namespace must keep its `kfirs.com/pull-request` label:
   it keeps `gcp-secret-manager` out of its reach.
+- Octomaton's `deploy/` comes from its `main` only and holds its own Namespace and RBAC. Overrides (the image tag, the
+  namespace's `kfirs.com/public-ingress` label) go in the `kustomize` options of Application `octomaton`. AppProject
+  `octomaton` admits a kind, or a cluster-scoped object by name, only once Octomaton's `deploy/` needs it; merge that
+  here before Octomaton's change.
 - Secrets never go in Git: use an `ExternalSecret` on `ClusterSecretStore` `gcp-secret-manager`, or, for a credential
   only the cluster uses, on an ESO generator (a `Password` with `refreshPolicy: CreatedOnce`).
 - Services others depend on (ingress, sign-in, sites, Octomaton, NATS, KEDA) run at least two replicas, spread over

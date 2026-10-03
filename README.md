@@ -23,9 +23,14 @@ Each file there is an Application in namespace `argocd`, project `default`:
 - A chart-based component has three sources: the pinned chart (with `helm.releaseName` and
   `valueFiles: [$values/platform/<component>/values.yaml]`), this repository as `ref: values`, and
   `platform/<component>/manifests` when it has extra manifests. A manifest-only component has one source, that path.
-- `octomaton` is the exception: its manifests live with its code, in `deploy/` of `arikkfir-org/octomaton`. Its
-  Application follows that repository's `main` and sets the image tag to `${ARGOCD_APP_REVISION_SHORT}`, the short SHA
-  of the synced commit, which Octomaton's `release` publishes on every push. A merge there deploys itself.
+- `octomaton-environment` is the exception: Octomaton's manifests live with its code. `deploy/` of
+  `arikkfir-org/octomaton` (Kustomize) is the hub's deployment as written, its Namespace included, and Application
+  `octomaton` (`platform/octomaton/manifests`) deploys it from that repository's `main`, overriding in its `kustomize`
+  options what this repository decides: the image tag, `${ARGOCD_APP_REVISION_SHORT}` (the short SHA of the synced
+  commit, which Octomaton's `release` publishes on every push), and the namespace's label
+  `kfirs.com/public-ingress: "true"`. A merge there deploys itself. AppProject `octomaton` admits only namespace
+  `octomaton`, Octomaton's own ClusterRoles and ClusterRoleBinding, and the namespaced kinds `deploy/` holds. Only
+  reviewed commits on `main` deploy, so no admission policies hold what they say, unlike Fin's pull requests.
 - `fin-environments` deploys Fin the same way
   ([design](https://github.com/arikkfir-org/fin/blob/main/docs/fin/designs/environments.md)). `deploy/` of
   `arikkfir-org/fin` (Kustomize) is production as written: Application `fin` deploys it from that repository's `main`
@@ -38,8 +43,9 @@ Each file there is an Application in namespace `argocd`, project `default`:
   one wildcard certificate, so a pull request issues no certificate. Argo CD reads `fin`, an internal repository, and
   lists its pull requests with its own GitHub App (Secret `argocd/github-app`).
 - Every Application syncs automatically with prune and self-heal, retries with backoff (`refresh: true`, so a retry
-  picks up a newer commit), and creates its namespace. Namespace labels come from `managedNamespaceMetadata`
-  (for example `kfirs.com/public-ingress: "true"` on `auth`, `octomaton`, `docs`, `keycloak` and `go-import`). `ServerSideApply=true` is set where CRDs
+  picks up a newer commit), and creates its namespace, except those whose `deploy/` holds it (Octomaton's and Fin's).
+  Namespace labels come from `managedNamespaceMetadata`
+  (for example `kfirs.com/public-ingress: "true"` on `auth`, `docs`, `keycloak` and `go-import`). `ServerSideApply=true` is set where CRDs
   are too large for client-side apply; `SkipDryRunOnMissingResource=true` where resources use CRDs of another component.
   Such an Application diffs by structured merge, which can't add CRD defaults, so one that also holds resources whose
   atomic lists get defaults (`argocd`, for its HTTPRoute) diffs server-side:
@@ -52,7 +58,7 @@ Each file there is an Application in namespace `argocd`, project `default`:
 | 1 | `gateway-api`, `cert-manager`, `external-secrets` |
 | 2 | `argocd` |
 | 3 | `traefik`, `tekton-operator`, `keda`, `reloader`, `nats`, `keycloak-operator` |
-| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton`, `docs`, `ci-tenants`, `keycloak`, `fin-environments`, `go-import` |
+| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton-environment`, `docs`, `ci-tenants`, `keycloak`, `fin-environments`, `go-import` |
 
 Within an Application, waves order dependent resources as well: ClusterIssuers and the ClusterSecretStore wait for their
 operators' webhooks; in `traefik` the Certificates (the wildcard and `octomaton-dev`) are issued before the Gateways
