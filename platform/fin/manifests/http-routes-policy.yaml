@@ -1,8 +1,10 @@
-# In a Fin namespace an HTTPRoute names hosts under the environment's own domain (production: .fin.kfirs.com, pull
-# request <n>: .pr-<n>.fin.dev.kfirs.com) and attaches to its own namespace's Gateway, never to traefik/protected,
-# which takes routes for any *.kfirs.com host from every namespace. Every rule removes Cookie: browsers send the hub's
-# session cookie (domain .kfirs.com) to Fin's hosts too, the sign-in has read it by then, and Fin's code never gets it.
-# Matched by the namespace's name. Wave -1: in force before any deployment.
+# In a Fin namespace an HTTPRoute names only the environment's own hosts and attaches only to its Gateway: in fin,
+# hosts under .fin.kfirs.com on a Gateway of its own namespace; in fin-pr-<number>, pr-<number>.app.fin.dev.kfirs.com
+# and pr-<number>.api.fin.dev.kfirs.com on traefik/fin-pull-requests, which every pull request shares
+# (pull-requests-gateway.yaml). Never traefik/protected, which takes routes for any *.kfirs.com host from every
+# namespace. Every rule removes Cookie: browsers send the hub's session cookie (domain .kfirs.com) to Fin's hosts too,
+# the sign-in has read it by then, and Fin's code never gets it. Matched by the namespace's name. Wave -1: in force
+# before any deployment.
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:
@@ -26,19 +28,29 @@ spec:
     - name: fin
       expression: "request.namespace == 'fin' || request.namespace.startsWith('fin-pr-')"
   variables:
-    - name: domain
+    - name: production
+      expression: "request.namespace == 'fin'"
+    # A pull request's two hosts: fin-pr-<number> serves pr-<number>.app.fin.dev.kfirs.com and its api twin.
+    - name: hosts
       expression: >-
-        request.namespace == 'fin' ? '.fin.kfirs.com' : '.' + request.namespace.substring(4) + '.fin.dev.kfirs.com'
+        ['app', 'api'].map(c, request.namespace.substring(4) + '.' + c + '.fin.dev.kfirs.com')
   validations:
     - expression: >-
         has(object.spec.hostnames) && size(object.spec.hostnames) > 0
-        && object.spec.hostnames.all(h, h.endsWith(variables.domain))
-      messageExpression: "'An HTTPRoute in ' + request.namespace + ' names hosts, all under ' + variables.domain"
+        && object.spec.hostnames.all(h, variables.production ? h.endsWith('.fin.kfirs.com') : h in variables.hosts)
+      messageExpression: >-
+        variables.production ? 'An HTTPRoute in fin names hosts, all under .fin.kfirs.com'
+          : 'An HTTPRoute in ' + request.namespace + ' names hosts, only ' + variables.hosts[0] + ' and '
+            + variables.hosts[1]
     - expression: >-
         !has(object.spec.parentRefs)
-        || object.spec.parentRefs.all(p, (!has(p.namespace) || p.namespace == request.namespace)
-          && (!has(p.kind) || p.kind == 'Gateway'))
-      message: An HTTPRoute in a Fin environment attaches to a Gateway in its own namespace only.
+        || object.spec.parentRefs.all(p, (!has(p.group) || p.group == 'gateway.networking.k8s.io')
+          && (!has(p.kind) || p.kind == 'Gateway')
+          && (variables.production ? (!has(p.namespace) || p.namespace == request.namespace)
+            : (has(p.namespace) && p.namespace == 'traefik' && p.name == 'fin-pull-requests')))
+      messageExpression: >-
+        variables.production ? 'An HTTPRoute in fin attaches to a Gateway in its own namespace only.'
+          : 'An HTTPRoute in ' + request.namespace + ' attaches to Gateway traefik/fin-pull-requests only.'
     - expression: >-
         has(object.spec.rules) && object.spec.rules.all(r, has(r.filters)
           && r.filters.exists(f, f.type == 'RequestHeaderModifier' && has(f.requestHeaderModifier)

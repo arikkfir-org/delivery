@@ -13,12 +13,14 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   `arikkfir-org/octomaton` (its `deploy/`), and Fin's environments (`platform/fin/manifests`) follow `main` of
   `arikkfir-org/fin` (production) and each pull request's head commit (its own environment).
 - Fin's `deploy/` comes from pull requests and holds its own Namespace, Gateway, routes, certificate and
-  ExternalSecrets. Overrides go in the `kustomize` options of Application `fin` and ApplicationSet `fin-pull-requests`,
-  and the template uses a pull request's number and head SHA only. Admit a new kind to AppProjects `fin` and
-  `fin-pull-requests` only with an admission policy that holds what it may say, as `platform/fin/manifests` does for
-  namespaces, Services, Gateways, routes, certificates and ExternalSecrets; never RBAC, ServiceAccounts, Secrets,
-  secret stores or other generators, Issuers or ReferenceGrants. A pull request's namespace must keep its
-  `kfirs.com/pull-request` label: it keeps `gcp-secret-manager` out of its reach.
+  ExternalSecrets; a pull request's deployment drops the Gateway and certificate, and its routes attach to the shared
+  `traefik/fin-pull-requests`, whose one wildcard certificate covers every pull request. Overrides go in the `kustomize`
+  options of Application `fin` and ApplicationSet `fin-pull-requests`, and the template uses a pull request's number and
+  head SHA only. Admit a new kind to AppProjects `fin` and `fin-pull-requests` only with an admission policy that holds
+  what it may say, as `platform/fin/manifests` does for namespaces, Services, Gateways, routes, certificates and
+  ExternalSecrets (Gateways and certificates in `fin` only); never RBAC, ServiceAccounts, Secrets, secret stores or
+  other generators, Issuers or ReferenceGrants. A pull request's namespace must keep its `kfirs.com/pull-request` label:
+  it keeps `gcp-secret-manager` out of its reach.
 - Secrets never go in Git: use an `ExternalSecret` on `ClusterSecretStore` `gcp-secret-manager`, or, for a credential
   only the cluster uses, on an ESO generator (a `Password` with `refreshPolicy: CreatedOnce`).
 - Services others depend on (ingress, sign-in, sites, Octomaton, NATS, KEDA) run at least two replicas, spread over

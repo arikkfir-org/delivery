@@ -31,11 +31,12 @@ Each file there is an Application in namespace `argocd`, project `default`:
   `arikkfir-org/fin` (Kustomize) is production as written: Application `fin` deploys it from that repository's `main`
   into namespace `fin`, and ApplicationSet `fin-pull-requests` deploys each open pull request's head commit into
   `fin-pr-<number>`, overriding what differs in its `kustomize` options (images, namespace, replicas, patches such as
-  the host names, and the component that resets the database). Fin's code holds its own Namespace, Gateway, routes,
-  certificate and ExternalSecrets, so AppProjects `fin` and `fin-pull-requests` admit only its kinds, admission
-  policies hold what they may say, and `gcp-secret-manager` serves no pull request (all in `platform/fin/manifests` but
-  the store's conditions). Argo CD reads `fin`, an internal repository, and lists its pull requests with its own GitHub
-  App (Secret `argocd/github-app`).
+  the host names, and the component that resets the database). Fin's code holds its own Namespace, routes and
+  ExternalSecrets, and production's its Gateway and certificate too, so AppProjects `fin` and `fin-pull-requests` admit
+  only its kinds, admission policies hold what they may say, and `gcp-secret-manager` serves no pull request (all in
+  `platform/fin/manifests` but the store's conditions). Pull requests share Gateway `traefik/fin-pull-requests` and its
+  one wildcard certificate, so a pull request issues no certificate. Argo CD reads `fin`, an internal repository, and
+  lists its pull requests with its own GitHub App (Secret `argocd/github-app`).
 - Every Application syncs automatically with prune and self-heal, retries with backoff (`refresh: true`, so a retry
   picks up a newer commit), and creates its namespace. Namespace labels come from `managedNamespaceMetadata`
   (for example `kfirs.com/public-ingress: "true"` on `auth`, `octomaton`, `docs` and `keycloak`). `ServerSideApply=true` is set where CRDs
@@ -55,15 +56,16 @@ Each file there is an Application in namespace `argocd`, project `default`:
 
 Within an Application, waves order dependent resources as well: ClusterIssuers and the ClusterSecretStore wait for their
 operators' webhooks; in `traefik` the Certificates (the wildcard and `octomaton-dev`) are issued before the Gateways
-that reference their Secrets.
+that reference their Secrets, and so is `fin-pull-requests`'s in `fin-environments`.
 
 Secrets never live in Git: each one is an `ExternalSecret` reading Secret Manager through the `ClusterSecretStore`
 `gcp-secret-manager`. A credential only the cluster uses is generated instead, by an ESO `Password` generator with
 `refreshPolicy: CreatedOnce` (Grafana's database password). Every UI is served on the `protected` gateway, behind the
 oauth2-proxy interceptor; only `auth.kfirs.com/oauth2`, `octomaton.dev` (Octomaton's webhook and Go import page),
 `legal.kfirs.com` (the docs site's privacy policy and terms of service, exact paths only) and `id.kfirs.com` (Keycloak's
-realm `hub`, and realm `master` behind the interceptor) use the `public` gateway. Fin's environments, whose host names
-need certificates of their own, each have a Gateway on the protected gateway's entry point, behind the same interceptor.
+realm `hub`, and realm `master` behind the interceptor) use the `public` gateway. Fin's host names need certificates
+of their own, so production's environment has a Gateway of its own, and pull requests' share `fin-pull-requests`, both
+on the protected gateway's entry point, behind the same interceptor.
 
 Removing a file from `apps/` deletes the Application but not its resources (no cascading finalizer). Delete the
 resources deliberately, or cascade-delete the Application before removing its file.

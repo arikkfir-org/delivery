@@ -1,6 +1,7 @@
 # A deployment of every open pull request into fin's main: namespace fin-pr-<number>, at
-# app.pr-<number>.fin.dev.kfirs.com and api.pr-<number>.fin.dev.kfirs.com, running the pull request's head commit with a
-# database reset on every sync. The generator lists fin's pull requests through Argo CD's GitHub App (Secret github-app,
+# pr-<number>.app.fin.dev.kfirs.com and pr-<number>.api.fin.dev.kfirs.com through the shared Gateway
+# traefik/fin-pull-requests (pull-requests-gateway.yaml), running the pull request's head commit with a database reset
+# on every sync. The generator lists fin's pull requests through Argo CD's GitHub App (Secret github-app,
 # platform/argocd) every minute; when one closes, its Application goes and the resources finalizer deletes the
 # deployment, namespace and database included. The template uses only the pull request's number and head SHA, never
 # its branch or title. No CreateNamespace: deploy/ holds the Namespace, which Argo CD creates before anything else.
@@ -61,8 +62,38 @@ spec:
                   path: /data
                   value:
                     name: "pr-{{ .number }}"
-                    app: "app.pr-{{ .number }}.fin.dev.kfirs.com"
-                    api: "api.pr-{{ .number }}.fin.dev.kfirs.com"
+                    app: "pr-{{ .number }}.app.fin.dev.kfirs.com"
+                    api: "pr-{{ .number }}.api.fin.dev.kfirs.com"
+            # The shared Gateway serves the pull request with its one certificate: none of its own, and its routes
+            # attach there, each to the listener its host matches.
+            - target:
+                kind: Gateway
+                name: fin
+              patch: |-
+                $patch: delete
+                apiVersion: gateway.networking.k8s.io/v1
+                kind: Gateway
+                metadata:
+                  name: fin
+            - target:
+                kind: Certificate
+                name: fin
+              patch: |-
+                $patch: delete
+                apiVersion: cert-manager.io/v1
+                kind: Certificate
+                metadata:
+                  name: fin
+            - target:
+                kind: HTTPRoute
+              patch: |-
+                - op: replace
+                  path: /spec/parentRefs
+                  value:
+                    - group: gateway.networking.k8s.io
+                      kind: Gateway
+                      namespace: traefik
+                      name: fin-pull-requests
             # Keeps Secret Manager out of the namespace's reach (ClusterSecretStore gcp-secret-manager's conditions),
             # and lets the namespace go with the pull request.
             - target:

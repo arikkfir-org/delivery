@@ -9,4 +9,5 @@ resources:
   - certificates-policy.yaml
   - external-secrets-policy.yaml
   - production.yaml
+  - pull-requests-gateway.yaml
   - pull-requests.yaml

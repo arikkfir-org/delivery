@@ -1,8 +1,9 @@
 # The projects of Fin's deployments. Their source, deploy/ in arikkfir-org/fin, comes from fin's main for production
 # and from each pull request's head commit for its deployment, so these admit only what it needs: the environment's
-# Namespace and, in it, its workloads, database, secrets, certificate, Gateway and routes. Never RBAC, ServiceAccounts,
-# Secrets, secret stores or generators other than Password, Issuers, CertificateRequests or ReferenceGrants. The
-# admission policies here hold what the admitted kinds may do. Wave -1: before the Applications that name them.
+# Namespace and, in it, its workloads, database, secrets and routes, and production's certificate and Gateway (a pull
+# request's routes attach to the shared traefik/fin-pull-requests). Never RBAC, ServiceAccounts, Secrets, secret stores
+# or generators other than Password, Issuers, CertificateRequests or ReferenceGrants. The admission policies here hold
+# what the admitted kinds may do. Wave -1: before the Applications that name them.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -84,10 +85,6 @@ spec:
       kind: PodDisruptionBudget
     - group: networking.k8s.io
       kind: NetworkPolicy
-    - group: cert-manager.io
-      kind: Certificate
-    - group: gateway.networking.k8s.io
-      kind: Gateway
     - group: gateway.networking.k8s.io
       kind: HTTPRoute
     - group: external-secrets.io
