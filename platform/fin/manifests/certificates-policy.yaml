@@ -1,7 +1,8 @@
 # ClusterIssuer letsencrypt answers DNS-01 for the whole kfirs.com zone, and any pod in a namespace can mount the
 # certificate's Secret, private key included. So in namespace fin a Certificate names hosts under .fin.kfirs.com only,
-# and a pull request's namespace has none: traefik/fin-pull-requests's certificate covers its hosts
-# (pull-requests-gateway.yaml). Matched by the namespace's name. Wave -1: in force before any deployment.
+# and none under .dev.fin.kfirs.com, the pull requests', and a pull request's namespace has none:
+# traefik/fin-pull-requests's certificate covers its hosts (pull-requests-gateway.yaml). Matched by the namespace's
+# name. Wave -1: in force before any deployment.
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:
@@ -30,9 +31,10 @@ spec:
         A pull request's environment has no Certificate of its own; traefik/fin-pull-requests's covers its hosts.
     - expression: >-
         has(object.spec.dnsNames) && size(object.spec.dnsNames) > 0
-        && object.spec.dnsNames.all(n, n.endsWith('.fin.kfirs.com'))
-        && (!has(object.spec.commonName) || object.spec.commonName.endsWith('.fin.kfirs.com'))
-      message: A Certificate in fin names hosts, all under .fin.kfirs.com.
+        && object.spec.dnsNames.all(n, n.endsWith('.fin.kfirs.com') && !n.endsWith('.dev.fin.kfirs.com'))
+        && (!has(object.spec.commonName) || (object.spec.commonName.endsWith('.fin.kfirs.com')
+          && !object.spec.commonName.endsWith('.dev.fin.kfirs.com')))
+      message: A Certificate in fin names hosts, all under .fin.kfirs.com and none under .dev.fin.kfirs.com.
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding
