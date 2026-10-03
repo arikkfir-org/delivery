@@ -1,0 +1,56 @@
+# Fin's deployments bring their own Namespace (fin, or fin-pr-<number> for a pull request), whose labels decide what
+# the namespace may do: pods meet the restricted Pod Security Standard, no kfirs.com/ label grants it anything
+# (kfirs.com/public-ingress admits routes to the public gateway, which has no sign-in), and a pull request's carries
+# kfirs.com/pull-request, which keeps ClusterSecretStore gcp-secret-manager out of its reach. Wave -1: in force before
+# any deployment.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: fin-namespaces
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - namespaces
+  matchConditions:
+    - name: fin
+      expression: "object.metadata.name == 'fin' || object.metadata.name.startsWith('fin-pr-')"
+  validations:
+    - expression: >-
+        has(object.metadata.labels)
+        && 'pod-security.kubernetes.io/enforce' in object.metadata.labels
+        && object.metadata.labels['pod-security.kubernetes.io/enforce'] == 'restricted'
+        && (!('pod-security.kubernetes.io/enforce-version' in object.metadata.labels)
+          || object.metadata.labels['pod-security.kubernetes.io/enforce-version'] == 'latest')
+      message: A Fin namespace enforces the latest restricted Pod Security Standard.
+    - expression: >-
+        !has(object.metadata.labels)
+        || object.metadata.labels.all(key, !key.startsWith('kfirs.com/') || key == 'kfirs.com/pull-request')
+      message: A Fin namespace carries no kfirs.com/ label but kfirs.com/pull-request.
+    - expression: >-
+        object.metadata.name == 'fin'
+        || (has(object.metadata.labels)
+          && 'kfirs.com/pull-request' in object.metadata.labels
+          && object.metadata.labels['kfirs.com/pull-request'] == 'true')
+      message: A pull request's namespace is labelled kfirs.com/pull-request "true".
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: fin-namespaces
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: fin-namespaces
+  validationActions:
+    - Deny

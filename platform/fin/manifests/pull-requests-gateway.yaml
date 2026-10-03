@@ -1,0 +1,63 @@
+# Every pull request's environment shares this Gateway and its one certificate, so a pull request issues none: a
+# certificate each would run into Let's Encrypt's 50 a week for kfirs.com, which the hub's own certificates share. A
+# wildcard covers one label, so a pull request's hosts are pr-<number>.app.fin.dev.kfirs.com and
+# pr-<number>.api.fin.dev.kfirs.com, and two wildcards cover them all. Both listeners are on Traefik's protected entry
+# point (8443), behind the hub's sign-in, and take routes only from namespaces labelled kfirs.com/pull-request, which
+# fin-http-routes holds to their own two hosts. In traefik, out of every pull request's reach, no pull request's code
+# can read the certificate's private key. Wave 0 issues the certificate before the Gateway (wave 1) references its
+# Secret.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: fin-pull-requests
+  namespace: traefik
+spec:
+  secretName: fin-pull-requests-tls
+  dnsNames:
+    - "*.app.fin.dev.kfirs.com"
+    - "*.api.fin.dev.kfirs.com"
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: letsencrypt
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: fin-pull-requests
+  namespace: traefik
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  gatewayClassName: traefik
+  listeners:
+    - name: app
+      protocol: HTTPS
+      port: 8443
+      hostname: "*.app.fin.dev.kfirs.com"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: fin-pull-requests-tls
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              kfirs.com/pull-request: "true"
+    - name: api
+      protocol: HTTPS
+      port: 8443
+      hostname: "*.api.fin.dev.kfirs.com"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: fin-pull-requests-tls
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              kfirs.com/pull-request: "true"

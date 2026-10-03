@@ -1,0 +1,19 @@
+# Identities of fin's image pipelines (see the reference, "GCP identities and permissions"): terraform/gcp lets each
+# push to one Artifact Registry repository through Workload Identity.
+
+# release: production's images, to images. Octomaton refuses any run that names it unless the run's branch is main.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ci-fin-release
+  annotations:
+    octomaton.dev/branches: main
+automountServiceAccountToken: false
+---
+# preview: pull requests' images, to previews, so any branch may use it. Only pull requests' deployments pull from
+# previews.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ci-fin-preview
+automountServiceAccountToken: false

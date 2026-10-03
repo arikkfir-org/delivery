@@ -1,0 +1,93 @@
+# The projects of Fin's deployments. Their source, deploy/ in arikkfir-org/fin, comes from fin's main for production
+# and from each pull request's head commit for its deployment, so these admit only what it needs: the environment's
+# Namespace and, in it, its workloads, database, secrets and routes, and production's certificate and Gateway (a pull
+# request's routes attach to the shared traefik/fin-pull-requests). Never RBAC, ServiceAccounts, Secrets, secret stores
+# or generators other than Password, Issuers, CertificateRequests or ReferenceGrants. The admission policies here hold
+# what the admitted kinds may do. Wave -1: before the Applications that name them.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: fin
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  description: Fin's production, from fin's main.
+  sourceRepos:
+    - https://github.com/arikkfir-org/fin
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: fin
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+      name: fin
+  namespaceResourceWhitelist:
+    - group: apps
+      kind: Deployment
+    - group: apps
+      kind: StatefulSet
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: ResourceQuota
+    - group: batch
+      kind: Job
+    - group: policy
+      kind: PodDisruptionBudget
+    - group: networking.k8s.io
+      kind: NetworkPolicy
+    - group: cert-manager.io
+      kind: Certificate
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+    - group: external-secrets.io
+      kind: ExternalSecret
+    - group: generators.external-secrets.io
+      kind: Password
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: fin-pull-requests
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  description: Fin's pull requests' deployments, from their head commits.
+  sourceRepos:
+    - https://github.com/arikkfir-org/fin
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: fin-pr-*
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+      name: fin-pr-*
+  namespaceResourceWhitelist:
+    - group: apps
+      kind: Deployment
+    - group: apps
+      kind: StatefulSet
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ConfigMap
+    - group: ""
+      kind: ResourceQuota
+    - group: batch
+      kind: Job
+    - group: policy
+      kind: PodDisruptionBudget
+    - group: networking.k8s.io
+      kind: NetworkPolicy
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+    - group: external-secrets.io
+      kind: ExternalSecret
+    - group: generators.external-secrets.io
+      kind: Password
