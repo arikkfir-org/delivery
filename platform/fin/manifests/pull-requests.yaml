@@ -1,4 +1,4 @@
-# A deployment of every open pull request into fin's main: namespace fin-pr-<number>, at
+# A deployment of every open pull request of fin, whatever its base branch: namespace fin-pr-<number>, at
 # pr-<number>.app.dev.fin.kfirs.com and pr-<number>.api.dev.fin.kfirs.com through the shared Gateway
 # traefik/fin-pull-requests (pull-requests-gateway.yaml), running the pull request's head commit with a database reset
 # on every sync. The generator lists fin's pull requests through Argo CD's GitHub App (Secret github-app,
@@ -20,8 +20,6 @@ spec:
           owner: arikkfir-org
           repo: fin
           appSecretName: github-app
-        filters:
-          - targetBranchMatch: ^main$
         requeueAfterSeconds: 60
   template:
     metadata:
