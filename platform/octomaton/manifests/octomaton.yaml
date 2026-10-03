@@ -1,0 +1,48 @@
+# Octomaton, namespace octomaton, at octomaton.dev. Its deployment lives with its code, in deploy/ of
+# arikkfir-org/octomaton. Argo CD follows octomaton's main and runs the image of the synced commit, which Octomaton's
+# release publishes for every push to main, tagged with the commit's short SHA. No CreateNamespace: deploy/ holds the
+# Namespace, which Argo CD creates before anything else. No resources finalizer: deleting this Application leaves
+# Octomaton running.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: octomaton
+  namespace: argocd
+spec:
+  project: octomaton
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: octomaton
+  # deploy/ as written, with what this repository decides: the image's tag, and the namespace's admission to the public
+  # gateway, for GitHub's webhook deliveries.
+  source:
+    repoURL: https://github.com/arikkfir-org/octomaton
+    targetRevision: main
+    path: deploy
+    kustomize:
+      images:
+        - "me-west1-docker.pkg.dev/arikkfir/images/octomaton:${ARGOCD_APP_REVISION_SHORT}"
+      patches:
+        - target:
+            kind: Namespace
+            name: octomaton
+          patch: |-
+            apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: octomaton
+              labels:
+                kfirs.com/public-ingress: "true"
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 10
+      refresh: true
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+    syncOptions:
+      - SkipDryRunOnMissingResource=true

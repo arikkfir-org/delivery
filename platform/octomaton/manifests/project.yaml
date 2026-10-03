@@ -1,0 +1,52 @@
+# The project of Octomaton's deployment. Its source, deploy/ in arikkfir-org/octomaton, comes from octomaton's main, so
+# a merge there changes the cluster; this holds it to what Octomaton needs: namespace octomaton, its own ClusterRoles
+# and ClusterRoleBinding, and the namespaced kinds deploy/ holds. Wave -1: before the Application that names it.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: octomaton
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  description: Octomaton, from octomaton's main.
+  sourceRepos:
+    - https://github.com/arikkfir-org/octomaton
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: octomaton
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+      name: octomaton
+    # Octomaton's own (octomaton) and what it may do in a tenant namespace (octomaton-tenant, bound by ci-tenants).
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: octomaton
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: octomaton-tenant
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+      name: octomaton
+  namespaceResourceWhitelist:
+    - group: ""
+      kind: ServiceAccount
+    - group: rbac.authorization.k8s.io
+      kind: Role
+    - group: rbac.authorization.k8s.io
+      kind: RoleBinding
+    - group: ""
+      kind: ConfigMap
+    - group: external-secrets.io
+      kind: ExternalSecret
+    - group: apps
+      kind: Deployment
+    - group: policy
+      kind: PodDisruptionBudget
+    - group: ""
+      kind: Service
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+    - group: networking.k8s.io
+      kind: NetworkPolicy
