@@ -1,7 +1,7 @@
 # Every pull request's environment shares this Gateway and its one certificate, so a pull request issues none: a
 # certificate each would run into Let's Encrypt's 50 a week for kfirs.com, which the hub's own certificates share. A
-# wildcard covers one label, so a pull request's hosts are pr-<number>.app.fin.dev.kfirs.com and
-# pr-<number>.api.fin.dev.kfirs.com, and two wildcards cover them all. Both listeners are on Traefik's protected entry
+# wildcard covers one label, so a pull request's hosts are pr-<number>.app.dev.fin.kfirs.com and
+# pr-<number>.api.dev.fin.kfirs.com, and two wildcards cover them all. Both listeners are on Traefik's protected entry
 # point (8443), behind the hub's sign-in, and take routes only from namespaces labelled kfirs.com/pull-request, which
 # fin-http-routes holds to their own two hosts. In traefik, out of every pull request's reach, no pull request's code
 # can read the certificate's private key. Wave 0 issues the certificate before the Gateway (wave 1) references its
@@ -14,8 +14,8 @@ metadata:
 spec:
   secretName: fin-pull-requests-tls
   dnsNames:
-    - "*.app.fin.dev.kfirs.com"
-    - "*.api.fin.dev.kfirs.com"
+    - "*.app.dev.fin.kfirs.com"
+    - "*.api.dev.fin.kfirs.com"
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
@@ -34,7 +34,7 @@ spec:
     - name: app
       protocol: HTTPS
       port: 8443
-      hostname: "*.app.fin.dev.kfirs.com"
+      hostname: "*.app.dev.fin.kfirs.com"
       tls:
         mode: Terminate
         certificateRefs:
@@ -49,7 +49,7 @@ spec:
     - name: api
       protocol: HTTPS
       port: 8443
-      hostname: "*.api.fin.dev.kfirs.com"
+      hostname: "*.api.dev.fin.kfirs.com"
       tls:
         mode: Terminate
         certificateRefs:

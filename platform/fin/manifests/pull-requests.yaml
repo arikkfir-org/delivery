@@ -1,5 +1,5 @@
 # A deployment of every open pull request into fin's main: namespace fin-pr-<number>, at
-# pr-<number>.app.fin.dev.kfirs.com and pr-<number>.api.fin.dev.kfirs.com through the shared Gateway
+# pr-<number>.app.dev.fin.kfirs.com and pr-<number>.api.dev.fin.kfirs.com through the shared Gateway
 # traefik/fin-pull-requests (pull-requests-gateway.yaml), running the pull request's head commit with a database reset
 # on every sync. The generator lists fin's pull requests through Argo CD's GitHub App (Secret github-app,
 # platform/argocd) every minute; when one closes, its Application goes and the resources finalizer deletes the
@@ -62,8 +62,8 @@ spec:
                   path: /data
                   value:
                     name: "pr-{{ .number }}"
-                    app: "pr-{{ .number }}.app.fin.dev.kfirs.com"
-                    api: "pr-{{ .number }}.api.fin.dev.kfirs.com"
+                    app: "pr-{{ .number }}.app.dev.fin.kfirs.com"
+                    api: "pr-{{ .number }}.api.dev.fin.kfirs.com"
             # The shared Gateway serves the pull request with its one certificate: none of its own, and its routes
             # attach there, each to the listener its host matches.
             - target:
