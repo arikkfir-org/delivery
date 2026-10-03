@@ -1,0 +1,38 @@
+# Fin's production: namespace fin, at app.fin.kfirs.com and api.fin.kfirs.com. Its deployment lives with its code, in
+# deploy/ of arikkfir-org/fin, which is production as written. Argo CD follows fin's main and runs the images of the
+# synced commit, which fin's release publishes for every push to main, tagged with the commit's short SHA. Each sync
+# migrates the database first (the migrate Job). No CreateNamespace: deploy/ holds the Namespace, which Argo CD creates
+# before anything else. No resources finalizer, and the namespace is Delete=false: deleting this Application leaves
+# production, and its database, running.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fin
+  namespace: argocd
+spec:
+  project: fin
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fin
+  source:
+    repoURL: https://github.com/arikkfir-org/fin
+    targetRevision: main
+    path: deploy
+    kustomize:
+      images:
+        - "fin-api=me-west1-docker.pkg.dev/arikkfir/images/fin-api:${ARGOCD_APP_REVISION_SHORT}"
+        - "fin-web=me-west1-docker.pkg.dev/arikkfir/images/fin-web:${ARGOCD_APP_REVISION_SHORT}"
+        - "fin-migrations=me-west1-docker.pkg.dev/arikkfir/images/fin-migrations:${ARGOCD_APP_REVISION_SHORT}"
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 10
+      refresh: true
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+    syncOptions:
+      - SkipDryRunOnMissingResource=true

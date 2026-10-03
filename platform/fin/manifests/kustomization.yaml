@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - projects.yaml
+  - namespaces-policy.yaml
+  - services-policy.yaml
+  - gateways-policy.yaml
+  - http-routes-policy.yaml
+  - certificates-policy.yaml
+  - external-secrets-policy.yaml
+  - production.yaml
+  - pull-requests-gateway.yaml
+  - pull-requests.yaml

@@ -3,3 +3,4 @@ kind: Kustomization
 namespace: ci-fin
 resources:
   - ../../base
+  - images.yaml
