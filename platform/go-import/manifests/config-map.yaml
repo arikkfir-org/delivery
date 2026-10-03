@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: go-import
+  namespace: go-import
+  labels:
+    app.kubernetes.io/name: go-import
+data:
+  # Replaces the image's Caddyfile. The go command resolves a module path such as fin.kfirs.com/apps/api by fetching
+  # https://fin.kfirs.com/apps/api?go-get=1 and reading its go-import meta tag: the repository whose root is
+  # fin.kfirs.com. Every other request is sent to that repository.
+  Caddyfile: |
+    {
+    	admin off
+    	auto_https off
+    	persist_config off
+    }
+
+    :8080 {
+    	log
+    	log_skip /healthz
+
+    	handle /healthz {
+    		respond "ok" 200
+    	}
+
+    	@fin-go-get {
+    		host fin.kfirs.com
+    		query go-get=1
+    	}
+    	handle @fin-go-get {
+    		header Content-Type "text/html; charset=utf-8"
+    		respond `<!DOCTYPE html><meta name="go-import" content="fin.kfirs.com git https://github.com/arikkfir-org/fin">` 200
+    	}
+
+    	@fin host fin.kfirs.com
+    	handle @fin {
+    		redir https://github.com/arikkfir-org/fin 302
+    	}
+
+    	handle {
+    		respond 404
+    	}
+    }

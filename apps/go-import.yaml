@@ -1,0 +1,35 @@
+# Go import pages for the hub's own module paths: fin.kfirs.com, Fin's (arikkfir-org/fin). Octomaton serves its own,
+# octomaton.dev, from its deploy/. Wave 4: its route needs Traefik's Gateway API.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: go-import
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: go-import
+  source:
+    repoURL: https://github.com/arikkfir-org/delivery
+    targetRevision: main
+    path: platform/go-import/manifests
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    managedNamespaceMetadata:
+      labels:
+        kfirs.com/public-ingress: "true"
+    retry:
+      limit: 10
+      refresh: true
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+    syncOptions:
+      - CreateNamespace=true
+      - SkipDryRunOnMissingResource=true
