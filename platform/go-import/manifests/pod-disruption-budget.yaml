@@ -1,0 +1,11 @@
+# One replica at a time may be evicted (node upgrades, drains, scale-down); the other keeps serving.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: go-import
+  namespace: go-import
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: go-import
