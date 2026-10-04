@@ -1,10 +1,10 @@
 # A deployment of every open pull request of fin, whatever its base branch: namespace fin-pr-<number>, at
-# pr-<number>.app.dev.fin.kfirs.com and pr-<number>.api.dev.fin.kfirs.com through the shared Gateway
-# traefik/fin-pull-requests (pull-requests-gateway.yaml), running the pull request's head commit with a database reset
-# on every sync. The generator lists fin's pull requests through Argo CD's GitHub App (Secret github-app,
-# platform/argocd) every minute; when one closes, its Application goes and the resources finalizer deletes the
-# deployment, namespace and database included. The template uses only the pull request's number and head SHA, never
-# its branch or title. No CreateNamespace: deploy/ holds the Namespace, which Argo CD creates before anything else.
+# pr-<number>.app.dev.fin.kfirs.com, the API under /api, through the shared Gateway traefik/fin-pull-requests
+# (pull-requests-gateway.yaml), running the pull request's head commit with a database reset on every sync. The
+# generator lists fin's pull requests through Argo CD's GitHub App (Secret github-app, platform/argocd) every minute;
+# when one closes, its Application goes and the resources finalizer deletes the deployment, namespace and database
+# included. The template uses only the pull request's number and head SHA, never its branch or title. No
+# CreateNamespace: deploy/ holds the Namespace, which Argo CD creates before anything else.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -63,7 +63,6 @@ spec:
                   value:
                     name: "pr-{{ .number }}"
                     app: "pr-{{ .number }}.app.dev.fin.kfirs.com"
-                    api: "pr-{{ .number }}.api.dev.fin.kfirs.com"
             # The shared Gateway serves the pull request with its one certificate: none of its own, and its routes
             # attach there, each to the listener its host matches.
             - target:
