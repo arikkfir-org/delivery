@@ -1,0 +1,70 @@
+# Fin's deployments scale through KEDA: ScaledObjects for their Deployments, a ScaledJob that starts a Job per scrape.
+# KEDA's operator evaluates their triggers from its own namespace, with its own network position and Kubernetes rights,
+# so a trigger could make it connect anywhere or read secrets elsewhere. In a Fin environment the triggers are cpu,
+# memory and postgresql only, the last on the environment's own database, by host; a trigger authenticates through a
+# TriggerAuthentication of its namespace, never a ClusterTriggerAuthentication, and that passes only a password from a
+# Secret beside it: no pod identity, environment, vault, secret manager, token or file. Matched by the namespace's name.
+# Wave -1: in force before any deployment.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: fin-keda
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - keda.sh
+        apiVersions:
+          - "*"
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - scaledobjects
+          - scaledjobs
+          - triggerauthentications
+  matchConditions:
+    - name: fin
+      expression: "request.namespace == 'fin' || request.namespace.startsWith('fin-pr-')"
+  variables:
+    - name: database
+      expression: "'postgres.' + request.namespace + '.svc.cluster.local'"
+  validations:
+    - expression: >-
+        request.kind.kind == 'TriggerAuthentication'
+        || object.spec.triggers.all(t, t.type in ['cpu', 'memory', 'postgresql'])
+      message: A Fin environment scales on the cpu, memory and postgresql triggers only.
+    - expression: >-
+        request.kind.kind == 'TriggerAuthentication'
+        || object.spec.triggers.all(t, t.type != 'postgresql'
+          || (has(t.metadata) && 'host' in t.metadata && t.metadata['host'] == variables.database
+            && !('connection' in t.metadata) && !('connectionFromEnv' in t.metadata)))
+      messageExpression: "'A postgresql trigger in ' + request.namespace + ' connects to host ' + variables.database + ' only.'"
+    - expression: >-
+        request.kind.kind == 'TriggerAuthentication'
+        || object.spec.triggers.all(t, !has(t.authenticationRef) || !has(t.authenticationRef.kind)
+          || t.authenticationRef.kind == 'TriggerAuthentication')
+      message: A trigger in a Fin environment authenticates through a TriggerAuthentication of its own namespace.
+    - expression: >-
+        request.kind.kind != 'TriggerAuthentication'
+        || (!has(object.spec.podIdentity) && !has(object.spec.env) && !has(object.spec.hashiCorpVault)
+          && !has(object.spec.azureKeyVault) && !has(object.spec.azureServicePrincipal)
+          && !has(object.spec.gcpSecretManager) && !has(object.spec.awsSecretManager)
+          && !has(object.spec.configMapTargetRef) && !has(object.spec.boundServiceAccountToken)
+          && !has(object.spec.filePath) && !has(object.spec.oauth2)
+          && has(object.spec.secretTargetRef) && object.spec.secretTargetRef.all(s, s.parameter == 'password'))
+      message: A TriggerAuthentication in a Fin environment passes only a password, from a Secret of its own namespace.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: fin-keda
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: fin-keda
+  validationActions:
+    - Deny

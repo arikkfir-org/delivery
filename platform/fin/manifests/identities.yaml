@@ -1,0 +1,31 @@
+# Production's ServiceAccounts, api, worker and scraper in namespace fin: Fin's code may not make ServiceAccounts
+# (projects.yaml), and each workload needs an identity of its own for its Google grants (infra, terraform/gcp), so the
+# scraper can't read back what it wrote. A pull request's pods run as default and reach Google through pool
+# fin-pull-requests (infra), limited to namespaces named fin-pr-*. An Application of its own, beside Application fin
+# rather than in a wave before it: namespace fin comes from Fin's deploy/, so on a new cluster this one retries until fin
+# has made it, and neither waits on the other.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fin-identities
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fin
+  source:
+    repoURL: https://github.com/arikkfir-org/delivery
+    targetRevision: main
+    path: platform/fin/identities
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 10
+      refresh: true
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m

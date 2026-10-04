@@ -43,6 +43,8 @@ spec:
           # pull from.
           images:
             - "fin-api=me-west1-docker.pkg.dev/arikkfir/previews/fin-api:${ARGOCD_APP_REVISION_SHORT}"
+            - "fin-worker=me-west1-docker.pkg.dev/arikkfir/previews/fin-worker:${ARGOCD_APP_REVISION_SHORT}"
+            - "fin-scraper=me-west1-docker.pkg.dev/arikkfir/previews/fin-scraper:${ARGOCD_APP_REVISION_SHORT}"
             - "fin-web=me-west1-docker.pkg.dev/arikkfir/previews/fin-web:${ARGOCD_APP_REVISION_SHORT}"
             - "fin-migrations=me-west1-docker.pkg.dev/arikkfir/previews/fin-migrations:${ARGOCD_APP_REVISION_SHORT}"
           # A pull request has no availability to keep.
@@ -109,10 +111,10 @@ spec:
                 - op: replace
                   path: /spec/hard
                   value:
-                    requests.cpu: "1"
-                    requests.memory: 2Gi
-                    limits.memory: 4Gi
-                    pods: "10"
+                    requests.cpu: "2"
+                    requests.memory: 4Gi
+                    limits.memory: 8Gi
+                    pods: "15"
                     persistentvolumeclaims: "1"
                     requests.storage: 5Gi
             # One replica each: a budget would block node drains or protect nothing.
@@ -149,9 +151,15 @@ spec:
                             apiVersion: generators.external-secrets.io/v1alpha1
                             kind: Password
                             name: db
-          # Every deployment starts from what its migrations create: Job migrate resets the schema first.
+          # Every deployment starts from what its migrations create: Job migrate resets the schema first. What else differs
+          # inside a pull request's environment, and grants nothing, is fin's own components/pull-request: its pods run as
+          # default and reach Google through pool fin-pull-requests (infra), whose grants are fixed there; its NATS
+          # resources go with the namespace; it runs one replica and one scrape at a time, with a generated sealing key and
+          # Demo Bank only. A head commit that predates it deploys without it.
           components:
             - components/reset-database
+            - components/pull-request
+          ignoreMissingComponents: true
       syncPolicy:
         automated:
           prune: true

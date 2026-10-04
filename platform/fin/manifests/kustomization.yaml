@@ -8,6 +8,10 @@ resources:
   - http-routes-policy.yaml
   - certificates-policy.yaml
   - external-secrets-policy.yaml
+  - jetstream-policy.yaml
+  - keda-policy.yaml
+  - middlewares-policy.yaml
+  - identities.yaml
   - production.yaml
   - pull-requests-gateway.yaml
   - pull-requests.yaml

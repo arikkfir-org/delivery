@@ -1,4 +1,4 @@
-# Fin's production: namespace fin, at app.fin.kfirs.com and api.fin.kfirs.com. Its deployment lives with its code, in
+# Fin's production: namespace fin, at app.fin.kfirs.com (and api.fin.kfirs.com until the API moves to /api). Its deployment lives with its code, in
 # deploy/ of arikkfir-org/fin, which is production as written. Argo CD follows fin's main and runs the images of the
 # synced commit, which fin's release publishes for every push to main, tagged with the commit's short SHA. Each sync
 # migrates the database first (the migrate Job). No CreateNamespace: deploy/ holds the Namespace, which Argo CD creates
@@ -21,6 +21,8 @@ spec:
     kustomize:
       images:
         - "fin-api=me-west1-docker.pkg.dev/arikkfir/images/fin-api:${ARGOCD_APP_REVISION_SHORT}"
+        - "fin-worker=me-west1-docker.pkg.dev/arikkfir/images/fin-worker:${ARGOCD_APP_REVISION_SHORT}"
+        - "fin-scraper=me-west1-docker.pkg.dev/arikkfir/images/fin-scraper:${ARGOCD_APP_REVISION_SHORT}"
         - "fin-web=me-west1-docker.pkg.dev/arikkfir/images/fin-web:${ARGOCD_APP_REVISION_SHORT}"
         - "fin-migrations=me-west1-docker.pkg.dev/arikkfir/images/fin-migrations:${ARGOCD_APP_REVISION_SHORT}"
   syncPolicy:
