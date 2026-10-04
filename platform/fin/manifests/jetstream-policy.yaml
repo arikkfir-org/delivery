@@ -1,0 +1,102 @@
+# Fin's deployments declare their own NATS streams, consumers and key-value buckets as NACK resources, which NACK applies
+# to the hub's one cluster. NATS takes connections without credentials, so a resource named like another environment's
+# would take that environment's stream over: each environment keeps to its own names and subjects. In fin they are
+# fin-production-… and fin.production.…, in fin-pr-<number> fin-pr-<number>-… and fin.pr-<number>.…, and a stream may
+# also keep the delivery advisories of the environment's own streams, as its dead-letters stream does. Every resource
+# uses NACK's connection: no servers, credentials, TLS, account or domain of its own. No mirrors or sources, which read
+# other streams, and republishing and transforms stay inside the environment's subjects. Matched by the namespace's
+# name. Wave -1: in force before any deployment.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: fin-jetstream
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - jetstream.nats.io
+        apiVersions:
+          - "*"
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - streams
+          - consumers
+          - keyvalues
+  matchConditions:
+    - name: fin
+      expression: "request.namespace == 'fin' || request.namespace.startsWith('fin-pr-')"
+  variables:
+    - name: env
+      expression: "request.namespace == 'fin' ? 'production' : request.namespace.substring(4)"
+    - name: prefix
+      expression: "'fin-' + variables.env + '-'"
+    - name: subjects
+      expression: "'fin.' + variables.env + '.'"
+    - name: advisories
+      expression: >-
+        ['$JS.EVENT.ADVISORY.CONSUMER.MAX_DELIVERIES.', '$JS.EVENT.ADVISORY.CONSUMER.MSG_TERMINATED.'].map(a,
+          a + variables.prefix)
+  validations:
+    - expression: >-
+        (!has(object.spec.servers) || size(object.spec.servers) == 0)
+        && (!has(object.spec.creds) || object.spec.creds == '')
+        && (!has(object.spec.nkey) || object.spec.nkey == '')
+        && !has(object.spec.tls)
+        && (!has(object.spec.account) || object.spec.account == '')
+        && (!has(object.spec.jsDomain) || object.spec.jsDomain == '')
+      message: >-
+        A NATS resource in a Fin environment uses NACK's connection: no servers, credentials, TLS, account or domain of
+        its own.
+    - expression: >-
+        request.kind.kind != 'Stream'
+        || (has(object.spec.name) && object.spec.name.startsWith(variables.prefix)
+          && has(object.spec.subjects) && size(object.spec.subjects) > 0
+          && object.spec.subjects.all(s, s.startsWith(variables.subjects)
+            || variables.advisories.exists(a, s.startsWith(a))))
+      messageExpression: >-
+        'A Stream in ' + request.namespace + ' is named ' + variables.prefix + '… and takes subjects under '
+          + variables.subjects + ' or the advisories of the environment\'s own streams.'
+    - expression: >-
+        request.kind.kind != 'KeyValue' || (has(object.spec.bucket) && object.spec.bucket.startsWith(variables.prefix))
+      messageExpression: "'A KeyValue bucket in ' + request.namespace + ' is named ' + variables.prefix + '…'"
+    - expression: >-
+        request.kind.kind != 'Consumer'
+        || (has(object.spec.streamName) && object.spec.streamName.startsWith(variables.prefix)
+          && (!has(object.spec.filterSubject) || object.spec.filterSubject == ''
+            || object.spec.filterSubject.startsWith(variables.subjects)
+            || variables.advisories.exists(a, object.spec.filterSubject.startsWith(a)))
+          && (!has(object.spec.filterSubjects) || object.spec.filterSubjects.all(s, s.startsWith(variables.subjects)
+            || variables.advisories.exists(a, s.startsWith(a))))
+          && (!has(object.spec.deliverSubject) || object.spec.deliverSubject == ''
+            || object.spec.deliverSubject.startsWith(variables.subjects)))
+      messageExpression: >-
+        'A Consumer in ' + request.namespace + ' reads a stream named ' + variables.prefix + '…, filters and delivers '
+          + 'under ' + variables.subjects + ' (or the environment\'s advisories).'
+    - expression: >-
+        request.kind.kind == 'Consumer'
+        || (!has(object.spec.mirror) && (!has(object.spec.sources) || size(object.spec.sources) == 0)
+          && (!has(object.spec.republish) || !has(object.spec.republish.destination)
+            || object.spec.republish.destination.startsWith(variables.subjects)))
+      messageExpression: >-
+        'A Stream or KeyValue bucket in ' + request.namespace + ' has no mirror or sources, and republishes only under '
+          + variables.subjects
+    - expression: >-
+        request.kind.kind != 'Stream' || !has(object.spec.subjectTransform) || !has(object.spec.subjectTransform.dest)
+        || object.spec.subjectTransform.dest.startsWith(variables.subjects)
+      messageExpression: "'A Stream in ' + request.namespace + ' transforms subjects only into ' + variables.subjects"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: fin-jetstream
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: fin-jetstream
+  validationActions:
+    - Deny

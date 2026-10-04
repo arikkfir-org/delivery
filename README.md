@@ -36,10 +36,16 @@ Each file there is an Application in namespace `argocd`, project `default`:
   `arikkfir-org/fin` (Kustomize) is production as written: Application `fin` deploys it from that repository's `main`
   into namespace `fin`, and ApplicationSet `fin-pull-requests` deploys each open pull request's head commit into
   `fin-pr-<number>`, overriding what differs in its `kustomize` options (images, namespace, replicas, patches such as
-  the host names, and the component that resets the database). Fin's code holds its own Namespace, routes and
-  ExternalSecrets, and production's its Gateway and certificate too, so AppProjects `fin` and `fin-pull-requests` admit
-  only its kinds, admission policies hold what they may say, and `gcp-secret-manager` serves no pull request (all in
-  `platform/fin/manifests` but the store's conditions). Pull requests share Gateway `traefik/fin-pull-requests` and its
+  the host names, and the components that reset the database and hold what else differs inside a pull request's
+  environment). Fin's code holds its own Namespace, routes, ExternalSecrets, NATS resources (NACK), autoscaling (KEDA)
+  and the Middleware that copies the hub's ID token, and production's its Gateway and certificate too, so AppProjects
+  `fin` and `fin-pull-requests` admit only its kinds, admission policies hold what they may say, and
+  `gcp-secret-manager` serves no pull request (all in `platform/fin/manifests` but the store's conditions).
+  Production's ServiceAccounts `api`, `worker` and `scraper` come from Application `fin-identities`
+  (`platform/fin/identities`), since Fin's code makes none; a pull request's pods run as `default` and reach Google
+  through infra's pool `fin-pull-requests`. NATS takes no credentials, so NetworkPolicy `nats/nats`
+  (`platform/nats/manifests`) admits only namespace `nats` and, on the client port, Fin's namespaces: `fin` and those
+  labelled `kfirs.com/pull-request: "true"`. Pull requests share Gateway `traefik/fin-pull-requests` and its
   one wildcard certificate, so a pull request issues no certificate. Argo CD reads `fin`, an internal repository, and
   lists its pull requests with its own GitHub App (Secret `argocd/github-app`).
 - Every Application syncs automatically with prune and self-heal, retries with backoff (`refresh: true`, so a retry

@@ -1,0 +1,30 @@
+# NATS takes no credentials, so this decides who reaches its servers (hub reference, "Namespaces"): anything in this
+# namespace (the servers' own routes, NACK, NUI and nats-box), and Fin's environments on the client port only:
+# production's namespace by name, and every pull request's by the label Fin's ApplicationSet gives it, the one that
+# also admits its routes to traefik/fin-pull-requests. No other namespace reaches NATS, CI tenants included.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nats
+  namespace: nats
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: nats
+      app.kubernetes.io/instance: nats
+      app.kubernetes.io/component: nats
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector: {}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: fin
+        - namespaceSelector:
+            matchLabels:
+              kfirs.com/pull-request: "true"
+      ports:
+        - protocol: TCP
+          port: 4222

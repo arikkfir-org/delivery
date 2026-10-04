@@ -1,9 +1,11 @@
 # The projects of Fin's deployments. Their source, deploy/ in arikkfir-org/fin, comes from fin's main for production
 # and from each pull request's head commit for its deployment, so these admit only what it needs: the environment's
-# Namespace and, in it, its workloads, database, secrets and routes, and production's certificate and Gateway (a pull
-# request's routes attach to the shared traefik/fin-pull-requests). Never RBAC, ServiceAccounts, Secrets, secret stores
-# or generators other than Password, Issuers, CertificateRequests or ReferenceGrants. The admission policies here hold
-# what the admitted kinds may do. Wave -1: before the Applications that name them.
+# Namespace and, in it, its workloads, database, secrets, routes, NATS resources (NACK), autoscaling (KEDA) and the
+# Middleware that copies the hub's ID token, and production's certificate and Gateway (a pull request's routes attach to
+# the shared traefik/fin-pull-requests). Never RBAC, ServiceAccounts (production's come from Application
+# fin-identities), Secrets, secret stores or generators other than Password, Issuers, CertificateRequests,
+# ReferenceGrants or ClusterTriggerAuthentications. The admission policies here hold what the admitted kinds may do.
+# Wave -1: before the Applications that name them.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -49,6 +51,20 @@ spec:
       kind: ExternalSecret
     - group: generators.external-secrets.io
       kind: Password
+    - group: jetstream.nats.io
+      kind: Stream
+    - group: jetstream.nats.io
+      kind: Consumer
+    - group: jetstream.nats.io
+      kind: KeyValue
+    - group: keda.sh
+      kind: ScaledObject
+    - group: keda.sh
+      kind: ScaledJob
+    - group: keda.sh
+      kind: TriggerAuthentication
+    - group: traefik.io
+      kind: Middleware
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
@@ -91,3 +107,17 @@ spec:
       kind: ExternalSecret
     - group: generators.external-secrets.io
       kind: Password
+    - group: jetstream.nats.io
+      kind: Stream
+    - group: jetstream.nats.io
+      kind: Consumer
+    - group: jetstream.nats.io
+      kind: KeyValue
+    - group: keda.sh
+      kind: ScaledObject
+    - group: keda.sh
+      kind: ScaledJob
+    - group: keda.sh
+      kind: TriggerAuthentication
+    - group: traefik.io
+      kind: Middleware

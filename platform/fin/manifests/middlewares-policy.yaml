@@ -1,0 +1,65 @@
+# Fin's API validates the hub's ID token itself, as Argo CD does: its routes add a ForwardAuth to oauth2-proxy that copies
+# the token's Authorization header to the request. Gateway API filters reach Traefik middlewares only in the route's own
+# namespace, so Fin's deployments bring that one Middleware, and a Middleware in a Fin environment can be nothing else:
+# no header rewrites, redirects, plugins or other ForwardAuths, which could forge the identity headers the hub's sign-in
+# sets or send requests elsewhere. Matched by the namespace's name. Wave -1: in force before any deployment.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: fin-middlewares
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - traefik.io
+        apiVersions:
+          - "*"
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - middlewares
+  matchConditions:
+    - name: fin
+      expression: "request.namespace == 'fin' || request.namespace.startsWith('fin-pr-')"
+  validations:
+    - expression: >-
+        has(object.spec.forwardAuth)
+        && !has(object.spec.addPrefix) && !has(object.spec.basicAuth) && !has(object.spec.buffering)
+        && !has(object.spec.chain) && !has(object.spec.circuitBreaker) && !has(object.spec.compress)
+        && !has(object.spec.contentType) && !has(object.spec.digestAuth) && !has(object.spec.encodedCharacters)
+        && !has(object.spec.errors) && !has(object.spec.grpcWeb) && !has(object.spec.headers)
+        && !has(object.spec.inFlightReq) && !has(object.spec.ipAllowList) && !has(object.spec.ipWhiteList)
+        && !has(object.spec.passTLSClientCert) && !has(object.spec.plugin) && !has(object.spec.rateLimit)
+        && !has(object.spec.redirectRegex) && !has(object.spec.redirectScheme) && !has(object.spec.replacePath)
+        && !has(object.spec.replacePathRegex) && !has(object.spec.retry) && !has(object.spec.stripPrefix)
+        && !has(object.spec.stripPrefixRegex)
+      message: A Middleware in a Fin environment is a ForwardAuth and nothing else.
+    - expression: >-
+        has(object.spec.forwardAuth.address)
+        && object.spec.forwardAuth.address == 'http://oauth2-proxy.auth.svc.cluster.local/'
+        && has(object.spec.forwardAuth.authResponseHeaders)
+        && object.spec.forwardAuth.authResponseHeaders == ['Authorization']
+        && !has(object.spec.forwardAuth.addAuthCookiesToResponse) && !has(object.spec.forwardAuth.authRequestHeaders)
+        && !has(object.spec.forwardAuth.authResponseHeadersRegex) && !has(object.spec.forwardAuth.authSigninURL)
+        && !has(object.spec.forwardAuth.forwardBody) && !has(object.spec.forwardAuth.headerField)
+        && !has(object.spec.forwardAuth.maxBodySize) && !has(object.spec.forwardAuth.maxResponseBodySize)
+        && !has(object.spec.forwardAuth.preserveLocationHeader) && !has(object.spec.forwardAuth.preserveRequestMethod)
+        && !has(object.spec.forwardAuth.tls)
+      message: >-
+        A Middleware in a Fin environment asks oauth2-proxy (http://oauth2-proxy.auth.svc.cluster.local/) and copies its
+        Authorization header, and nothing else.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: fin-middlewares
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: fin-middlewares
+  validationActions:
+    - Deny
