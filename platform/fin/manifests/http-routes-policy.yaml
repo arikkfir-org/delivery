@@ -1,10 +1,10 @@
 # In a Fin namespace an HTTPRoute names only the environment's own hosts and attaches only to its Gateway: in fin, hosts
 # under .fin.kfirs.com but outside .dev.fin.kfirs.com, the pull requests', on a Gateway of its own namespace; in
-# fin-pr-<number>, pr-<number>.app.dev.fin.kfirs.com and pr-<number>.api.dev.fin.kfirs.com on traefik/fin-pull-requests,
-# which every pull request shares (pull-requests-gateway.yaml). Never traefik/protected, which takes routes for any
-# *.kfirs.com host from every namespace. Every rule removes Cookie: browsers send the hub's session cookie (domain
-# .kfirs.com) to Fin's hosts too, the sign-in has read it by then, and Fin's code never gets it. Matched by the
-# namespace's name. Wave -1: in force before any deployment.
+# fin-pr-<number>, pr-<number>.app.dev.fin.kfirs.com only, on traefik/fin-pull-requests, which every pull request shares
+# (pull-requests-gateway.yaml). Never traefik/protected, which takes routes for any *.kfirs.com host from every
+# namespace. Every rule removes Cookie: browsers send the hub's session cookie (domain .kfirs.com) to Fin's hosts too,
+# the sign-in has read it by then, and Fin's code never gets it. Matched by the namespace's name. Wave -1: in force
+# before any deployment.
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:
@@ -30,10 +30,10 @@ spec:
   variables:
     - name: production
       expression: "request.namespace == 'fin'"
-    # A pull request's two hosts: fin-pr-<number> serves pr-<number>.app.dev.fin.kfirs.com and its api twin.
+    # A pull request's one host: fin-pr-<number> serves pr-<number>.app.dev.fin.kfirs.com, with the API under /api.
     - name: hosts
       expression: >-
-        ['app', 'api'].map(c, request.namespace.substring(4) + '.' + c + '.dev.fin.kfirs.com')
+        [request.namespace.substring(4) + '.app.dev.fin.kfirs.com']
   validations:
     - expression: >-
         has(object.spec.hostnames) && size(object.spec.hostnames) > 0
@@ -42,8 +42,7 @@ spec:
       messageExpression: >-
         variables.production
           ? 'An HTTPRoute in fin names hosts, all under .fin.kfirs.com and none under .dev.fin.kfirs.com'
-          : 'An HTTPRoute in ' + request.namespace + ' names hosts, only ' + variables.hosts[0] + ' and '
-            + variables.hosts[1]
+          : 'An HTTPRoute in ' + request.namespace + ' names hosts, only ' + variables.hosts[0]
     - expression: >-
         !has(object.spec.parentRefs)
         || object.spec.parentRefs.all(p, (!has(p.group) || p.group == 'gateway.networking.k8s.io')
