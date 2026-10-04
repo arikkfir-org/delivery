@@ -21,6 +21,9 @@ spec:
     - repoURL: https://github.com/arikkfir-org/delivery
       targetRevision: main
       ref: values
+    - repoURL: https://github.com/arikkfir-org/delivery
+      targetRevision: main
+      path: platform/nats/manifests
   syncPolicy:
     automated:
       prune: true

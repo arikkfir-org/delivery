@@ -43,7 +43,9 @@ Each file there is an Application in namespace `argocd`, project `default`:
   `gcp-secret-manager` serves no pull request (all in `platform/fin/manifests` but the store's conditions).
   Production's ServiceAccounts `api`, `worker` and `scraper` come from Application `fin-identities`
   (`platform/fin/identities`), since Fin's code makes none; a pull request's pods run as `default` and reach Google
-  through infra's pool `fin-pull-requests`. Pull requests share Gateway `traefik/fin-pull-requests` and its
+  through infra's pool `fin-pull-requests`. NATS takes no credentials, so NetworkPolicy `nats/nats`
+  (`platform/nats/manifests`) admits only namespace `nats` and, on the client port, Fin's namespaces: `fin` and those
+  labelled `kfirs.com/pull-request: "true"`. Pull requests share Gateway `traefik/fin-pull-requests` and its
   one wildcard certificate, so a pull request issues no certificate. Argo CD reads `fin`, an internal repository, and
   lists its pull requests with its own GitHub App (Secret `argocd/github-app`).
 - Every Application syncs automatically with prune and self-heal, retries with backoff (`refresh: true`, so a retry

@@ -22,7 +22,9 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   routes, certificates, ExternalSecrets, NACK's resources, KEDA's kinds and Middlewares (Gateways and certificates in
   `fin` only); never RBAC, ServiceAccounts (production's come from Application `fin-identities`), Secrets, secret
   stores or other generators, Issuers, ReferenceGrants or ClusterTriggerAuthentications. A pull request's namespace
-  must keep its `kfirs.com/pull-request` label: it keeps `gcp-secret-manager` out of its reach.
+  must keep its `kfirs.com/pull-request` label: it keeps `gcp-secret-manager` out of its reach, and lets the namespace
+  reach NATS. NATS takes no credentials, so NetworkPolicy `nats/nats` admits only namespace `nats` and Fin's
+  namespaces; a new client's namespace goes there first.
 - Octomaton's `deploy/` comes from its `main` only and holds its own Namespace and RBAC. Overrides (the image tag, the
   namespace's `kfirs.com/public-ingress` label) go in the `kustomize` options of Application `octomaton`. AppProject
   `octomaton` admits a kind, or a cluster-scoped object by name, only once Octomaton's `deploy/` needs it; merge that
