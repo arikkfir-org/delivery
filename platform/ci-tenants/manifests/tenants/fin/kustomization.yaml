@@ -4,3 +4,4 @@ namespace: ci-fin
 resources:
   - ../../base
   - images.yaml
+  - caches.yaml
