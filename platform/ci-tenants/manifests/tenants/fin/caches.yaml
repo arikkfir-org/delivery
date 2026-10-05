@@ -1,17 +1,6 @@
-# Identities of fin's CI caches (see the reference, "GCP identities and permissions"): terraform/gcp lets the first
-# write bucket arikkfir-fin-ci-cache and the second read it through Workload Identity.
-
-# cache: builds the caches afresh on every push to main. Octomaton refuses any run that names it unless the run's
-# branch is main, so what every other run restores comes from main.
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: ci-fin-cache
-  annotations:
-    octomaton.dev/branches: main
-automountServiceAccountToken: false
----
-# ci: checks every pull request and merge group, so any branch may use it. It only reads the caches.
+# The identity of fin's ci (see the reference, "GCP identities and permissions"): any branch may use it, and
+# terraform/gcp lets it read and write bucket arikkfir-fin-ci-cache through Workload Identity. ci restores each task's
+# cache and saves it from merge queue runs; the caches hold nothing secret.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
