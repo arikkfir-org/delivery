@@ -1,7 +1,9 @@
 # Identities of fin's image pipelines (see the reference, "GCP identities and permissions"): terraform/gcp lets each
-# push to one Artifact Registry repository through Workload Identity.
+# push to one Artifact Registry repository, and restore the CI cache from bucket arikkfir-fin-ci-cache, through
+# Workload Identity.
 
-# release: production's images, to images. Octomaton refuses any run that names it unless the run's branch is main.
+# release: production's images, to images. It alone saves the CI cache. Octomaton refuses any run that names it unless
+# the run's branch is main.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
