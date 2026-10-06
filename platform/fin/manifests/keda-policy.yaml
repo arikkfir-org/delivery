@@ -29,6 +29,10 @@ spec:
   matchConditions:
     - name: fin
       expression: "request.namespace == 'fin' || request.namespace.startsWith('fin-pr-')"
+    # An update that leaves the spec as it was passes: the garbage collector deletes an object with one, dropping its
+    # finalizer, and an object made before this policy last tightened must still go.
+    - name: changed
+      expression: "request.operation == 'CREATE' || object.spec != oldObject.spec"
   variables:
     - name: database
       expression: "'postgres.' + request.namespace + '.svc.cluster.local'"
