@@ -25,6 +25,11 @@ spec:
   matchConditions:
     - name: fin
       expression: "request.namespace == 'fin' || request.namespace.startsWith('fin-pr-')"
+    # Deleting an object, the garbage collector drops its finalizer with an update that leaves the spec as it was; that
+    # update passes, so an object made before this policy last tightened still goes. Every other update is checked.
+    - name: changed
+      expression: >-
+        request.operation == 'CREATE' || !has(oldObject.metadata.deletionTimestamp) || object.spec != oldObject.spec
   validations:
     - expression: >-
         has(object.spec.forwardAuth)
