@@ -25,11 +25,12 @@ spec:
   matchConditions:
     - name: fin
       expression: "object.metadata.name == 'fin' || object.metadata.name.startsWith('fin-pr-')"
-    # An update that leaves the labels as they were passes: the garbage collector deletes a namespace with one,
-    # dropping its finalizer, and a namespace made before this policy last tightened must still go.
+    # Deleting a namespace, the garbage collector drops its finalizer with an update that leaves the labels as they
+    # were; that update passes, so a namespace made before this policy last tightened still goes. Every other update is
+    # checked.
     - name: changed
       expression: >-
-        request.operation == 'CREATE'
+        request.operation == 'CREATE' || !has(oldObject.metadata.deletionTimestamp)
         || (has(object.metadata.labels) ? object.metadata.labels : {})
           != (has(oldObject.metadata.labels) ? oldObject.metadata.labels : {})
   validations:
