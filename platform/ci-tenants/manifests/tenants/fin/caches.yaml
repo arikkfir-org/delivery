@@ -1,6 +1,6 @@
 # The identity of fin's ci (see the reference, "GCP identities and permissions"): any branch may use it, and
-# terraform/gcp lets it read and write bucket arikkfir-fin-ci-cache through Workload Identity. ci restores each task's
-# cache and saves it on pushes to main; the caches hold nothing secret.
+# terraform/gcp lets it read bucket arikkfir-fin-ci-cache through Workload Identity. ci restores the cache that
+# release saves; it holds nothing secret.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
