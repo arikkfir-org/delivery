@@ -30,6 +30,19 @@ data:
     		respond "ok" 200
     	}
 
+    	# CI runs' reports (see the reference, "Docs site"): /reports/<repository>/<run>/ serves the bucket's
+    	# .reports/<repository>/<run>/ as it is, apart from the layers. A folder serves its index.html, and is never
+    	# listed. Caddy tries a handle with a single path before those with named matchers, so hidden paths are refused
+    	# here too.
+    	handle /reports/* {
+    		@hiddenReport path_regexp /\.
+    		respond @hiddenReport 404
+    		uri strip_prefix /reports
+    		root * /srv/site/.reports
+    		header Cache-Control "private, max-age=300"
+    		file_server
+    	}
+
     	# Hidden paths, the layers included, are never served.
     	@hidden path_regexp /\.
     	handle @hidden {
