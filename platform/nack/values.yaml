@@ -1,5 +1,8 @@
-# JetStream controller; its CRDs ship in the chart's crds/ directory, which Argo CD applies.
+# JetStream controller; its CRDs ship in the chart's crds/ directory, which Argo CD applies. Its control-loop mode is the
+# one that applies KeyValue resources, as Fin's buckets are, as well as streams and consumers: the legacy mode ignores
+# them.
 jetstream:
   enabled: true
+  controlLoop: true
   nats:
     url: nats://nats.nats.svc.cluster.local:4222
