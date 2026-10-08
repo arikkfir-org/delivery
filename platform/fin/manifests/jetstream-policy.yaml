@@ -1,10 +1,10 @@
 # Fin's deployments declare their own NATS streams, consumers and key-value buckets as NACK resources, which NACK applies
 # to the hub's one cluster. NATS takes connections without credentials, so a resource named like another environment's
 # would take that environment's stream over: each environment keeps to its own names and subjects. In fin they are
-# fin-production-… and fin.production.…, in fin-pr-<number> fin-pr-<number>-… and fin.pr-<number>.…, in a merge queue
-# entry's fin-pr-<number>-merge fin-pr-<number>-merge-… and fin.pr-<number>-merge.…, and a stream may also keep the
-# delivery advisories of the environment's own streams, as its dead-letters stream does. A merge queue entry's names
-# begin with its pull request's prefix, so a pull request's resources may not take them. Every resource
+# fin-production-… and fin.production.…, in fin-pr-<number> fin-pr-<number>-… and fin.pr-<number>.…, in a merge
+# queue entry's fin-pr-<number>-merge fin-pr-<number>-merge-… and fin.pr-<number>-merge.…, and a stream may
+# also keep the delivery advisories of the environment's own streams, as its dead-letters stream does. A merge queue
+# entry's names begin with its pull request's prefix, so a pull request's resources may not take them. Every resource
 # uses NACK's connection: no servers, credentials, TLS, account or domain of its own. No mirrors or sources, which read
 # other streams, and republishing and transforms stay inside the environment's subjects. Matched by the namespace's
 # name. Wave -1: in force before any deployment.

@@ -8,15 +8,15 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   change files here and let Argo CD sync `main`. Read-only `kubectl get`/`describe`/`logs` is fine.
 - `docs/hub/reference.md` (arikkfir-org/docs) is the contract. Names, namespaces, hosts, versions and identities must
   match it; if one has to change, change the reference first.
-- Pin everything: chart `targetRevision`, image tags, remote manifest URLs. Never `latest`, never a floating branch. The
-  exceptions run the image of the commit they sync: Application `octomaton` (`platform/octomaton/manifests`) follows
-  `main` of `arikkfir-org/octomaton` (its `deploy/`), and Fin's environments (`platform/fin/manifests`) follow `main` of
+- Pin everything: chart `targetRevision`, image tags, remote manifest URLs. Never `latest`, never a floating branch.
+  The exceptions run the image of the commit they sync: Application `octomaton` (`platform/octomaton/manifests`)
+  follows `main` of `arikkfir-org/octomaton` (its `deploy/`), and Fin's environments (`platform/fin/manifests`) follow `main` of
   `arikkfir-org/fin` (production), each pull request's head commit (its own environment) and each merge queue entry's
   merge group commit (its own).
 - Fin's `deploy/` comes from pull requests and holds its own Namespace, Gateway, routes, certificate, ExternalSecrets,
   NATS resources, autoscaling and ID-token Middleware; a pull request's deployment drops the Gateway and certificate, and
   its routes attach to the shared `traefik/fin-pull-requests`, whose one wildcard certificate covers every pull request.
-  Overrides go in the `kustomize` options of Application `fin` and ApplicationSet `fin-pull-requests`, whose template
+  Overrides go in the `kustomize` options of Application `fin` and ApplicationSet `fin-pull-requests`, and the template
   uses only the environment and commit its generators name, from a pull request's number and head SHA or a merge queue
   entry's branch (`pr-<number>-merge`) and SHA; what differs inside a pull request's environment and grants nothing
   is fin's `components/pull-request`. Admit a new kind to AppProjects `fin` and `fin-pull-requests` only with an

@@ -35,7 +35,8 @@ Each file there is an Application in namespace `argocd`, project `default`:
   ([design](https://github.com/arikkfir-org/fin/blob/main/docs/fin/designs/environments.md)). `deploy/` of
   `arikkfir-org/fin` (Kustomize) is production as written: Application `fin` deploys it from that repository's `main`
   into namespace `fin`, and ApplicationSet `fin-pull-requests` deploys each open pull request's head commit into
-  `fin-pr-<number>`, and each merge queue entry's merge group commit into `fin-pr-<number>-merge`, overriding what differs in its `kustomize` options (images, namespace, replicas, patches such as
+  `fin-pr-<number>`, and each merge queue entry's merge group commit into `fin-pr-<number>-merge`,
+  overriding what differs in its `kustomize` options (images, namespace, replicas, patches such as
   the host names, and the components that reset the database and hold what else differs inside a pull request's
   environment). Fin's code holds its own Namespace, routes, ExternalSecrets, NATS resources (NACK), autoscaling (KEDA)
   and the Middleware that copies the hub's ID token, and production's its Gateway and certificate too, so AppProjects
