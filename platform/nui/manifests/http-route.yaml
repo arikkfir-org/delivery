@@ -15,6 +15,11 @@ spec:
           extensionRef:
             group: traefik.io
             kind: Middleware
+            name: admins
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
             name: strip-cookies
       backendRefs:
         - name: nui

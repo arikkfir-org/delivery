@@ -78,7 +78,7 @@ oauth2-proxy interceptor; only `auth.kfirs.com/oauth2`, `octomaton.dev` (Octomat
 realm `hub`, and realm `master` behind the interceptor) and `fin.kfirs.com` (Fin's Go import page, `go-import`) use the
 `public` gateway. Fin's host names need certificates of their own, so production's environment has a Gateway of its
 own, and pull requests' share `fin-pull-requests`, both on the protected gateway's entry point, behind the same
-interceptor.
+interceptor. Every UI but Fin's then admits only group `admins` (Middleware `admins`, [design](docs/delivery/designs/admins-only.md)).
 
 Removing a file from `apps/` deletes the Application but not its resources (no cascading finalizer). Delete the
 resources deliberately, or cascade-delete the Application before removing its file.
@@ -89,8 +89,9 @@ resources deliberately, or cascade-delete the Application before removing its fi
    component must come after the components whose CRDs, webhooks or Gateways it uses.
 2. Add `platform/<component>/values.yaml` (pin the chart version in the Application) and/or
    `platform/<component>/manifests/` with a `kustomization.yaml`. Pin every image tag.
-3. A UI gets an `HTTPRoute` on the `protected` gateway (`traefik` namespace) and a NetworkPolicy that admits only the
-   `traefik` namespace to its pods. Select only those pods, never the whole namespace.
+3. A UI gets an `HTTPRoute` on the `protected` gateway (`traefik` namespace) with Middleware `admins` in its own
+   namespace (only group `admins` passes; [design](docs/delivery/designs/admins-only.md)), and a NetworkPolicy that
+   admits only the `traefik` namespace to its pods. Select only those pods, never the whole namespace.
 4. Validate (below), then open a pull request. Add the names to the hub reference first if they are new.
 
 ## Add a CI tenant

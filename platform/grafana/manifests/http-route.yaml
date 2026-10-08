@@ -10,6 +10,12 @@ spec:
   hostnames:
     - grafana.dev.kfirs.com
   rules:
-    - backendRefs:
+    - filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: admins
+      backendRefs:
         - name: grafana
           port: 80

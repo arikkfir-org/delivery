@@ -3,4 +3,5 @@ kind: Kustomization
 resources:
   - tekton-config.yaml
   - http-route.yaml
+  - middleware.yaml
   - network-policy.yaml

@@ -105,13 +105,16 @@ tlsStore:
     defaultCertificate:
       secretName: wildcard-kfirs-com-tls
 
-# The dashboard on the protected entry point; the websecure entry-point middlewares put it behind the interceptor.
+# The dashboard on the protected entry point; the websecure entry-point middlewares put it behind the interceptor, and
+# Middleware admins (manifests/middlewares.yaml) admits only group admins.
 ingressRoute:
   dashboard:
     enabled: true
     matchRule: Host(`traefik.dev.kfirs.com`)
     entryPoints:
       - websecure
+    middlewares:
+      - name: admins
 
 # Every request enters through Traefik: two replicas, spread over nodes when there are several, and at most one of them
 # evicted at a time (node upgrades, drains, scale-down).
