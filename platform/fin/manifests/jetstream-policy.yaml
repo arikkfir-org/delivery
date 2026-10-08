@@ -1,8 +1,10 @@
 # Fin's deployments declare their own NATS streams, consumers and key-value buckets as NACK resources, which NACK applies
 # to the hub's one cluster. NATS takes connections without credentials, so a resource named like another environment's
 # would take that environment's stream over: each environment keeps to its own names and subjects. In fin they are
-# fin-production-… and fin.production.…, in fin-pr-<number> fin-pr-<number>-… and fin.pr-<number>.…, and a stream may
-# also keep the delivery advisories of the environment's own streams, as its dead-letters stream does. Every resource
+# fin-production-… and fin.production.…, in fin-pr-<number> fin-pr-<number>-… and fin.pr-<number>.…, in a merge queue
+# entry's fin-pr-<number>-merge fin-pr-<number>-merge-… and fin.pr-<number>-merge.…, and a stream may also keep the
+# delivery advisories of the environment's own streams, as its dead-letters stream does. A merge queue entry's names
+# begin with its pull request's prefix, so a pull request's resources may not take them. Every resource
 # uses NACK's connection: no servers, credentials, TLS, account or domain of its own. No mirrors or sources, which read
 # other streams, and republishing and transforms stay inside the environment's subjects. Matched by the namespace's
 # name. Wave -1: in force before any deployment.
@@ -46,6 +48,11 @@ spec:
       expression: >-
         ['$JS.EVENT.ADVISORY.CONSUMER.MAX_DELIVERIES.', '$JS.EVENT.ADVISORY.CONSUMER.MSG_TERMINATED.'].map(a,
           a + variables.prefix)
+    # The names of the merge queue entry that extends this environment's: fin-pr-12-merge-… for fin-pr-12.
+    - name: entry
+      expression: "variables.prefix + 'merge-'"
+    - name: entryAdvisories
+      expression: "variables.advisories.map(a, a + 'merge-')"
   validations:
     - expression: >-
         (!has(object.spec.servers) || size(object.spec.servers) == 0)
@@ -66,6 +73,15 @@ spec:
       messageExpression: >-
         'A Stream in ' + request.namespace + ' is named ' + variables.prefix + '… and takes subjects under '
           + variables.subjects + ' or the advisories of the environment\'s own streams.'
+    - expression: >-
+        !(has(object.spec.name) && object.spec.name.startsWith(variables.entry))
+        && !(has(object.spec.bucket) && object.spec.bucket.startsWith(variables.entry))
+        && !(has(object.spec.streamName) && object.spec.streamName.startsWith(variables.entry))
+        && !(has(object.spec.subjects) && object.spec.subjects.exists(s,
+          variables.entryAdvisories.exists(a, s.startsWith(a))))
+      messageExpression: >-
+        'A NATS resource in ' + request.namespace + ' takes no name, stream or advisory of '
+          + variables.entry + '…, its merge queue entry\'s environment.'
     - expression: >-
         request.kind.kind != 'KeyValue' || (has(object.spec.bucket) && object.spec.bucket.startsWith(variables.prefix))
       messageExpression: "'A KeyValue bucket in ' + request.namespace + ' is named ' + variables.prefix + '…'"

@@ -1,10 +1,14 @@
 # A deployment of every open pull request of fin, whatever its base branch: namespace fin-pr-<number>, at
 # pr-<number>.app.dev.fin.kfirs.com, the API under /api, through the shared Gateway traefik/fin-pull-requests
-# (pull-requests-gateway.yaml), running the pull request's head commit with a database reset on every sync. The
-# generator lists fin's pull requests through Argo CD's GitHub App (Secret github-app, platform/argocd) every minute;
-# when one closes, its Application goes and the resources finalizer deletes the deployment, namespace and database
-# included. The template uses only the pull request's number and head SHA, never its branch or title. No
-# CreateNamespace: deploy/ holds the Namespace, which Argo CD creates before anything else.
+# (pull-requests-gateway.yaml), running the pull request's head commit with a database reset on every sync. And one of
+# every entry of fin's merge queue, with the same overrides: namespace fin-pr-<number>-merge, at
+# pr-<number>-merge.app.dev.fin.kfirs.com, running the entry's merge group commit, which the end-to-end suite tests
+# before it lands on main (fin's docs/fin/designs/environments.md). The generators list fin's pull requests, and its
+# merge queue's branches, through Argo CD's GitHub App (Secret github-app, platform/argocd) every minute; when a pull
+# request closes, or the queue deletes an entry's branch, its Application goes and the resources finalizer deletes the
+# deployment, namespace and database included. Each generator names the environment (env) and the commit (revision)
+# from a pull request's number and head SHA, or from an entry's branch and its SHA, never from a title; the template
+# uses those alone. No CreateNamespace: deploy/ holds the Namespace, which Argo CD creates before anything else.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -21,26 +25,43 @@ spec:
           repo: fin
           appSecretName: github-app
         requeueAfterSeconds: 60
+        values:
+          env: "pr-{{ .number }}"
+          revision: "{{ .head_sha }}"
+    # An entry's branch is gh-readonly-queue/main/pr-<number>-<SHA>: the merge group that ends with pull request
+    # <number>, on main at <SHA>. The App, installed on fin alone, lists only fin's branches.
+    - scmProvider:
+        github:
+          organization: arikkfir-org
+          appSecretName: github-app
+          allBranches: true
+        filters:
+          - repositoryMatch: ^fin$
+            branchMatch: ^gh-readonly-queue/main/pr-[1-9][0-9]*-[0-9a-f]+$
+        requeueAfterSeconds: 60
+        values:
+          env: '{{ regexReplaceAll "^gh-readonly-queue/main/pr-([0-9]+)-[0-9a-f]+$" .branch "pr-${1}-merge" }}'
+          revision: "{{ .sha }}"
   template:
     metadata:
-      name: "fin-pr-{{ .number }}"
+      name: "fin-{{ .values.env }}"
       finalizers:
         - resources-finalizer.argocd.argoproj.io
     spec:
       project: fin-pull-requests
       destination:
         server: https://kubernetes.default.svc
-        namespace: "fin-pr-{{ .number }}"
+        namespace: "fin-{{ .values.env }}"
       # deploy/ as written is production; this is what differs for a pull request. The patches run before deploy/'s
       # replacements, so ConfigMap environment's data reaches every host name and FIN_ENVIRONMENT.
       source:
         repoURL: https://github.com/arikkfir-org/fin
-        targetRevision: "{{ .head_sha }}"
+        targetRevision: "{{ .values.revision }}"
         path: deploy
         kustomize:
-          namespace: "fin-pr-{{ .number }}"
-          # Fin's preview pipeline publishes every pushed commit's images to previews, which only these deployments
-          # pull from.
+          namespace: "fin-{{ .values.env }}"
+          # Fin's preview pipeline publishes every pushed commit's images, and every merge group's, to previews, which
+          # only these deployments pull from.
           images:
             - "fin-api=me-west1-docker.pkg.dev/arikkfir/previews/fin-api:${ARGOCD_APP_REVISION_SHORT}"
             - "fin-worker=me-west1-docker.pkg.dev/arikkfir/previews/fin-worker:${ARGOCD_APP_REVISION_SHORT}"
@@ -61,8 +82,8 @@ spec:
                 - op: replace
                   path: /data
                   value:
-                    name: "pr-{{ .number }}"
-                    app: "pr-{{ .number }}.app.dev.fin.kfirs.com"
+                    name: "{{ .values.env }}"
+                    app: "{{ .values.env }}.app.dev.fin.kfirs.com"
             # The shared Gateway serves the pull request with its one certificate: none of its own, and its routes
             # attach there, each to the listener its host matches.
             - target:
