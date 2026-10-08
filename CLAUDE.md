@@ -18,7 +18,8 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   its routes attach to the shared `traefik/fin-pull-requests`, whose one wildcard certificate covers every pull request.
   Overrides go in the `kustomize` options of Application `fin` and ApplicationSet `fin-pull-requests`, and the template
   uses only the environment and commit its generators name, from a pull request's number and head SHA or a merge queue
-  entry's branch (`pr-<number>-merge`) and SHA; what differs inside a pull request's environment and grants nothing
+  entry's branch (`gh-readonly-queue/main/pr-<number>-<SHA>`) and SHA, from which it names the environment
+  `pr-<number>-merge`; what differs inside a pull request's environment and grants nothing
   is fin's `components/pull-request`. Admit a new kind to AppProjects `fin` and `fin-pull-requests` only with an
   admission policy that holds what it may say, as `platform/fin/manifests` does for namespaces, Services, Gateways,
   routes, certificates, ExternalSecrets, NACK's resources, KEDA's kinds and Middlewares (Gateways and certificates in
