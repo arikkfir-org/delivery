@@ -49,7 +49,8 @@ Each file there is an Application in namespace `argocd`, project `default`:
   one wildcard certificate, so a pull request issues no certificate. Argo CD reads `fin`, an internal repository, and
   lists its pull requests with its own GitHub App (Secret `argocd/github-app`).
 - Every Application syncs automatically with prune and self-heal, retries with backoff (`refresh: true`, so a retry
-  picks up a newer commit), and creates its namespace, except those whose `deploy/` holds it (Octomaton's and Fin's).
+  picks up a newer commit; ten times, but twice for Fin's pull requests, whose syncs can wait 20 minutes a try for
+  images that never come), and creates its namespace, except those whose `deploy/` holds it (Octomaton's and Fin's).
   Namespace labels come from `managedNamespaceMetadata`
   (for example `kfirs.com/public-ingress: "true"` on `auth`, `docs`, `keycloak` and `go-import`). `ServerSideApply=true` is set where CRDs
   are too large for client-side apply; `SkipDryRunOnMissingResource=true` where resources use CRDs of another component.
