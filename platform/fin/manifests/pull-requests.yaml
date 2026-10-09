@@ -1,6 +1,6 @@
 # A deployment of every open pull request of fin, whatever its base branch: namespace fin-pr-<number>, at
 # pr-<number>.app.dev.fin.kfirs.com, the API under /api, through the shared Gateway traefik/fin-pull-requests
-# (pull-requests-gateway.yaml), running the pull request's head commit with a database reset on every sync. And one of
+# (pull-requests-gateway.yaml), running the pull request's head commit with a database reset whenever its migrations change. And one of
 # every entry of fin's merge queue, with the same overrides: namespace fin-pr-<number>-merge, at
 # pr-<number>-merge.app.dev.fin.kfirs.com, running the entry's merge group commit, which the end-to-end suite tests
 # before it lands on main (fin's docs/fin/designs/environments.md). The generators list fin's pull requests, and its
@@ -171,7 +171,7 @@ spec:
                             apiVersion: generators.external-secrets.io/v1alpha1
                             kind: Password
                             name: db
-          # Every deployment starts from what its migrations create: Job migrate resets the schema first. What else differs
+          # Every deployment starts from what its migrations create: Job migrate resets the schema first when they changed. What else differs
           # inside a pull request's environment, and grants nothing, is fin's own components/pull-request: its pods run as
           # default and reach Google through pool fin-pull-requests (infra), whose grants are fixed there; its NATS
           # resources go with the namespace; it runs one replica and three scrapes at a time, with a generated sealing key and
