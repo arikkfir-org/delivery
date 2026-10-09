@@ -174,8 +174,8 @@ spec:
           # Every deployment starts from what its migrations create: Job migrate resets the schema first. What else differs
           # inside a pull request's environment, and grants nothing, is fin's own components/pull-request: its pods run as
           # default and reach Google through pool fin-pull-requests (infra), whose grants are fixed there; its NATS
-          # resources go with the namespace; it runs one replica and three scrapes at a time, with a generated sealing key
-          # and Demo Bank only. A head commit that predates it deploys without it.
+          # resources go with the namespace; it runs one replica and three scrapes at a time, with a generated sealing key and
+          # Demo Bank only. A head commit that predates it deploys without it.
           components:
             - components/reset-database
             - components/pull-request
