@@ -184,8 +184,11 @@ spec:
         automated:
           prune: true
           selfHeal: true
+        # Two retries, where production has ten: a sync waits in its migrate hook, up to 20 minutes a try, for images
+        # preview may never build once a newer commit supersedes the build, and the end-to-end check waits 30 minutes
+        # for the environment to serve its commit. Three tries still outlast preview's 50.
         retry:
-          limit: 10
+          limit: 2
           refresh: true
           backoff:
             duration: 10s
