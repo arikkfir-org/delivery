@@ -9,3 +9,15 @@ spec:
   forwardAuth:
     address: http://oauth2-proxy.auth.svc.cluster.local/
     trustForwardHeader: true
+---
+# The hub's tools admit only group admins (docs/delivery/designs/admins-only.md): after the entry point's sign-in,
+# oauth2-proxy answers 403 to a session outside the group.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: admins
+  namespace: keycloak
+spec:
+  forwardAuth:
+    address: http://oauth2-proxy.auth.svc.cluster.local/oauth2/auth?allowed_groups=admins
+    trustForwardHeader: true

@@ -50,6 +50,10 @@ spec:
       - namespaceSelector:
           matchLabels:
             kubernetes.io/metadata.name: ci-infra
+      # Fin's end-to-end runs create and delete their test users through the admin API.
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: ci-fin
   scheduling:
     topologySpreadConstraints:
       - maxSkew: 1

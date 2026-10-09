@@ -11,6 +11,12 @@ spec:
   hostnames:
     - tekton.dev.kfirs.com
   rules:
-    - backendRefs:
+    - filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: admins
+      backendRefs:
         - name: tekton-dashboard
           port: 9097

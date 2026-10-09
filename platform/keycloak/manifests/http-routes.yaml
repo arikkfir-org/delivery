@@ -37,6 +37,11 @@ spec:
             group: traefik.io
             kind: Middleware
             name: oidc
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: admins
       backendRefs:
         - name: keycloak-service
           port: 8080
@@ -69,6 +74,12 @@ spec:
         - path:
             type: PathPrefix
             value: /resources
+      filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: admins
       backendRefs:
         - name: keycloak-service
           port: 8080

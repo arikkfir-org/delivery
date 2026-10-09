@@ -3,5 +3,6 @@ kind: Kustomization
 resources:
   - external-secrets.yaml
   - http-route.yaml
+  - middleware.yaml
   - network-policy.yaml
   - postgres.yaml

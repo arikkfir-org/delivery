@@ -37,8 +37,10 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
 - Services others depend on (ingress, sign-in, sites, Octomaton, NATS, KEDA) run at least two replicas, spread over
   nodes with `whenUnsatisfiable: ScheduleAnyway`, and a PodDisruptionBudget with `maxUnavailable: 1`. Never give a
   single replica a PodDisruptionBudget: it either blocks node drains or protects nothing.
-- New UIs go on the `protected` gateway, with a NetworkPolicy admitting only the `traefik` namespace to their pods.
-  Select only those pods: namespaces with admission webhooks or aggregated APIs must never get a default-deny policy.
+- New UIs go on the `protected` gateway, with a NetworkPolicy admitting only the `traefik` namespace to their pods,
+  and Middleware `admins` on their route: every hub user, Fin's test users included, passes the sign-in alone
+  (`docs/delivery/designs/admins-only.md`). Select only those pods: namespaces with admission webhooks or aggregated
+  APIs must never get a default-deny policy.
 - CI tenants: never give Tekton's default ServiceAccount `pipeline` a GCP role; any branch's run can use it. A pipeline
   that needs one gets its own ServiceAccount in `platform/ci-tenants/manifests/tenants/<repository>/`
   (`automountServiceAccountToken: false`), annotated `octomaton.dev/branches: main` when it publishes or applies.
