@@ -17,6 +17,22 @@ spec:
   hostnames:
     - id.kfirs.com
   rules:
+    # The login page's forms, limited per client address. Only they take passwords: the token endpoint refuses password
+    # grants (infra's client policy no-password-grants).
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /realms/hub/login-actions
+          method: POST
+      filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: sign-in-attempts
+      backendRefs:
+        - name: keycloak-service
+          port: 8080
     - matches:
         - path:
             type: PathPrefix
