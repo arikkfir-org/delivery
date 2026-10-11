@@ -11,6 +11,27 @@ metricsServer:
   replicaCount: 2
 webhooks:
   replicaCount: 2
+# What each component uses, memory limits above their peaks. The chart's limits of one CPU, far above use, stay
+# (hub/designs/resource-requests.md in arikkfir-org/docs).
+resources:
+  operator:
+    requests:
+      cpu: 20m
+      memory: 96Mi
+    limits:
+      memory: 256Mi
+  metricServer:
+    requests:
+      cpu: 20m
+      memory: 48Mi
+    limits:
+      memory: 128Mi
+  webhooks:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      memory: 64Mi
 podDisruptionBudget:
   operator:
     maxUnavailable: 1

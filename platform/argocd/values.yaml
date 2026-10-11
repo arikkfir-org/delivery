@@ -57,6 +57,14 @@ dex:
 controller:
   networkPolicy:
     create: true
+  # What it uses (hub/designs/resource-requests.md in arikkfir-org/docs). Its memory is its cache of the resources it
+  # manages, which grows with every pull request's Application, so the limit stays well above its peak. CPU unlimited.
+  resources:
+    requests:
+      cpu: 200m
+      memory: 1Gi
+    limits:
+      memory: 2560Mi
 repoServer:
   networkPolicy:
     create: true

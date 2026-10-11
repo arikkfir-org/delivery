@@ -120,6 +120,14 @@ ingressRoute:
 # evicted at a time (node upgrades, drains, scale-down).
 deployment:
   replicas: 2
+# What each replica uses, its memory limit above its peak. CPU stays unlimited: every request to the hub passes here, and
+# a CPU limit would slow them even on an idle node (hub/designs/resource-requests.md in arikkfir-org/docs).
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 256Mi
 podDisruptionBudget:
   enabled: true
   maxUnavailable: 1
