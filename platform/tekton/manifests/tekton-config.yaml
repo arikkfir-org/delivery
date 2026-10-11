@@ -47,3 +47,46 @@ spec:
           operator: Equal
           value: ci
           effect: NoSchedule
+    # What each component uses (hub/designs/resource-requests.md in arikkfir-org/docs). The operator replaces a named
+    # container's whole resources with these, so each restates the limits it keeps. The pipelines webhook keeps its
+    # 100m: its HorizontalPodAutoscaler adds replicas at 100% of it, up to five.
+    options:
+      deployments:
+        tekton-pipelines-controller:
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: tekton-pipelines-controller
+                    resources:
+                      requests:
+                        cpu: 100m
+                        memory: 256Mi
+                      limits:
+                        memory: 512Mi
+        tekton-pipelines-remote-resolvers:
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: controller
+                    resources:
+                      requests:
+                        cpu: 10m
+                        memory: 32Mi
+                      limits:
+                        cpu: "1"
+                        memory: 4Gi
+        tekton-operator-proxy-webhook:
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: proxy
+                    resources:
+                      requests:
+                        cpu: 10m
+                        memory: 48Mi
+                      limits:
+                        cpu: 500m
+                        memory: 500Mi
