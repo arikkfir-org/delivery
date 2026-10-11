@@ -74,6 +74,8 @@ spec:
               count: 1
             - name: web
               count: 1
+            - name: worker
+              count: 1
           patches:
             - target:
                 kind: ConfigMap
