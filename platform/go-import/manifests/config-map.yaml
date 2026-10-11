@@ -7,8 +7,9 @@ metadata:
     app.kubernetes.io/name: go-import
 data:
   # Replaces the image's Caddyfile. The go command resolves a module path such as fin.kfirs.com/apps/api by fetching
-  # https://fin.kfirs.com/apps/api?go-get=1 and reading its go-import meta tag: the repository whose root is
-  # fin.kfirs.com. Every other request is sent to that repository.
+  # https://fin.kfirs.com/apps/api?go-get=1 and reading its go-import meta tag: the repository whose root is the domain.
+  # Every other request is redirected to the domain's redirect URL. A new domain is a row in the map below and a host
+  # name in route go-import.
   Caddyfile: |
     {
     	admin off
@@ -24,21 +25,24 @@ data:
     		respond "ok" 200
     	}
 
-    	@fin-go-get {
-    		host fin.kfirs.com
-    		query go-get=1
-    	}
-    	handle @fin-go-get {
-    		header Content-Type "text/html; charset=utf-8"
-    		respond `<!DOCTYPE html><meta name="go-import" content="fin.kfirs.com git https://github.com/arikkfir-org/fin">` 200
+    	# One row per domain: its repository, then its redirect URL ("-" for the default row's). Any other host gets the
+    	# default row: no repository, and the organization's page.
+    	map {host} {repository} {redirect} {
+    		fin.kfirs.com https://github.com/arikkfir-org/fin https://github.com/arikkfir-org/fin
+    		octomaton.dev https://github.com/arikkfir-org/octomaton https://github.com/arikkfir-org/octomaton
+    		default "" https://github.com/arikkfir-org
     	}
 
-    	@fin host fin.kfirs.com
-    	handle @fin {
-    		redir https://github.com/arikkfir-org/fin 302
+    	@go-get {
+    		query go-get=1
+    		not vars {repository} ""
+    	}
+    	handle @go-get {
+    		header Content-Type "text/html; charset=utf-8"
+    		respond `<!DOCTYPE html><meta name="go-import" content="{host} git {repository}">` 200
     	}
 
     	handle {
-    		respond 404
+    		redir {redirect} 302
     	}
     }

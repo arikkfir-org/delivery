@@ -47,7 +47,8 @@ spec:
           selector:
             matchLabels:
               kfirs.com/public-ingress: "true"
-    # Octomaton's own domain: its webhook and Go import page. Only Octomaton's namespace may attach routes.
+    # Octomaton's own domain: its webhook, from namespace octomaton, and its Go import page, from go-import. Only those
+    # two namespaces may attach routes.
     - name: octomaton-dev
       protocol: HTTPS
       port: 9443
@@ -62,5 +63,10 @@ spec:
           from: Selector
           selector:
             matchLabels:
-              kubernetes.io/metadata.name: octomaton
               kfirs.com/public-ingress: "true"
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - octomaton
+                  - go-import
