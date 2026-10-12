@@ -14,3 +14,19 @@ patches:
         value:
           cpu: 20m
           memory: 320Mi
+  # The system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
+  - target:
+      kind: Deployment
+      name: keycloak-operator
+    patch: |-
+      - op: add
+        path: /spec/template/spec/nodeSelector
+        value:
+          kfirs.com/pool: system
+      - op: add
+        path: /spec/template/spec/tolerations
+        value:
+          - key: components.gke.io/gke-managed-components
+            operator: Equal
+            value: "true"
+            effect: NoSchedule

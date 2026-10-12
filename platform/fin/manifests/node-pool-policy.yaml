@@ -1,0 +1,54 @@
+# Fin's pods run on node pool fin and nowhere else: infra taints every pool, and a pod in a Fin environment may tolerate
+# only the fin pool's taint, beside the not-ready and unreachable ones Kubernetes adds to every pod. A pod that names its
+# node would skip the scheduler and the taints, so the scheduler places every one. Pods only, so whatever makes them
+# (Deployments, StatefulSets, Jobs, KEDA's ScaledJob) is held alike (docs/delivery/designs/node-pools.md). Matched by
+# the namespace's name, which Fin's code can't change, unlike its labels. Wave -1: in force before any deployment.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: fin-node-pool
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - pods
+  matchConditions:
+    - name: fin
+      expression: "request.namespace == 'fin' || request.namespace.startsWith('fin-pr-')"
+    # The Job controller drops a pod's finalizer, and the scheduler binds it (a subresource), without changing its spec:
+    # those pass. An update that changes the spec, such as an added toleration, is checked.
+    - name: changed
+      expression: "request.operation == 'CREATE' || object.spec != oldObject.spec"
+  validations:
+    - expression: >-
+        !has(object.spec.tolerations) || object.spec.tolerations.all(t,
+          (has(t.key) && t.key == 'kfirs.com/pool' && has(t.operator) && t.operator == 'Equal'
+            && has(t.value) && t.value == 'fin')
+          || (has(t.key) && t.key in ['node.kubernetes.io/not-ready', 'node.kubernetes.io/unreachable']
+            && has(t.effect) && t.effect == 'NoExecute'))
+      message: >-
+        A pod in a Fin environment tolerates only node pool fin's taint (kfirs.com/pool=fin, operator Equal), beside the
+        not-ready and unreachable ones.
+    - expression: "request.operation != 'CREATE' || !has(object.spec.nodeName) || object.spec.nodeName == ''"
+      message: A pod in a Fin environment leaves its node to the scheduler (no nodeName).
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: fin-node-pool
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: fin-node-pool
+  validationActions:
+    - Deny

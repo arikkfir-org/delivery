@@ -92,3 +92,12 @@ annotations:
 # The replicas find each other through Service grafana-headless (port 9094) and share alert state, so each alert
 # notifies once.
 headlessService: true
+
+# The system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
+nodeSelector:
+  kfirs.com/pool: system
+tolerations:
+  - key: components.gke.io/gke-managed-components
+    operator: Equal
+    value: "true"
+    effect: NoSchedule

@@ -72,6 +72,14 @@ spec:
         fsGroupChangePolicy: OnRootMismatch
         seccompProfile:
           type: RuntimeDefault
+      # The system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
+      nodeSelector:
+        kfirs.com/pool: system
+      tolerations:
+        - key: components.gke.io/gke-managed-components
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
       initContainers:
         # The image applies /docker-entrypoint-initdb.d only when it creates the database. This applies it before every
         # start instead, with the image's own functions (as its docker-ensure-initdb.sh does), on a server that listens

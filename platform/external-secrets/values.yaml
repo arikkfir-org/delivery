@@ -3,3 +3,13 @@ installCRDs: true
 # The ClusterSecretStore authenticates with this KSA's ambient Workload Identity (external-secrets/external-secrets).
 serviceAccount:
   name: external-secrets
+
+# The system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
+global:
+  nodeSelector:
+    kfirs.com/pool: system
+  tolerations:
+    - key: components.gke.io/gke-managed-components
+      operator: Equal
+      value: "true"
+      effect: NoSchedule

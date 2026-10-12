@@ -15,3 +15,20 @@ patches:
       - op: replace
         path: /data/AUTOINSTALL_COMPONENTS
         value: "false"
+  # The operator and its webhook on the system node pool, beside GKE's own components
+  # (docs/delivery/designs/node-pools.md). TektonConfig's spec.config places what the operator installs.
+  - target:
+      kind: Deployment
+      namespace: tekton-operator
+    patch: |-
+      - op: add
+        path: /spec/template/spec/nodeSelector
+        value:
+          kfirs.com/pool: system
+      - op: add
+        path: /spec/template/spec/tolerations
+        value:
+          - key: components.gke.io/gke-managed-components
+            operator: Equal
+            value: "true"
+            effect: NoSchedule

@@ -139,3 +139,12 @@ topologySpreadConstraints:
       matchLabels:
         app.kubernetes.io/name: traefik
         app.kubernetes.io/instance: traefik-traefik
+
+# The system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
+nodeSelector:
+  kfirs.com/pool: system
+tolerations:
+  - key: components.gke.io/gke-managed-components
+    operator: Equal
+    value: "true"
+    effect: NoSchedule

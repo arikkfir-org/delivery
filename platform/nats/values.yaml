@@ -18,6 +18,26 @@ podTemplate:
     kubernetes.io/hostname:
       maxSkew: 1
       whenUnsatisfiable: ScheduleAnyway
+  # The system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
+  merge:
+    spec:
+      nodeSelector:
+        kfirs.com/pool: system
+      tolerations:
+        - key: components.gke.io/gke-managed-components
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
 
 natsBox:
   enabled: true
+  podTemplate:
+    merge:
+      spec:
+        nodeSelector:
+          kfirs.com/pool: system
+        tolerations:
+          - key: components.gke.io/gke-managed-components
+            operator: Equal
+            value: "true"
+            effect: NoSchedule

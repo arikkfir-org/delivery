@@ -55,6 +55,22 @@ spec:
           matchLabels:
             kubernetes.io/metadata.name: ci-fin
   scheduling:
+    # The system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md). The operator takes no
+    # node selector, so a required node affinity names the pool.
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+            - matchExpressions:
+                - key: kfirs.com/pool
+                  operator: In
+                  values:
+                    - system
+    tolerations:
+      - key: components.gke.io/gke-managed-components
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
     topologySpreadConstraints:
       - maxSkew: 1
         topologyKey: kubernetes.io/hostname

@@ -7,6 +7,17 @@ metadata:
 spec:
   profile: all
   targetNamespace: tekton-pipelines
+  # Everything the operator installs, the pruner's CronJob included, on the system node pool, beside GKE's own
+  # components (docs/delivery/designs/node-pools.md). The operator sets these on every Deployment and StatefulSet it
+  # makes, replacing theirs. TaskRun pods follow the default pod template below instead.
+  config:
+    nodeSelector:
+      kfirs.com/pool: system
+    tolerations:
+      - key: components.gke.io/gke-managed-components
+        operator: Equal
+        value: "true"
+        effect: NoSchedule
   # Cron-based pruner (tkn), per namespace. TaskRuns and pods go with their PipelineRuns (owner references).
   pruner:
     disabled: false
@@ -16,6 +27,10 @@ spec:
     schedule: "0 * * * *"
   dashboard:
     readonly: false
+    # When a step's pod is gone (the autoscaler removes an empty CI node about a minute after its last pod ends, and
+    # its pods go with it), the Dashboard's backend asks octomaton-logs, which reads the step's log from Cloud Logging:
+    # GET <this>/<namespace>/<pod>/<container>?startTime=…&completionTime=… (deploy/ in arikkfir-org/octomaton).
+    external-logs: http://octomaton-logs.octomaton.svc.cluster.local/logs
   chain:
     disabled: true
   # Profile "all" would also install Tekton Results (with its own PostgreSQL); the hub uses Pipelines, Triggers and the
