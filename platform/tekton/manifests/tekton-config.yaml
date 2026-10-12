@@ -27,6 +27,10 @@ spec:
     schedule: "0 * * * *"
   dashboard:
     readonly: false
+    # When a step's pod is gone (the autoscaler removes an empty CI node about a minute after its last pod ends, and
+    # its pods go with it), the Dashboard's backend asks octomaton-logs, which reads the step's log from Cloud Logging:
+    # GET <this>/<namespace>/<pod>/<container>?startTime=…&completionTime=… (deploy/ in arikkfir-org/octomaton).
+    external-logs: http://octomaton-logs.octomaton.svc.cluster.local/logs
   chain:
     disabled: true
   # Profile "all" would also install Tekton Results (with its own PostgreSQL); the hub uses Pipelines, Triggers and the
