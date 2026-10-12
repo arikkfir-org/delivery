@@ -26,9 +26,9 @@ Each file there is an Application in namespace `argocd`, project `default`:
 - `octomaton-environment` is the exception: Octomaton's manifests live with its code. `deploy/` of
   `arikkfir-org/octomaton` (Kustomize) is the hub's deployment as written, its Namespace included, and Application
   `octomaton` (`platform/octomaton/manifests`) deploys it from that repository's `main`, overriding in its `kustomize`
-  options what this repository decides: the image tag, `${ARGOCD_APP_REVISION_SHORT}` (the short SHA of the synced
-  commit, which Octomaton's `release` publishes on every push), and the namespace's label
-  `kfirs.com/public-ingress: "true"`. A merge there deploys itself. AppProject `octomaton` admits only namespace
+  options what this repository decides: the tag of its images, `octomaton` and `octomaton-logs`,
+  `${ARGOCD_APP_REVISION_SHORT}` (the short SHA of the synced commit, which Octomaton's `release` publishes on every
+  push), the namespace's label `kfirs.com/public-ingress: "true"`, and the system node pool for its Deployments. A merge there deploys itself. AppProject `octomaton` admits only namespace
   `octomaton`, Octomaton's own ClusterRoles and ClusterRoleBinding, and the namespaced kinds `deploy/` holds. Only
   reviewed commits on `main` deploy, so no admission policies hold what they say, unlike Fin's pull requests.
 - `fin-environments` deploys Fin the same way
@@ -82,6 +82,15 @@ realm `hub`, and realm `master` behind the interceptor) and `fin.kfirs.com` (Fin
 own, and pull requests' share `fin-pull-requests`, both on the protected gateway's entry point, behind the same
 interceptor. Every UI but Fin's then admits only group `admins` (Middleware `admins`, [design](docs/delivery/designs/admins-only.md)).
 
+Every hub service runs on node pool `system`, whose GKE taint for managed components
+(`components.gke.io/gke-managed-components=true:NoSchedule`) only GKE's components and the hub's services tolerate:
+each one's pods select `kfirs.com/pool: system` and tolerate that taint, through its chart's values, its manifests, a
+patch on a release manifest, TektonConfig's `spec.config` (whatever the Tekton operator installs) or Application
+`octomaton`'s `kustomize` options. TaskRun pods go to pool `ci` through Tekton's default pod template, and Fin's to pool
+`fin` through Fin's `deploy/`; policy `fin-node-pool` refuses a pod in a Fin namespace that tolerates any other taint or
+names its node ([design](docs/delivery/designs/node-pools.md)). The Tekton Dashboard reads the log of a step whose pod is
+gone from `octomaton-logs`, which reads Cloud Logging.
+
 Removing a file from `apps/` deletes the Application but not its resources (no cascading finalizer). Delete the
 resources deliberately, or cascade-delete the Application before removing its file.
 
@@ -90,7 +99,9 @@ resources deliberately, or cascade-delete the Application before removing its fi
 1. Add `apps/<component>.yaml`, copying an existing Application of the same shape. Pick the wave by dependency: a
    component must come after the components whose CRDs, webhooks or Gateways it uses.
 2. Add `platform/<component>/values.yaml` (pin the chart version in the Application) and/or
-   `platform/<component>/manifests/` with a `kustomization.yaml`. Pin every image tag.
+   `platform/<component>/manifests/` with a `kustomization.yaml`. Pin every image tag. Put its pods on node pool `system`: a node
+   selector `kfirs.com/pool: system` and a toleration of `components.gke.io/gke-managed-components=true:NoSchedule`
+   ([design](docs/delivery/designs/node-pools.md)); without them it waits for a node once the pool is tainted.
 3. A UI gets an `HTTPRoute` on the `protected` gateway (`traefik` namespace) with Middleware `admins` in its own
    namespace (only group `admins` passes; [design](docs/delivery/designs/admins-only.md)), and a NetworkPolicy that
    admits only the `traefik` namespace to its pods. Select only those pods, never the whole namespace.

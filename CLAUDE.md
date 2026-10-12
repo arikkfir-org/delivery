@@ -28,10 +28,15 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   must keep its `kfirs.com/pull-request` label: it keeps `gcp-secret-manager` out of its reach, and lets the namespace
   reach NATS. NATS takes no credentials, so NetworkPolicy `nats/nats` admits only namespace `nats` and Fin's
   namespaces; a new client's namespace goes there first.
-- Octomaton's `deploy/` comes from its `main` only and holds its own Namespace and RBAC. Overrides (the image tag, the
-  namespace's `kfirs.com/public-ingress` label) go in the `kustomize` options of Application `octomaton`. AppProject
+- Octomaton's `deploy/` comes from its `main` only and holds its own Namespace and RBAC. Overrides (the images' tag, the
+  namespace's `kfirs.com/public-ingress` label, the node pool) go in the `kustomize` options of Application `octomaton`. AppProject
   `octomaton` admits a kind, or a cluster-scoped object by name, only once Octomaton's `deploy/` needs it; merge that
   here before Octomaton's change.
+- Every hub service's pods select node pool `system` (`kfirs.com/pool: system`) and tolerate its taint,
+  `components.gke.io/gke-managed-components=true:NoSchedule`, GKE's own for its managed components: a new component's
+  too, or it waits for a node (`docs/delivery/designs/node-pools.md`). TaskRun pods go to `ci` through Tekton's default
+  pod template, Fin's to `fin` through its `deploy/`, and policy `fin-node-pool` refuses a Fin pod that tolerates any
+  other taint or names its node.
 - Secrets never go in Git: use an `ExternalSecret` on `ClusterSecretStore` `gcp-secret-manager`, or, for a credential
   only the cluster uses, on an ESO generator (a `Password` with `refreshPolicy: CreatedOnce`).
 - Services others depend on (ingress, sign-in, sites, Octomaton, NATS, KEDA) run at least two replicas, spread over
