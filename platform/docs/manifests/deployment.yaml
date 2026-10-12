@@ -42,6 +42,14 @@ spec:
         runAsGroup: 101
         seccompProfile:
           type: RuntimeDefault
+      # The system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
+      nodeSelector:
+        kfirs.com/pool: system
+      tolerations:
+        - key: components.gke.io/gke-managed-components
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
       containers:
         - name: caddy
           image: docker.io/library/caddy:2.11.4-alpine

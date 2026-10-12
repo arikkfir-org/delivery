@@ -2,6 +2,15 @@
 
 global:
   domain: argocd.dev.kfirs.com
+  # The system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md), for every component.
+  # Helm merges this selector into the chart's own (kubernetes.io/os: linux).
+  nodeSelector:
+    kfirs.com/pool: system
+  tolerations:
+    - key: components.gke.io/gke-managed-components
+      operator: Equal
+      value: "true"
+      effect: NoSchedule
   networkPolicy:
     # The chart's argocd-server policy allows all ingress whenever this flag is on, and policies are additive, so it is
     # off here: per-component policies are enabled below, and argocd-server's policy lives in manifests/.

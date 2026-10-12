@@ -1,3 +1,12 @@
 # Restarts workloads annotated with reloader.stakater.com/* when their ConfigMaps or Secrets change, in any namespace.
 reloader:
   watchGlobally: true
+  # The system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
+  deployment:
+    nodeSelector:
+      kfirs.com/pool: system
+    tolerations:
+      - key: components.gke.io/gke-managed-components
+        operator: Equal
+        value: "true"
+        effect: NoSchedule

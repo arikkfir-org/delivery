@@ -3,6 +3,10 @@ crds:
   keep: true
 
 global:
+  # The system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md). The chart takes
+  # tolerations per component, below.
+  nodeSelector:
+    kfirs.com/pool: system
   leaderElection:
     # Keep the leader-election lease (and its Role) in cert-manager's own namespace rather than kube-system.
     namespace: cert-manager
@@ -15,3 +19,22 @@ serviceAccount:
 # a later sync wave instead, after the webhook Deployment is healthy.
 startupapicheck:
   enabled: false
+
+# Each component tolerates the system pool's taint (global holds the selector).
+tolerations:
+  - key: components.gke.io/gke-managed-components
+    operator: Equal
+    value: "true"
+    effect: NoSchedule
+webhook:
+  tolerations:
+    - key: components.gke.io/gke-managed-components
+      operator: Equal
+      value: "true"
+      effect: NoSchedule
+cainjector:
+  tolerations:
+    - key: components.gke.io/gke-managed-components
+      operator: Equal
+      value: "true"
+      effect: NoSchedule

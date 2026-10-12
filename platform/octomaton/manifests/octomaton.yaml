@@ -13,8 +13,8 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: octomaton
-  # deploy/ as written, with what this repository decides: the image's tag, and the namespace's admission to the public
-  # gateway, for GitHub's webhook deliveries.
+  # deploy/ as written, with what this repository decides: the images' tag, the namespace's admission to the public
+  # gateway, for GitHub's webhook deliveries, and the node pool.
   source:
     repoURL: https://github.com/arikkfir-org/octomaton
     targetRevision: main
@@ -33,6 +33,21 @@ spec:
               name: octomaton
               labels:
                 kfirs.com/public-ingress: "true"
+        # Every Deployment on the system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
+        - target:
+            kind: Deployment
+          patch: |-
+            - op: add
+              path: /spec/template/spec/nodeSelector
+              value:
+                kfirs.com/pool: system
+            - op: add
+              path: /spec/template/spec/tolerations
+              value:
+                - key: components.gke.io/gke-managed-components
+                  operator: Equal
+                  value: "true"
+                  effect: NoSchedule
   syncPolicy:
     automated:
       prune: true
