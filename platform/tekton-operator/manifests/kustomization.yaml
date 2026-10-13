@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   # Tekton publishes releases here since v0.78; the storage.googleapis.com bucket stops at v0.77.0.
   - https://infra.tekton.dev/tekton-releases/operator/previous/v0.81.1/release.yaml
+  - pod-disruption-budgets.yaml
 patches:
   # The TektonConfig "config" is declared in platform/tekton; stop the operator from creating a default one first
   # (which would briefly install components the hub does not use, such as Results and Chains).
@@ -16,7 +17,8 @@ patches:
         path: /data/AUTOINSTALL_COMPONENTS
         value: "false"
   # The operator and its webhook on the system node pool, beside GKE's own components
-  # (docs/delivery/designs/node-pools.md). TektonConfig's spec.config places what the operator installs.
+  # (docs/delivery/designs/node-pools.md). TektonConfig's spec.config places what the operator installs. Both roll out
+  # by surging: the new pod is ready before the old one stops (docs/delivery/designs/disruption-budgets.md).
   - target:
       kind: Deployment
       namespace: tekton-operator
@@ -32,6 +34,13 @@ patches:
             operator: Equal
             value: "true"
             effect: NoSchedule
+      - op: add
+        path: /spec/strategy
+        value:
+          type: RollingUpdate
+          rollingUpdate:
+            maxSurge: 1
+            maxUnavailable: 0
   # What each container uses, its memory limit above its peak; CPU unlimited
   # (docs/delivery/designs/resource-requests.md).
   - patch: |-

@@ -31,11 +31,17 @@ spec:
     # its pods go with it), the Dashboard's backend asks octomaton-logs, which reads the step's log from Cloud Logging:
     # GET <this>/<namespace>/<pod>/<container>?startTime=…&completionTime=… (deploy/ in arikkfir-org/octomaton).
     external-logs: http://octomaton-logs.octomaton.svc.cluster.local/logs
-    # What it uses, its memory limit above its peak; CPU unlimited (docs/delivery/designs/resource-requests.md).
+    # What it uses, its memory limit above its peak; CPU unlimited (docs/delivery/designs/resource-requests.md). It
+    # surges, as pipeline's options say.
     options:
       deployments:
         tekton-dashboard:
           spec:
+            strategy:
+              type: RollingUpdate
+              rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 0
             template:
               spec:
                 containers:
@@ -47,13 +53,19 @@ spec:
                       limits:
                         memory: 128Mi
   # What each Triggers component uses, its memory limit above its peak; CPU unlimited
-  # (docs/delivery/designs/resource-requests.md). The CRD requires disabled whenever trigger is set.
+  # (docs/delivery/designs/resource-requests.md). Each surges, as pipeline's options say. The CRD requires disabled
+  # whenever trigger is set.
   trigger:
     disabled: false
     options:
       deployments:
         tekton-triggers-controller:
           spec:
+            strategy:
+              type: RollingUpdate
+              rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 0
             template:
               spec:
                 containers:
@@ -66,6 +78,11 @@ spec:
                         memory: 128Mi
         tekton-triggers-core-interceptors:
           spec:
+            strategy:
+              type: RollingUpdate
+              rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 0
             template:
               spec:
                 containers:
@@ -78,6 +95,11 @@ spec:
                         memory: 128Mi
         tekton-triggers-webhook:
           spec:
+            strategy:
+              type: RollingUpdate
+              rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 0
             template:
               spec:
                 containers:
@@ -122,10 +144,18 @@ spec:
     # What each component uses (hub/designs/resource-requests.md in arikkfir-org/docs). The operator replaces a named
     # container's whole resources with these, so each restates the limits it keeps. The pipelines webhook keeps its
     # 100m: its HorizontalPodAutoscaler adds replicas at 100% of it, up to five.
+    # Every Deployment, here and in trigger's and dashboard's options, rolls out by surging: the new pod is ready
+    # before the old one stops. The operator replaces a Deployment's whole strategy with the one given. Their budgets
+    # are in pod-disruption-budgets.yaml (docs/delivery/designs/disruption-budgets.md).
     options:
       deployments:
         tekton-pipelines-controller:
           spec:
+            strategy:
+              type: RollingUpdate
+              rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 0
             template:
               spec:
                 containers:
@@ -138,6 +168,11 @@ spec:
                         memory: 512Mi
         tekton-pipelines-remote-resolvers:
           spec:
+            strategy:
+              type: RollingUpdate
+              rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 0
             template:
               spec:
                 containers:
@@ -151,6 +186,11 @@ spec:
                         memory: 4Gi
         tekton-operator-proxy-webhook:
           spec:
+            strategy:
+              type: RollingUpdate
+              rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 0
             template:
               spec:
                 containers:
@@ -162,9 +202,21 @@ spec:
                       limits:
                         cpu: 500m
                         memory: 500Mi
+        tekton-pipelines-webhook:
+          spec:
+            strategy:
+              type: RollingUpdate
+              rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 0
         # The events controller's use is in docs/delivery/designs/resource-requests.md.
         tekton-events-controller:
           spec:
+            strategy:
+              type: RollingUpdate
+              rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 0
             template:
               spec:
                 containers:

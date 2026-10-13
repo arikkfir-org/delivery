@@ -44,9 +44,14 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   (`docs/delivery/designs/resource-requests.md`): a pod without requests is the first evicted.
 - Secrets never go in Git: use an `ExternalSecret` on `ClusterSecretStore` `gcp-secret-manager`, or, for a credential
   only the cluster uses, on an ESO generator (a `Password` with `refreshPolicy: CreatedOnce`).
+- Every hub service's Deployments and StatefulSets, single replicas included, have a PodDisruptionBudget with
+  `maxUnavailable: 1` (never `minAvailable`, which blocks drains of a single replica), selecting exactly its workload's
+  pods: an eviction refuses a pod under two budgets. A workload that can run one replica gets
+  `unhealthyPodEvictionPolicy: AlwaysAllow` too: by default its budget refuses to evict an unready pod, holding the
+  drain. Every Deployment rolls out by surging (`maxSurge: 1`,
+  `maxUnavailable: 0`), so the new pod is ready before the old one stops (`docs/delivery/designs/disruption-budgets.md`).
 - Services others depend on (ingress, sign-in, sites, Octomaton, NATS, KEDA) run at least two replicas, spread over
-  nodes with `whenUnsatisfiable: ScheduleAnyway`, and a PodDisruptionBudget with `maxUnavailable: 1`. Never give a
-  single replica a PodDisruptionBudget: it either blocks node drains or protects nothing.
+  nodes with `whenUnsatisfiable: ScheduleAnyway`: a drain still evicts a single replica.
 - New UIs go on the `protected` gateway, with a NetworkPolicy admitting only the `traefik` namespace to their pods,
   and Middleware `admins` on their route: every hub user, Fin's test users included, passes the sign-in alone
   (`docs/delivery/designs/admins-only.md`). Select only those pods: namespaces with admission webhooks or aggregated

@@ -1,0 +1,135 @@
+# The operator makes none. One per Deployment it installs, selecting what that Deployment selects, so no pod falls under
+# two (an eviction refuses a pod with two budgets). Most run one replica, which a drain may evict; the webhooks'
+# HorizontalPodAutoscalers may run more, and the budget then keeps all but one serving
+# (docs/delivery/designs/disruption-budgets.md).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: tekton-pipelines-controller
+  namespace: tekton-pipelines
+spec:
+  maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: controller
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: default
+      app.kubernetes.io/part-of: tekton-pipelines
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: tekton-pipelines-webhook
+  namespace: tekton-pipelines
+spec:
+  maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: webhook
+      app.kubernetes.io/component: webhook
+      app.kubernetes.io/instance: default
+      app.kubernetes.io/part-of: tekton-pipelines
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: tekton-pipelines-remote-resolvers
+  namespace: tekton-pipelines
+spec:
+  maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: resolvers
+      app.kubernetes.io/component: resolvers
+      app.kubernetes.io/instance: default
+      app.kubernetes.io/part-of: tekton-pipelines
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: tekton-events-controller
+  namespace: tekton-pipelines
+spec:
+  maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: events
+      app.kubernetes.io/component: events
+      app.kubernetes.io/instance: default
+      app.kubernetes.io/part-of: tekton-pipelines
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: tekton-operator-proxy-webhook
+  namespace: tekton-pipelines
+spec:
+  maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      name: tekton-operator-proxy-webhook
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: tekton-triggers-controller
+  namespace: tekton-pipelines
+spec:
+  maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: controller
+      app.kubernetes.io/component: controller
+      app.kubernetes.io/instance: default
+      app.kubernetes.io/part-of: tekton-triggers
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: tekton-triggers-webhook
+  namespace: tekton-pipelines
+spec:
+  maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: webhook
+      app.kubernetes.io/component: webhook
+      app.kubernetes.io/instance: default
+      app.kubernetes.io/part-of: tekton-triggers
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: tekton-triggers-core-interceptors
+  namespace: tekton-pipelines
+spec:
+  maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: core-interceptors
+      app.kubernetes.io/component: interceptors
+      app.kubernetes.io/instance: default
+      app.kubernetes.io/part-of: tekton-triggers
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: tekton-dashboard
+  namespace: tekton-pipelines
+spec:
+  maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dashboard
+      app.kubernetes.io/component: dashboard
+      app.kubernetes.io/instance: default
+      app.kubernetes.io/part-of: tekton-dashboard

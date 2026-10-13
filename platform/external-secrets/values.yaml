@@ -21,6 +21,14 @@ resources:
     memory: 64Mi
   limits:
     memory: 256Mi
+# One replica each of the operator, its webhook and its cert controller. A rollout surges: the new pod is ready before
+# the old one stops. Their budgets are in manifests/: the chart's can't let a drain evict an unready pod
+# (docs/delivery/designs/disruption-budgets.md).
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
 webhook:
   resources:
     requests:
@@ -28,6 +36,11 @@ webhook:
       memory: 48Mi
     limits:
       memory: 256Mi
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
 certController:
   resources:
     requests:
@@ -35,3 +48,8 @@ certController:
       memory: 48Mi
     limits:
       memory: 256Mi
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0

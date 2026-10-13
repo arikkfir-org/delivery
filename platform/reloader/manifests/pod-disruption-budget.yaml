@@ -1,0 +1,15 @@
+# The chart's budget can't set the eviction policy, so this replaces it. One replica (it takes no lease unless
+# enableHA): a drain may evict it, ready or not (docs/delivery/designs/disruption-budgets.md). Its Deployment takes no
+# strategy; Kubernetes' default surges one replica: the new pod is ready before the old one stops.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: reloader-reloader
+  namespace: reloader
+spec:
+  maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      app: reloader-reloader
+      release: reloader

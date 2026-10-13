@@ -32,6 +32,23 @@ resources:
       memory: 32Mi
     limits:
       memory: 64Mi
+# A rollout starts a new replica before it stops an old one.
+upgradeStrategy:
+  operator:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  metricsApiServer:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  webhooks:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
 podDisruptionBudget:
   operator:
     maxUnavailable: 1

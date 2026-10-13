@@ -15,6 +15,15 @@ global:
     # The chart's argocd-server policy allows all ingress whenever this flag is on, and policies are additive, so it is
     # off here: per-component policies are enabled below, and argocd-server's policy lives in manifests/.
     create: false
+  # Every Deployment rolls out by surging: the new pod is ready before the old one stops. Each component also has a
+  # PodDisruptionBudget of maxUnavailable: 1 (below), which lets a drain evict a single replica, ready or not
+  # (AlwaysAllow; docs/delivery/designs/disruption-budgets.md). Redis's Deployment takes no strategy; Kubernetes'
+  # default surges one replica the same way.
+  deploymentStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
 
 configs:
   cm:
@@ -66,6 +75,11 @@ dex:
 controller:
   networkPolicy:
     create: true
+  # A StatefulSet: it replaces its pod rather than surging.
+  pdb:
+    enabled: true
+    maxUnavailable: 1
+    unhealthyPodEvictionPolicy: AlwaysAllow
   # What it uses (hub/designs/resource-requests.md in arikkfir-org/docs). Its memory is its cache of the resources it
   # manages, which grows with every pull request's Application, so the limit stays well above its peak. CPU unlimited.
   resources:
@@ -77,6 +91,10 @@ controller:
 repoServer:
   networkPolicy:
     create: true
+  pdb:
+    enabled: true
+    maxUnavailable: 1
+    unhealthyPodEvictionPolicy: AlwaysAllow
   # What each component below uses, its memory limit above its peak; CPU unlimited
   # (docs/delivery/designs/resource-requests.md). The repo server's peaks come from rendering manifests, so its limit
   # leaves the most room.
@@ -89,6 +107,10 @@ repoServer:
 redis:
   networkPolicy:
     create: true
+  pdb:
+    enabled: true
+    maxUnavailable: 1
+    unhealthyPodEvictionPolicy: AlwaysAllow
   resources:
     requests:
       cpu: 10m
@@ -98,6 +120,14 @@ redis:
 notifications:
   networkPolicy:
     create: true
+  pdb:
+    enabled: true
+    maxUnavailable: 1
+    unhealthyPodEvictionPolicy: AlwaysAllow
+  # The chart's Recreate stops it before its replacement starts. It takes no lease, so two can run for the moment both
+  # are up and a notification could go twice; none is configured.
+  deploymentStrategy:
+    type: RollingUpdate
   resources:
     requests:
       cpu: 10m
@@ -105,6 +135,10 @@ notifications:
     limits:
       memory: 128Mi
 applicationSet:
+  pdb:
+    enabled: true
+    maxUnavailable: 1
+    unhealthyPodEvictionPolicy: AlwaysAllow
   resources:
     requests:
       cpu: 10m
@@ -115,6 +149,10 @@ server:
   networkPolicy:
     # Replaced by manifests/network-policy.yaml (same name, so it also adopts the policy the bootstrap created).
     create: false
+  pdb:
+    enabled: true
+    maxUnavailable: 1
+    unhealthyPodEvictionPolicy: AlwaysAllow
   resources:
     requests:
       cpu: 10m

@@ -197,6 +197,20 @@ spec:
           requests:
             storage: 10Gi
 ---
+# One replica on its own volume: it can't surge, and a drain may evict it, leaving Grafana without its database until it
+# runs again elsewhere (docs/delivery/designs/disruption-budgets.md).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: postgres
+  namespace: grafana
+spec:
+  maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+---
 # Only Grafana's pods reach the database.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
