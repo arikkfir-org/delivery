@@ -14,6 +14,21 @@ spec:
   hostnames:
     - argocd.dev.kfirs.com
   rules:
+    - matches:
+        - path:
+            type: Exact
+            value: /auth/logout
+      filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: admins
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: logout
     - filters:
         - type: ExtensionRef
           extensionRef:
