@@ -77,13 +77,47 @@ controller:
 repoServer:
   networkPolicy:
     create: true
+  # What each component below uses, its memory limit above its peak; CPU unlimited
+  # (docs/delivery/designs/resource-requests.md). The repo server's peaks come from rendering manifests, so its limit
+  # leaves the most room.
+  resources:
+    requests:
+      cpu: 20m
+      memory: 96Mi
+    limits:
+      memory: 1Gi
 redis:
   networkPolicy:
     create: true
+  resources:
+    requests:
+      cpu: 10m
+      memory: 16Mi
+    limits:
+      memory: 128Mi
 notifications:
   networkPolicy:
     create: true
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 128Mi
+applicationSet:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      memory: 256Mi
 server:
   networkPolicy:
     # Replaced by manifests/network-policy.yaml (same name, so it also adopts the policy the bootstrap created).
     create: false
+  resources:
+    requests:
+      cpu: 10m
+      memory: 48Mi
+    limits:
+      memory: 256Mi

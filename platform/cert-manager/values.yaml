@@ -20,21 +20,40 @@ serviceAccount:
 startupapicheck:
   enabled: false
 
-# Each component tolerates the system pool's taint (global holds the selector).
+# Each component tolerates the system pool's taint (global holds the selector), and requests what it uses, its memory
+# limit above its peak; CPU unlimited (docs/delivery/designs/resource-requests.md).
 tolerations:
   - key: components.gke.io/gke-managed-components
     operator: Equal
     value: "true"
     effect: NoSchedule
+resources:
+  requests:
+    cpu: 10m
+    memory: 48Mi
+  limits:
+    memory: 256Mi
 webhook:
   tolerations:
     - key: components.gke.io/gke-managed-components
       operator: Equal
       value: "true"
       effect: NoSchedule
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 256Mi
 cainjector:
   tolerations:
     - key: components.gke.io/gke-managed-components
       operator: Equal
       value: "true"
       effect: NoSchedule
+  resources:
+    requests:
+      cpu: 10m
+      memory: 96Mi
+    limits:
+      memory: 256Mi
