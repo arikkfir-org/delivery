@@ -4,7 +4,8 @@
 single replicas included, and every Deployment rolls out by surging (`maxSurge: 1`, `maxUnavailable: 0`). Replica
 counts stay as they are. This replaces "No budget for a single replica" in the hub's
 [disruption budgets](../../hub/designs/disruption-budgets.md); its two-replica services keep their budgets as they
-were. Fin and Octomaton's `deploy/` decide their own.
+were. Fin's and Octomaton's `deploy/` hold their own; Octomaton's follow this design
+([octomaton#29](https://github.com/arikkfir-org/octomaton/pull/29)).
 
 ## Why
 
@@ -80,7 +81,6 @@ broader selector would block every drain of those pods.
   keeps serving until it is ready.
 - While both pods of a surge run, components without leader election run twice: NACK (it applies the same desired
   state), Reloader (a change could restart a workload twice) and Argo CD's notifications controller.
-- `octomaton-logs` (one replica) has no budget yet: its Deployment is in Octomaton's `deploy/`.
 
 ## Rollout
 
