@@ -50,6 +50,14 @@ podDisruptionBudget:
   enabled: true
   maxUnavailable: 1
   minAvailable: null
+# What each replica uses; CPU unlimited (docs/delivery/designs/resource-requests.md). Every protected request waits on
+# it, so its memory limit leaves more room above its peak than its use alone would ask for.
+resources:
+  requests:
+    cpu: 40m
+    memory: 16Mi
+  limits:
+    memory: 128Mi
 topologySpreadConstraints:
   - maxSkew: 1
     topologyKey: kubernetes.io/hostname

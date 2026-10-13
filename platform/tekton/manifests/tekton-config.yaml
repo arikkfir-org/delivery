@@ -31,7 +31,8 @@ spec:
     # its pods go with it), the Dashboard's backend asks octomaton-logs, which reads the step's log from Cloud Logging:
     # GET <this>/<namespace>/<pod>/<container>?startTime=…&completionTime=… (deploy/ in arikkfir-org/octomaton).
     external-logs: http://octomaton-logs.octomaton.svc.cluster.local/logs
-    # Surges, as pipeline's options say.
+    # What it uses, its memory limit above its peak; CPU unlimited (docs/delivery/designs/resource-requests.md). It
+    # surges, as pipeline's options say.
     options:
       deployments:
         tekton-dashboard:
@@ -41,6 +42,74 @@ spec:
               rollingUpdate:
                 maxSurge: 1
                 maxUnavailable: 0
+            template:
+              spec:
+                containers:
+                  - name: tekton-dashboard
+                    resources:
+                      requests:
+                        cpu: 10m
+                        memory: 16Mi
+                      limits:
+                        memory: 128Mi
+  # What each Triggers component uses, its memory limit above its peak; CPU unlimited
+  # (docs/delivery/designs/resource-requests.md). Each surges, as pipeline's options say. The CRD requires disabled
+  # whenever trigger is set.
+  trigger:
+    disabled: false
+    options:
+      deployments:
+        tekton-triggers-controller:
+          spec:
+            strategy:
+              type: RollingUpdate
+              rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 0
+            template:
+              spec:
+                containers:
+                  - name: tekton-triggers-controller
+                    resources:
+                      requests:
+                        cpu: 10m
+                        memory: 32Mi
+                      limits:
+                        memory: 128Mi
+        tekton-triggers-core-interceptors:
+          spec:
+            strategy:
+              type: RollingUpdate
+              rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 0
+            template:
+              spec:
+                containers:
+                  - name: tekton-triggers-core-interceptors
+                    resources:
+                      requests:
+                        cpu: 10m
+                        memory: 32Mi
+                      limits:
+                        memory: 128Mi
+        tekton-triggers-webhook:
+          spec:
+            strategy:
+              type: RollingUpdate
+              rollingUpdate:
+                maxSurge: 1
+                maxUnavailable: 0
+            template:
+              spec:
+                containers:
+                  - name: webhook
+                    resources:
+                      requests:
+                        cpu: 10m
+                        memory: 32Mi
+                      limits:
+                        memory: 128Mi
   chain:
     disabled: true
   # Profile "all" would also install Tekton Results (with its own PostgreSQL); the hub uses Pipelines, Triggers and the
@@ -140,6 +209,7 @@ spec:
               rollingUpdate:
                 maxSurge: 1
                 maxUnavailable: 0
+        # The events controller's use is in docs/delivery/designs/resource-requests.md.
         tekton-events-controller:
           spec:
             strategy:
@@ -147,29 +217,13 @@ spec:
               rollingUpdate:
                 maxSurge: 1
                 maxUnavailable: 0
-  # Surges, as pipeline's options say. The CRD requires disabled once trigger is set.
-  trigger:
-    disabled: false
-    options:
-      deployments:
-        tekton-triggers-controller:
-          spec:
-            strategy:
-              type: RollingUpdate
-              rollingUpdate:
-                maxSurge: 1
-                maxUnavailable: 0
-        tekton-triggers-webhook:
-          spec:
-            strategy:
-              type: RollingUpdate
-              rollingUpdate:
-                maxSurge: 1
-                maxUnavailable: 0
-        tekton-triggers-core-interceptors:
-          spec:
-            strategy:
-              type: RollingUpdate
-              rollingUpdate:
-                maxSurge: 1
-                maxUnavailable: 0
+            template:
+              spec:
+                containers:
+                  - name: tekton-events-controller
+                    resources:
+                      requests:
+                        cpu: 10m
+                        memory: 64Mi
+                      limits:
+                        memory: 512Mi

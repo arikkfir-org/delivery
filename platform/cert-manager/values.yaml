@@ -20,12 +20,19 @@ serviceAccount:
 startupapicheck:
   enabled: false
 
-# Each component tolerates the system pool's taint (global holds the selector).
+# Each component tolerates the system pool's taint (global holds the selector), and requests what it uses, its memory
+# limit above its peak; CPU unlimited (docs/delivery/designs/resource-requests.md).
 tolerations:
   - key: components.gke.io/gke-managed-components
     operator: Equal
     value: "true"
     effect: NoSchedule
+resources:
+  requests:
+    cpu: 10m
+    memory: 48Mi
+  limits:
+    memory: 256Mi
 # One replica each. A rollout surges: the new pod is ready before the old one stops, and leader election keeps one
 # active. A drain may evict it (docs/delivery/designs/disruption-budgets.md). The chart sets each component's
 # strategy and budget separately.
@@ -43,6 +50,12 @@ webhook:
       operator: Equal
       value: "true"
       effect: NoSchedule
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 256Mi
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -57,6 +70,12 @@ cainjector:
       operator: Equal
       value: "true"
       effect: NoSchedule
+  resources:
+    requests:
+      cpu: 10m
+      memory: 96Mi
+    limits:
+      memory: 256Mi
   strategy:
     type: RollingUpdate
     rollingUpdate:

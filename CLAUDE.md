@@ -37,6 +37,8 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   too, or it waits for a node (`docs/delivery/designs/node-pools.md`). TaskRun pods go to `ci` through Tekton's default
   pod template, Fin's to `fin` through its `deploy/`, and policy `fin-node-pool` refuses a Fin pod that tolerates any
   other taint or names its node.
+- Every hub container requests the CPU and memory it uses and limits its memory above its peak, with no CPU limit
+  (`docs/delivery/designs/resource-requests.md`): a pod without requests is the first evicted.
 - Secrets never go in Git: use an `ExternalSecret` on `ClusterSecretStore` `gcp-secret-manager`, or, for a credential
   only the cluster uses, on an ESO generator (a `Password` with `refreshPolicy: CreatedOnce`).
 - Every hub service's Deployments and StatefulSets, single replicas included, have a PodDisruptionBudget with

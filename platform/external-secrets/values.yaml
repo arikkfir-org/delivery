@@ -4,6 +4,23 @@ installCRDs: true
 serviceAccount:
   name: external-secrets
 
+# The system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
+global:
+  nodeSelector:
+    kfirs.com/pool: system
+  tolerations:
+    - key: components.gke.io/gke-managed-components
+      operator: Equal
+      value: "true"
+      effect: NoSchedule
+
+# What each component uses, its memory limit above its peak; CPU unlimited (docs/delivery/designs/resource-requests.md).
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    memory: 256Mi
 # One replica each of the operator, its webhook and its cert controller. A rollout surges: the new pod is ready before
 # the old one stops. A drain may evict it (docs/delivery/designs/disruption-budgets.md).
 strategy:
@@ -15,6 +32,12 @@ podDisruptionBudget:
   enabled: true
   maxUnavailable: 1
 webhook:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 48Mi
+    limits:
+      memory: 256Mi
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -24,6 +47,12 @@ webhook:
     enabled: true
     maxUnavailable: 1
 certController:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 48Mi
+    limits:
+      memory: 256Mi
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -32,13 +61,3 @@ certController:
   podDisruptionBudget:
     enabled: true
     maxUnavailable: 1
-
-# The system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
-global:
-  nodeSelector:
-    kfirs.com/pool: system
-  tolerations:
-    - key: components.gke.io/gke-managed-components
-      operator: Equal
-      value: "true"
-      effect: NoSchedule
