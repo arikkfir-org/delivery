@@ -26,15 +26,42 @@ tolerations:
     operator: Equal
     value: "true"
     effect: NoSchedule
+# One replica each. A rollout surges: the new pod is ready before the old one stops, and leader election keeps one
+# active. A drain may evict it (docs/delivery/designs/disruption-budgets.md). The chart sets each component's
+# strategy and budget separately.
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
 webhook:
   tolerations:
     - key: components.gke.io/gke-managed-components
       operator: Equal
       value: "true"
       effect: NoSchedule
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  podDisruptionBudget:
+    enabled: true
+    maxUnavailable: 1
 cainjector:
   tolerations:
     - key: components.gke.io/gke-managed-components
       operator: Equal
       value: "true"
       effect: NoSchedule
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  podDisruptionBudget:
+    enabled: true
+    maxUnavailable: 1

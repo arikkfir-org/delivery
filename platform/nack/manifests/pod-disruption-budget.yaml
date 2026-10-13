@@ -1,0 +1,12 @@
+# The chart has none. One replica, so a drain may evict it (docs/delivery/designs/disruption-budgets.md). Its
+# Deployment takes no strategy; Kubernetes' default surges one replica: the new pod is ready before the old one stops.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nack
+  namespace: nats
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: nack

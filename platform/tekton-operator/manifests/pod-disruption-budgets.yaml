@@ -1,0 +1,22 @@
+# The release has none. One replica each, which a drain may evict (docs/delivery/designs/disruption-budgets.md).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: tekton-operator
+  namespace: tekton-operator
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      name: tekton-operator
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: tekton-operator-webhook
+  namespace: tekton-operator
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      name: tekton-operator-webhook

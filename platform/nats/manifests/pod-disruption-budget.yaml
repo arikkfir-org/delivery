@@ -1,0 +1,14 @@
+# nats-box's: the chart makes one for the servers only. One replica, so a drain may evict it
+# (docs/delivery/designs/disruption-budgets.md).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nats-box
+  namespace: nats
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nats
+      app.kubernetes.io/instance: nats
+      app.kubernetes.io/component: nats-box

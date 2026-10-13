@@ -101,7 +101,9 @@ resources deliberately, or cascade-delete the Application before removing its fi
 2. Add `platform/<component>/values.yaml` (pin the chart version in the Application) and/or
    `platform/<component>/manifests/` with a `kustomization.yaml`. Pin every image tag. Put its pods on node pool `system`: a node
    selector `kfirs.com/pool: system` and a toleration of `components.gke.io/gke-managed-components=true:NoSchedule`
-   ([design](docs/delivery/designs/node-pools.md)); without them it waits for a node once the pool is tainted.
+   ([design](docs/delivery/designs/node-pools.md)); without them it waits for a node once the pool is tainted. Give
+   each Deployment and StatefulSet a PodDisruptionBudget of `maxUnavailable: 1`, and each Deployment the strategy
+   `maxSurge: 1`, `maxUnavailable: 0` ([design](docs/delivery/designs/disruption-budgets.md)).
 3. A UI gets an `HTTPRoute` on the `protected` gateway (`traefik` namespace) with Middleware `admins` in its own
    namespace (only group `admins` passes; [design](docs/delivery/designs/admins-only.md)), and a NetworkPolicy that
    admits only the `traefik` namespace to its pods. Select only those pods, never the whole namespace.

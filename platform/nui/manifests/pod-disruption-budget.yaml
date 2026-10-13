@@ -1,0 +1,13 @@
+# The chart has none. One replica of a StatefulSet on its own volume: it can't surge, and a drain may evict it
+# (docs/delivery/designs/disruption-budgets.md).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nui
+  namespace: nats
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nui
+      app.kubernetes.io/instance: nui

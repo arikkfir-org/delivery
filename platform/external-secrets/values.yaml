@@ -4,6 +4,35 @@ installCRDs: true
 serviceAccount:
   name: external-secrets
 
+# One replica each of the operator, its webhook and its cert controller. A rollout surges: the new pod is ready before
+# the old one stops. A drain may evict it (docs/delivery/designs/disruption-budgets.md).
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+webhook:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  podDisruptionBudget:
+    enabled: true
+    maxUnavailable: 1
+certController:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  podDisruptionBudget:
+    enabled: true
+    maxUnavailable: 1
+
 # The system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
 global:
   nodeSelector:

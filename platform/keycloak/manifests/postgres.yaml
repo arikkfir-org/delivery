@@ -159,6 +159,19 @@ spec:
           requests:
             storage: 10Gi
 ---
+# One replica on its own volume: it can't surge, and a drain may evict it, pausing sign-in until it runs again elsewhere
+# (docs/delivery/designs/disruption-budgets.md).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: postgres
+  namespace: keycloak
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+---
 # Only Keycloak's pods reach the database: its servers, and the update job the operator runs under strategy Auto,
 # which shares only the instance label (app=keycloak-update-job).
 apiVersion: networking.k8s.io/v1
