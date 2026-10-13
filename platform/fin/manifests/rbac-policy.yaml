@@ -1,0 +1,96 @@
+# Fin's workloads wait for their deployment's Job migrate before they start (fin's deploy/wait-for-migrate.sh), so its
+# deployments bring a Role that lets their pods' ServiceAccounts read Jobs, and a RoleBinding that binds it. In a Fin
+# environment a Role may do nothing else, and a RoleBinding may bind only a Role of its own namespace to that namespace's
+# ServiceAccounts: no ClusterRole, which could carry what no Role here may, and no one from elsewhere. A policy each, as
+# each reads its own kind's fields. Matched by the namespace's name. Wave -1: in force before any deployment.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: fin-roles
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - rbac.authorization.k8s.io
+        apiVersions:
+          - "*"
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - roles
+  matchConditions:
+    - name: fin
+      expression: "request.namespace == 'fin' || request.namespace.startsWith('fin-pr-')"
+    # Deleting an object, the garbage collector drops its finalizer with an update that leaves the rest as it was; that
+    # update passes, so an object made before this policy last tightened still goes. Every other update is checked.
+    - name: changed
+      expression: >-
+        request.operation == 'CREATE' || !has(oldObject.metadata.deletionTimestamp)
+        || !has(object.rules) || !has(oldObject.rules) || object.rules != oldObject.rules
+  validations:
+    - expression: >-
+        !has(object.rules) || object.rules.all(r, has(r.apiGroups) && r.apiGroups == ['batch'] && has(r.resources)
+        && r.resources == ['jobs'] && r.verbs.all(v, v in ['get', 'list', 'watch']) && !has(r.nonResourceURLs))
+      message: A Role in a Fin environment gets, lists or watches Jobs, and does nothing else.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: fin-roles
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: fin-roles
+  validationActions:
+    - Deny
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: fin-role-bindings
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - rbac.authorization.k8s.io
+        apiVersions:
+          - "*"
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - rolebindings
+  matchConditions:
+    - name: fin
+      expression: "request.namespace == 'fin' || request.namespace.startsWith('fin-pr-')"
+    # As fin-roles' above.
+    - name: changed
+      expression: >-
+        request.operation == 'CREATE' || !has(oldObject.metadata.deletionTimestamp)
+        || object.roleRef != oldObject.roleRef
+        || !has(object.subjects) || !has(oldObject.subjects) || object.subjects != oldObject.subjects
+  validations:
+    - expression: "object.roleRef.apiGroup == 'rbac.authorization.k8s.io' && object.roleRef.kind == 'Role'"
+      message: A RoleBinding in a Fin environment binds a Role of its own namespace, never a ClusterRole.
+    - expression: >-
+        !has(object.subjects) || object.subjects.all(s, s.kind == 'ServiceAccount'
+        && (!has(s.__namespace__) || s.__namespace__ == '' || s.__namespace__ == request.namespace))
+      message: A RoleBinding in a Fin environment binds ServiceAccounts of its own namespace, and no one else.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: fin-role-bindings
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: fin-role-bindings
+  validationActions:
+    - Deny
