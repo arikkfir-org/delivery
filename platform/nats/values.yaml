@@ -12,6 +12,25 @@ config:
         enabled: true
         size: 50Gi
 
+# What each server and its config reloader use, memory limits above their peaks. CPU unlimited, against the chart's
+# advice: a CPU limit throttles in 100 ms slices, slowing every client even on an idle node
+# (docs/delivery/designs/resource-requests.md).
+container:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 48Mi
+    limits:
+      memory: 512Mi
+reloader:
+  merge:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+      limits:
+        memory: 64Mi
+
 # Prefer separate nodes, without forcing the system pool to grow to three nodes.
 podTemplate:
   topologySpreadConstraints:
@@ -31,6 +50,14 @@ podTemplate:
 
 natsBox:
   enabled: true
+  # Idle but for commands run in it by hand, which share its memory limit.
+  container:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 16Mi
+      limits:
+        memory: 256Mi
   podTemplate:
     merge:
       spec:

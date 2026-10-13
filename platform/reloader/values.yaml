@@ -1,8 +1,15 @@
 # Restarts workloads annotated with reloader.stakater.com/* when their ConfigMaps or Secrets change, in any namespace.
 reloader:
   watchGlobally: true
-  # The system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
+  # The system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md). What it uses, its memory
+  # limit above its peak; CPU unlimited (docs/delivery/designs/resource-requests.md).
   deployment:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 48Mi
+      limits:
+        memory: 256Mi
     nodeSelector:
       kfirs.com/pool: system
     tolerations:

@@ -15,3 +15,11 @@ tolerations:
     operator: Equal
     value: "true"
     effect: NoSchedule
+
+# What it uses, its memory limit above its peak; CPU unlimited (docs/delivery/designs/resource-requests.md).
+resources:
+  requests:
+    cpu: 20m
+    memory: 32Mi
+  limits:
+    memory: 128Mi

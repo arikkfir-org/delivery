@@ -13,3 +13,25 @@ global:
       operator: Equal
       value: "true"
       effect: NoSchedule
+
+# What each component uses, its memory limit above its peak; CPU unlimited (docs/delivery/designs/resource-requests.md).
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    memory: 256Mi
+webhook:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 48Mi
+    limits:
+      memory: 256Mi
+certController:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 48Mi
+    limits:
+      memory: 256Mi
