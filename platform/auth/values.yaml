@@ -27,6 +27,30 @@ extraArgs:
   # Sign-out ends the Keycloak session too: oauth2-proxy calls realm hub's end-session endpoint itself, with the
   # session's ID token, which names the session. Without it, the next protected page signs the person straight back in.
   backend-logout-url: https://id.kfirs.com/realms/hub/protocol/openid-connect/logout?id_token_hint={id_token}
+  # When that call fails (DNS, connection, TLS, timeout), oauth2-proxy logs its whole URL, ID token included. Standard
+  # log lines keep their default format, but what follows "id_token_hint=", up to the URL's closing quote, becomes
+  # "[redacted]". The chart passes values through tpl, hence the {{` `}} around it, and an argument is one line, hence
+  # the folding. A template that fails panics oauth2-proxy, so every slice is guarded by a length.
+  standard-logging-format: >-
+    {{`{{- define "redact" -}}
+    {{- $m := . -}}
+    {{- $k := "id_token_hint=" -}}
+    {{- $done := false -}}
+    {{- range $i := len $m -}}
+    {{- $s := slice $m $i -}}
+    {{- if and (ge (len $s) (len $k)) (eq (slice $s 0 (len $k)) $k) -}}
+    {{- slice $m 0 $i -}}{{- $k -}}[redacted]
+    {{- $t := slice $s (len $k) -}}
+    {{- range $j := len $t -}}
+    {{- $u := slice $t $j -}}
+    {{- if eq (slice $u 0 1) "\"" -}}{{- template "redact" $u -}}{{- break -}}{{- end -}}
+    {{- end -}}
+    {{- $done = true -}}{{- break -}}
+    {{- end -}}
+    {{- end -}}
+    {{- if not $done -}}{{- $m -}}{{- end -}}
+    {{- end -}}
+    [{{.Timestamp}}] [{{.File}}] {{template "redact" .Message}}`}}
   reverse-proxy: true
   set-xauthrequest: true
   # Adds "Authorization: Bearer <ID token>" to the response; only Argo CD's id-token middleware copies it upstream.
