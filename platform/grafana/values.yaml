@@ -16,6 +16,9 @@ grafana.ini:
     root_url: https://grafana.dev.kfirs.com
   auth:
     disable_login_form: true
+    # Grafana's own sign-out alone leaves the hub session, which signs the person straight back in. oauth2-proxy's
+    # sign-out ends it, Keycloak's included, and returns to Grafana, whose next page shows Keycloak's login page.
+    signout_redirect_url: https://auth.kfirs.com/oauth2/sign_out?rd=https://grafana.dev.kfirs.com/
   auth.basic:
     enabled: false
   auth.proxy:
