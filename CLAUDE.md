@@ -43,7 +43,9 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   only the cluster uses, on an ESO generator (a `Password` with `refreshPolicy: CreatedOnce`).
 - Every hub service's Deployments and StatefulSets, single replicas included, have a PodDisruptionBudget with
   `maxUnavailable: 1` (never `minAvailable`, which blocks drains of a single replica), selecting exactly its workload's
-  pods: an eviction refuses a pod under two budgets. Every Deployment rolls out by surging (`maxSurge: 1`,
+  pods: an eviction refuses a pod under two budgets. A workload that can run one replica gets
+  `unhealthyPodEvictionPolicy: AlwaysAllow` too: by default its budget refuses to evict an unready pod, holding the
+  drain. Every Deployment rolls out by surging (`maxSurge: 1`,
   `maxUnavailable: 0`), so the new pod is ready before the old one stops (`docs/delivery/designs/disruption-budgets.md`).
 - Services others depend on (ingress, sign-in, sites, Octomaton, NATS, KEDA) run at least two replicas, spread over
   nodes with `whenUnsatisfiable: ScheduleAnyway`: a drain still evicts a single replica.

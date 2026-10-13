@@ -6,6 +6,7 @@ metadata:
   namespace: tekton-operator
 spec:
   maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
   selector:
     matchLabels:
       name: tekton-operator
@@ -17,6 +18,7 @@ metadata:
   namespace: tekton-operator
 spec:
   maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
   selector:
     matchLabels:
       name: tekton-operator-webhook

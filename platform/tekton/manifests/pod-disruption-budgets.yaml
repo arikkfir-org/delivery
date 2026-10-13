@@ -9,6 +9,7 @@ metadata:
   namespace: tekton-pipelines
 spec:
   maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
   selector:
     matchLabels:
       app.kubernetes.io/name: controller
@@ -23,6 +24,7 @@ metadata:
   namespace: tekton-pipelines
 spec:
   maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
   selector:
     matchLabels:
       app.kubernetes.io/name: webhook
@@ -37,6 +39,7 @@ metadata:
   namespace: tekton-pipelines
 spec:
   maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
   selector:
     matchLabels:
       app.kubernetes.io/name: resolvers
@@ -51,6 +54,7 @@ metadata:
   namespace: tekton-pipelines
 spec:
   maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
   selector:
     matchLabels:
       app.kubernetes.io/name: events
@@ -65,6 +69,7 @@ metadata:
   namespace: tekton-pipelines
 spec:
   maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
   selector:
     matchLabels:
       name: tekton-operator-proxy-webhook
@@ -76,6 +81,7 @@ metadata:
   namespace: tekton-pipelines
 spec:
   maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
   selector:
     matchLabels:
       app.kubernetes.io/name: controller
@@ -90,6 +96,7 @@ metadata:
   namespace: tekton-pipelines
 spec:
   maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
   selector:
     matchLabels:
       app.kubernetes.io/name: webhook
@@ -104,6 +111,7 @@ metadata:
   namespace: tekton-pipelines
 spec:
   maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
   selector:
     matchLabels:
       app.kubernetes.io/name: core-interceptors
@@ -118,6 +126,7 @@ metadata:
   namespace: tekton-pipelines
 spec:
   maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
   selector:
     matchLabels:
       app.kubernetes.io/name: dashboard

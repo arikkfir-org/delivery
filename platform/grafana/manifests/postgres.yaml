@@ -206,6 +206,7 @@ metadata:
   namespace: grafana
 spec:
   maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
   selector:
     matchLabels:
       app.kubernetes.io/name: postgres

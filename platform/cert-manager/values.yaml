@@ -34,8 +34,8 @@ resources:
   limits:
     memory: 256Mi
 # One replica each. A rollout surges: the new pod is ready before the old one stops, and leader election keeps one
-# active. A drain may evict it (docs/delivery/designs/disruption-budgets.md). The chart sets each component's
-# strategy and budget separately.
+# active. A drain may evict it, ready or not (docs/delivery/designs/disruption-budgets.md). The chart sets each
+# component's strategy and budget separately.
 strategy:
   type: RollingUpdate
   rollingUpdate:
@@ -44,6 +44,7 @@ strategy:
 podDisruptionBudget:
   enabled: true
   maxUnavailable: 1
+  unhealthyPodEvictionPolicy: AlwaysAllow
 webhook:
   tolerations:
     - key: components.gke.io/gke-managed-components
@@ -64,6 +65,7 @@ webhook:
   podDisruptionBudget:
     enabled: true
     maxUnavailable: 1
+    unhealthyPodEvictionPolicy: AlwaysAllow
 cainjector:
   tolerations:
     - key: components.gke.io/gke-managed-components
@@ -84,3 +86,4 @@ cainjector:
   podDisruptionBudget:
     enabled: true
     maxUnavailable: 1
+    unhealthyPodEvictionPolicy: AlwaysAllow
