@@ -24,6 +24,9 @@ extraArgs:
   scope: openid email profile
   cookie-refresh: 5m
   redirect-url: https://auth.kfirs.com/oauth2/callback
+  # Sign-out ends the Keycloak session too: oauth2-proxy calls realm hub's end-session endpoint itself, with the
+  # session's ID token, which names the session. Without it, the next protected page signs the person straight back in.
+  backend-logout-url: https://id.kfirs.com/realms/hub/protocol/openid-connect/logout?id_token_hint={id_token}
   reverse-proxy: true
   set-xauthrequest: true
   # Adds "Authorization: Bearer <ID token>" to the response; only Argo CD's id-token middleware copies it upstream.
