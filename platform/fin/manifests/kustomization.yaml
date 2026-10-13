@@ -11,6 +11,7 @@ resources:
   - jetstream-policy.yaml
   - keda-policy.yaml
   - middlewares-policy.yaml
+  - rbac-policy.yaml
   - node-pool-policy.yaml
   - identities.yaml
   - production.yaml
