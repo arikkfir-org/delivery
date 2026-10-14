@@ -1,0 +1,18 @@
+# Check Linear's API key (tooling's organization pipeline linear): read-only, on team ENG only. Octomaton lets only
+# pipelines read at a default branch mount it.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: linear-api-key
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: gcp-secret-manager
+  target:
+    name: linear-api-key
+    creationPolicy: Owner
+  data:
+    - secretKey: api-key
+      remoteRef:
+        key: linear-api-key

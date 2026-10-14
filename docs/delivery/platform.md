@@ -142,9 +142,11 @@ Every tenant gets the base (`platform/ci-tenants/manifests/base`):
 | NetworkPolicy `sandbox` | Pods labelled `kfirs.com/sandbox: "true"`: no ingress; egress only to `0.0.0.0/0` except `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10` and `169.254.0.0/16` (pods, Services, nodes, the metadata server, cluster DNS) |
 | ExternalSecret `reviewer-deepseek-api-key` | Secret `reviewer-deepseek-api-key`, key `api-key`, from Secret Manager `reviewer-deepseek-api-key` |
 | ExternalSecret `reviewer-github-pat` | Secret `reviewer-github-pat`, key `token`, from Secret Manager `reviewer-github-pat` |
+| ExternalSecret `linear-api-key` | Secret `linear-api-key`, key `api-key`, from Secret Manager `linear-api-key`: check `Linear`'s read-only Linear API key |
 
 The docs pipelines: [docs site composition](../hub/designs/docs-site-composition.md). The reviewer:
-[design](../tooling/designs/pr-reviewer.md).
+[design](../tooling/designs/pr-reviewer.md). Check `Linear`, tooling's organization pipeline `linear`:
+[Linear](../CONTRIBUTING.md#linear).
 
 A pipeline that needs Google Cloud names a ServiceAccount of its own, from `tenants/<repository>/`, without a mounted
 token:
@@ -170,7 +172,7 @@ Hub-wide labels share the prefix `kfirs.com/`.
 | `kfirs.com/public-ingress: "true"` | Namespace | May attach routes to Gateway `public`, which has no sign-in | The Applications' `managedNamespaceMetadata` (`auth`, `docs`, `keycloak`, `go-import`) and Application `octomaton`'s `kustomize` options (`octomaton`). Policy `fin-namespaces` refuses it on Fin's namespaces |
 | `kfirs.com/pull-request: "true"` | Namespace | A Fin pull request's or merge queue entry's environment: `gcp-secret-manager` serves it nothing, it reaches NATS on 4222, and its routes may attach to `traefik/fin-pull-requests` | ApplicationSet `fin-pull-requests`; policy `fin-namespaces` requires it on `fin-pr-*` |
 | `kfirs.com/pool: <pool>` | Node | Node pool `system`, `ci` or `fin`, which pods select; `ci` and `fin` are also tainted `kfirs.com/pool=<pool>:NoSchedule` | `infra` ([node pools](../infra/terraform/gcp.md#node-pools)); pods select it ([node pools](designs/node-pools.md)) |
-| `kfirs.com/sandbox: "true"` | Pod | A pull request reviewer's pod, which NetworkPolicy `sandbox` holds | `tooling`'s reviewer PipelineRun |
+| `kfirs.com/sandbox: "true"` | Pod | A pull request reviewer's or check `Linear`'s pod, which NetworkPolicy `sandbox` holds | `tooling`'s reviewer and `linear` PipelineRuns |
 
 Octomaton writes its bookkeeping labels and annotations under `octomaton.dev/` on the objects it creates
 ([Octomaton's README](https://github.com/arikkfir-org/octomaton#deployment)); the one it reads,
