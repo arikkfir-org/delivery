@@ -122,8 +122,8 @@ A repository runs its CI in namespace `ci-<repository>` (`.github` has no CI):
 
 1. Copy a directory under `platform/ci-tenants/manifests/tenants/`, set its `namespace`, and list it in
    `platform/ci-tenants/manifests/kustomization.yaml`. The base creates the namespace, the ServiceAccounts `pipeline`,
-   `docs-reader` and `docs-publisher`, the RoleBinding that lets Octomaton run pipelines there, and the pull request
-   reviewer's objects ([the hub platform](docs/delivery/platform.md#ci-tenants)).
+   `docs-reader` and `docs-publisher`, the RoleBinding that lets Octomaton run pipelines there, the pull request
+   reviewer's objects and check `Linear`'s Secret ([the hub platform](docs/delivery/platform.md#ci-tenants)).
 2. If a pipeline needs Google Cloud access, give it a ServiceAccount of its own in `tenants/<repository>/`
    (`automountServiceAccountToken: false`, annotated `octomaton.dev/branches: main` when it publishes or applies), and
    have `infra` grant that ServiceAccount's Workload Identity principal. Never grant `pipeline`: any branch's run can

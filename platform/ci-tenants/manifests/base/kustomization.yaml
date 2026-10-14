@@ -3,4 +3,5 @@ kind: Kustomization
 resources:
   - tenant.yaml
   - reviewer.yaml
+  - linear.yaml
   - docs-site.yaml
