@@ -6,7 +6,7 @@ metadata:
 ---
 # Identity of every PipelineRun that names no other ServiceAccount (Tekton's default), which any branch's run can use,
 # so it must hold no GCP role: a pipeline that needs one names a ServiceAccount of its own (see
-# docs/delivery/platform.md, "CI tenants").
+# https://docs.dev.kfirs.com/delivery/platform.md, "CI tenants").
 apiVersion: v1
 kind: ServiceAccount
 metadata:

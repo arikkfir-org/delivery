@@ -31,8 +31,8 @@ data:
     	}
 
     	# CI runs' reports moved to the tests site, at the same paths
-    	# (docs/delivery/designs/docs-and-tests-servers.md): links to their old addresses, /reports/<repository>/<run>/,
-    	# keep working. A layer's page under reports/ is never served.
+    	# (https://docs.dev.kfirs.com/delivery/designs/docs-and-tests-servers.md): links to their old addresses,
+    	# /reports/<repository>/<run>/, keep working. A layer's page under reports/ is never served.
     	handle /reports/* {
     		redir https://tests.dev.kfirs.com{uri} permanent
     	}
