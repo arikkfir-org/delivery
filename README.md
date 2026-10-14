@@ -77,7 +77,7 @@ Secrets never live in Git: each one is an `ExternalSecret` reading Secret Manage
 `refreshPolicy: CreatedOnce` (Grafana's database password). Every UI is served on the `protected` gateway, behind the
 oauth2-proxy interceptor ([design](docs/delivery/designs/phase-3-ingress-and-auth.md)); only `auth.kfirs.com/oauth2`, `octomaton.dev` (Octomaton's webhook, and its Go import page from `go-import`),
 `legal.kfirs.com` (the docs site's privacy policy and terms of service, exact paths only), `id.kfirs.com` (Keycloak's
-realm `hub`, and realm `master` behind the interceptor) and `fin.kfirs.com` (Fin's Go import page, `go-import`) use the
+realm `hub`, and realm `master` behind the interceptor) and `fin.kfirs.com` (Fin's Go import page, `go-import`, [design](docs/delivery/designs/go-import-pages.md)) use the
 `public` gateway. Fin's host names need certificates of their own, so production's environment has a Gateway of its
 own, and pull requests' share `fin-pull-requests`, both on the protected gateway's entry point, behind the same
 interceptor. Every UI but Fin's then admits only group `admins` (Middleware `admins`, [design](docs/delivery/designs/admins-only.md)).

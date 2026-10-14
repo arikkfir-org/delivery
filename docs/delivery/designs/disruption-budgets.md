@@ -57,7 +57,7 @@ sequenceDiagram
 | Traefik | 2 | Stateless; both serve both load balancers |
 | oauth2-proxy | 2 | Sessions live in cookies |
 | Docs and tests sites | 2 each | Each pod mounts its bucket read-only ([docs and tests servers](docs-and-tests-servers.md)) |
-| `go-import` | 2 | Static answers ([Go import pages](../../hub/designs/go-import-pages.md)) |
+| `go-import` | 2 | Static answers ([Go import pages](go-import-pages.md)) |
 | Grafana | 2 | State in PostgreSQL, shared; alert state gossiped between the replicas, so each alert notifies once ([below](#grafana-on-postgresql)) |
 | KEDA's operator, metrics server and admission webhooks | 2 each | KEDA keeps one operator and one metrics server active and the other on standby; both webhook replicas serve |
 | Keycloak | 2 | Sessions live in its PostgreSQL ([Keycloak](keycloak.md)) |
