@@ -6,8 +6,8 @@ metadata:
   labels:
     app.kubernetes.io/name: tests
 data:
-  # Replaces the image's Caddyfile. The site serves the bucket's objects as they are, at their own names (see the
-  # reference, "Tests site").
+  # Replaces the image's Caddyfile. The site serves the bucket's objects as they are, at their own names (see
+  # docs/delivery/designs/docs-and-tests-servers.md).
   Caddyfile: |
     {
     	admin off

@@ -5,7 +5,8 @@
 # and Gateway (a pull request's routes attach to the shared traefik/fin-pull-requests). Never ServiceAccounts
 # (production's come from Application fin-identities), cluster-wide RBAC, Secrets, secret stores or generators other
 # than Password, Issuers, CertificateRequests, ReferenceGrants or ClusterTriggerAuthentications. The admission policies
-# here hold what the admitted kinds may do.
+# here hold what the admitted kinds may do. Why, and what each holds:
+# https://docs.dev.kfirs.com/fin/designs/environments.md.
 # Wave -1: before the Applications that name them.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject

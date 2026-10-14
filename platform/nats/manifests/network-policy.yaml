@@ -1,5 +1,5 @@
-# NATS takes no credentials, so this decides who reaches its servers (hub reference, "Namespaces"): anything in this
-# namespace (the servers' own routes, NACK, NUI and nats-box), and Fin's environments on the client port only:
+# NATS takes no credentials, so this decides who reaches its servers (docs/delivery/platform.md, "NATS"): anything in
+# this namespace (the servers' own routes, NACK, NUI and nats-box), and Fin's environments on the client port only:
 # production's namespace by name, and every pull request's by the label Fin's ApplicationSet gives it, the one that
 # also admits its routes to traefik/fin-pull-requests. No other namespace reaches NATS, CI tenants included.
 apiVersion: networking.k8s.io/v1
