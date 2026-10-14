@@ -4,7 +4,7 @@
 
 **Goal**: expose cluster applications through Traefik on L4 (passthrough network) load balancers, and make OpenID
 authentication of a closed set of users the default for everything, so an internal application can't be exposed
-unauthenticated by forgetting a setting. Hosts, IPs and names: [reference](../../hub/reference.md#ingress).
+unauthenticated by forgetting a setting. Hosts, IPs and names: [the hub platform](../platform.md#ingress).
 
 ## Design
 
@@ -88,6 +88,11 @@ Header safety: `strip-auth-headers` removes `X-Auth-Request-*` headers sent by c
 ForwardAuth copies the verified values from oauth2-proxy's response. NetworkPolicies let protected backends accept
 traffic only from the `traefik` namespace (Argo CD's server also admits its own namespace and Octomaton's webhook
 relay), so the interceptor can't be bypassed from inside the cluster.
+
+| Entry-point middleware (namespace `traefik`) | What it does |
+| --- | --- |
+| `strip-auth-headers` | Deletes the client's `X-Auth-Request-User`, `X-Auth-Request-Email` and `X-Auth-Request-Preferred-Username` |
+| `oidc` | ForwardAuth to `http://oauth2-proxy.auth.svc.cluster.local/`. oauth2-proxy, whose one upstream is `static://202`, answers `202` for a valid session and starts the sign-in otherwise; Traefik copies `X-Auth-Request-User`, `X-Auth-Request-Email` and `X-Auth-Request-Preferred-Username` from its answer onto the request |
 
 ## Decisions
 

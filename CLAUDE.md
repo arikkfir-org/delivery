@@ -6,8 +6,13 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
 
 - Git is the source of truth. Never `kubectl apply`, `edit`, `patch`, `delete` or `helm install` against the cluster;
   change files here and let Argo CD sync `main`. Read-only `kubectl get`/`describe`/`logs` is fine.
-- The hub reference (https://docs.dev.kfirs.com/hub/reference.md) is the contract. Names, namespaces, hosts, versions
-  and identities must match it; if one has to change, change the reference first.
+- A name, address, identity or permission is documented by the repository that creates it, in its pages under
+  `docs/<repository>/`; a repository that uses one links that page rather than repeat it. This repository creates what
+  runs in the cluster (namespaces, ServiceAccounts, hosts' routes, versions): document it in `docs/delivery/platform.md`
+  and its designs, in the same pull request. GCP names come from `infra`'s pages, and Octomaton's and Fin's deployments
+  from their own. A change to a value starts in the repository that creates it, and those that use it follow in the
+  same unit of work. If a change needs a new or different value from another repository, say so; do not diverge
+  silently.
 - Pin everything: chart `targetRevision`, image tags, remote manifest URLs. Never `latest`, never a floating branch.
   The exceptions run the image of the commit they sync: Application `octomaton` (`platform/octomaton/manifests`)
   follows `main` of `arikkfir-org/octomaton` (its `deploy/`), and Fin's environments (`platform/fin/manifests`) follow `main` of
@@ -72,13 +77,15 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
 
 ## Docs
 
-- This repository's designs are in `docs/delivery/`: a change keeps those it touches true, in the same pull request.
-  What `infra` provisions (the cluster, its node pools, buckets, grants, DNS) is described in its pages under
-  `https://docs.dev.kfirs.com/infra/terraform/`: list what a change relies on and link them, rather than repeat them.
+- This repository's pages are in `docs/delivery/`: `platform.md`, what runs in the cluster (components and versions,
+  NATS, ingress and hosts, CI tenants, labels), and the designs under `designs/`. A change keeps those it touches true,
+  in the same pull request. What `infra` provisions (the cluster, its node pools, buckets, grants, DNS) is described in
+  its pages under `https://docs.dev.kfirs.com/infra/terraform/`: list what a change relies on and link them, rather
+  than repeat them.
 - Pages at `https://docs.dev.kfirs.com/<path>` (every repository's `docs/`) are behind the hub's sign-in. Read one with
   `curl -fsS https://storage.googleapis.com/arikkfir-docs/.layers/<repository>/<path>`, where `<repository>` is the
   path's first segment when it names a repository (`fin/designs/environments.md` is `fin`'s) and `docs` otherwise
-  (`hub/reference.md`). Don't clone a repository to read its docs.
+  (`CONTRIBUTING.md`). Don't clone a repository to read its docs.
 
 ## Validate before committing
 

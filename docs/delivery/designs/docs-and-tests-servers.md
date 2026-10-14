@@ -39,8 +39,8 @@ flowchart LR
 | Written by | Each repository's `docs-publisher`, its own layer, from `main` | `ci-fin/ci-fin-ci`, under `reports/fin/`, from any branch ([end to end](../../fin/designs/end-to-end.md)) |
 | Kept | As long as its repository keeps the file | 30 days |
 
-Names, grants and hosts: the hub reference, [docs site](../../hub/reference.md#docs-site) and
-[tests site](../../hub/reference.md#tests-site).
+The docs site's layers, pipelines and names: [docs site composition](../../hub/designs/docs-site-composition.md). The
+buckets and their grants: [infra's buckets](../../infra/terraform/gcp.md#buckets).
 
 ### Serving
 
