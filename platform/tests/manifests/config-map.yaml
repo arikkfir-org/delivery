@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tests
+  namespace: tests
+  labels:
+    app.kubernetes.io/name: tests
+data:
+  # Replaces the image's Caddyfile. The site serves the bucket's objects as they are, at their own names (see the
+  # reference, "Tests site").
+  Caddyfile: |
+    {
+    	admin off
+    	auto_https off
+    	persist_config off
+    }
+
+    :8080 {
+    	root * /srv/tests
+    	log
+    	log_skip /healthz
+
+    	handle /healthz {
+    		respond "ok" 200
+    	}
+
+    	# Hidden paths are never served.
+    	@hidden path_regexp /\.
+    	handle @hidden {
+    		respond 404
+    	}
+
+    	# CI runs' reports, /reports/<repository>/<run>/: a folder serves its index.html, and is never listed.
+    	handle {
+    		header Cache-Control "private, max-age=300"
+    		file_server
+    	}
+    }
