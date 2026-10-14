@@ -6,8 +6,8 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
 
 - Git is the source of truth. Never `kubectl apply`, `edit`, `patch`, `delete` or `helm install` against the cluster;
   change files here and let Argo CD sync `main`. Read-only `kubectl get`/`describe`/`logs` is fine.
-- `docs/hub/reference.md` (arikkfir-org/docs) is the contract. Names, namespaces, hosts, versions and identities must
-  match it; if one has to change, change the reference first.
+- The hub reference (https://docs.dev.kfirs.com/hub/reference.md) is the contract. Names, namespaces, hosts, versions
+  and identities must match it; if one has to change, change the reference first.
 - Pin everything: chart `targetRevision`, image tags, remote manifest URLs. Never `latest`, never a floating branch.
   The exceptions run the image of the commit they sync: Application `octomaton` (`platform/octomaton/manifests`)
   follows `main` of `arikkfir-org/octomaton` (its `deploy/`), and Fin's environments (`platform/fin/manifests`) follow `main` of
@@ -69,6 +69,16 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   for the pinned version, and validate it against the CRD schema in the operator's release manifest (CI cannot: the
   CRDs catalog has no schema for it).
 - Verify every chart value key against the chart's `values.yaml`/`values.schema.json` for the pinned version.
+
+## Docs
+
+- This repository's designs are in `docs/delivery/`: a change keeps those it touches true, in the same pull request.
+  What `infra` provisions (the cluster, its node pools, buckets, grants, DNS) is described in its pages under
+  `https://docs.dev.kfirs.com/infra/terraform/`: list what a change relies on and link them, rather than repeat them.
+- Pages at `https://docs.dev.kfirs.com/<path>` (every repository's `docs/`) are behind the hub's sign-in. Read one with
+  `curl -fsS https://storage.googleapis.com/arikkfir-docs/.layers/<repository>/<path>`, where `<repository>` is the
+  path's first segment when it names a repository (`fin/designs/environments.md` is `fin`'s) and `docs` otherwise
+  (`hub/reference.md`). Don't clone a repository to read its docs.
 
 ## Validate before committing
 

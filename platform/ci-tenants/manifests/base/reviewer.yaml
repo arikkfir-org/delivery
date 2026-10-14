@@ -50,7 +50,7 @@ spec:
       remoteRef:
         key: reviewer-deepseek-api-key
 ---
-# arikkfir-reviewer's fine-grained personal access token, for the report task only.
+# arikkfir-reviewer's fine-grained personal access token, for the review task's report step only.
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:

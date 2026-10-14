@@ -5,7 +5,7 @@ resources:
   - https://github.com/keycloak/keycloak-k8s-resources//kubernetes?ref=26.8.0
   - pod-disruption-budget.yaml
 patches:
-  # What the operator uses, keeping its limits (hub/designs/resource-requests.md in arikkfir-org/docs).
+  # What the operator uses, keeping its limits (docs/delivery/designs/resource-requests.md).
   - target:
       kind: Deployment
       name: keycloak-operator

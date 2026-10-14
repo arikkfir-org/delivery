@@ -141,7 +141,7 @@ spec:
           operator: Equal
           value: ci
           effect: NoSchedule
-    # What each component uses (hub/designs/resource-requests.md in arikkfir-org/docs). The operator replaces a named
+    # What each component uses (docs/delivery/designs/resource-requests.md). The operator replaces a named
     # container's whole resources with these, so each restates the limits it keeps. The pipelines webhook keeps its
     # 100m: its HorizontalPodAutoscaler adds replicas at 100% of it, up to five.
     # Every Deployment, here and in trigger's and dashboard's options, rolls out by surging: the new pod is ready
