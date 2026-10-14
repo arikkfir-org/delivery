@@ -1,5 +1,5 @@
-# Identities of infra's Terraform pipelines (see the reference, "Terraform applies"). terraform/gcp binds their GCP
-# roles to them through Workload Identity; neither needs a Kubernetes API token.
+# Identities of infra's Terraform pipelines (see https://docs.dev.kfirs.com/infra/designs/terraform-plan-apply.md).
+# terraform/gcp binds their GCP roles to them through Workload Identity; neither needs a Kubernetes API token.
 
 # Plans on pull requests and in the merge queue, with read-only roles.
 apiVersion: v1

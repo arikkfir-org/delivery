@@ -1,6 +1,6 @@
 # Go import pages
 
-**Decision**: one Caddy, Application `go-import`, answers Go's import requests for every hub domain that is a Go module path: `fin.kfirs.com` and `octomaton.dev`. A table in its configuration names each domain's repository and where people who open the domain in a browser go: today each domain's own repository, and for any other host the organization's page, `https://github.com/arikkfir-org`. Names and wiring: the reference's [Go import pages](../../hub/reference.md#go-import-pages). Built in [delivery#50](https://github.com/arikkfir-org/delivery/pull/50), which replaced Octomaton's own Caddy ([octomaton#27](https://github.com/arikkfir-org/octomaton/pull/27)).
+**Decision**: one Caddy, Application `go-import`, answers Go's import requests for every hub domain that is a Go module path: `fin.kfirs.com` and `octomaton.dev`. A table in its configuration names each domain's repository and where people who open the domain in a browser go: today each domain's own repository, and for any other host the organization's page, `https://github.com/arikkfir-org`. Built in [delivery#50](https://github.com/arikkfir-org/delivery/pull/50), which replaced Octomaton's own Caddy ([octomaton#27](https://github.com/arikkfir-org/octomaton/pull/27)).
 
 ## Why
 
@@ -24,7 +24,7 @@ flowchart LR
 | A listed domain, anything else | `302` to the domain's redirect URL |
 | Any other host | `302` to `https://github.com/arikkfir-org` (no route sends one) |
 
-Caddy's `map` turns the request's host into the domain's repository and redirect URL, one row per domain; the `default` row, and `-` in a row's redirect column, give the organization's page. HTTPRoute `go-import` lists the same domains and attaches to each one's listener: `public-websecure` for names under `*.kfirs.com`, `octomaton-dev` for `octomaton.dev`. Octomaton's route keeps only `/github/hooks`, and an exact path takes precedence over `go-import`'s prefix. Adding a domain: a row in the ConfigMap's `map` and a host name in the route; a domain outside `*.kfirs.com` also needs a listener of its own that admits namespace `go-import`.
+Caddy's `map` turns the request's host into the domain's repository and redirect URL, one row per domain; the `default` row, and `-` in a row's redirect column, give the organization's page. HTTPRoute `go-import` lists the same domains and attaches to each one's listener: `public-websecure` for names under `*.kfirs.com`, `octomaton-dev` for `octomaton.dev`. Octomaton's route keeps only `/github/hooks`, and an exact path takes precedence over `go-import`'s prefix. Adding a domain: a row in the ConfigMap's `map` and a host name in the route; a domain outside `*.kfirs.com` also needs a listener and certificate of its own, the listener admitting namespace `go-import`.
 
 ### In the cluster
 

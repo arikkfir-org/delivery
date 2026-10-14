@@ -1,6 +1,6 @@
-# Identities of the docs site's organization pipelines, which arikkfir-org/tooling declares (see the reference, "Docs
-# site"). terraform/gcp grants their roles on bucket arikkfir-docs to their Workload Identity principals; neither needs
-# a Kubernetes API token.
+# Identities of the docs site's organization pipelines, which arikkfir-org/tooling declares (see
+# https://docs.dev.kfirs.com/hub/designs/docs-site-composition.md). terraform/gcp grants their roles on bucket
+# arikkfir-docs to their Workload Identity principals; neither needs a Kubernetes API token.
 
 # The Docs check, on pull requests and merge groups: may list the bucket's object names, and read nothing.
 apiVersion: v1

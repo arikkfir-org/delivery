@@ -1,10 +1,13 @@
 # delivery
 
 Argo CD GitOps repository for the `arikkfir-org` development hub: everything that runs inside the GKE cluster `hub` is
-declared here, and Argo CD applies it from `main`. Octomaton's own manifests are the exception (below). Names, versions,
-hosts and identities follow the [hub reference](https://docs.dev.kfirs.com/hub/reference.md), which is the contract
-between this repository, `infra` and `octomaton`. What `infra` provisions for the cluster is described in its
-[Terraform roots](https://docs.dev.kfirs.com/infra/terraform/gcp.md).
+declared here, and Argo CD applies it from `main`. Octomaton's own manifests are the exception (below). The names,
+versions, hosts and identities this repository creates are documented in
+[the hub platform](https://docs.dev.kfirs.com/delivery/platform.md) and the designs under `docs/delivery/`, and change
+with the code there; other repositories link those pages rather than repeat them, and follow a change in the same unit
+of work. What `infra` provisions for the cluster is described in its
+[Terraform roots](https://docs.dev.kfirs.com/infra/terraform/gcp.md), and Octomaton's and Fin's deployments in their own
+pages, which this repository links. A change that needs a new or different value from another repository says so.
 
 ## Layout
 
@@ -110,17 +113,21 @@ resources deliberately, or cascade-delete the Application before removing its fi
 3. A UI gets an `HTTPRoute` on the `protected` gateway (`traefik` namespace) with Middleware `admins` in its own
    namespace (only group `admins` passes; [design](docs/delivery/designs/admins-only.md)), and a NetworkPolicy that
    admits only the `traefik` namespace to its pods. Select only those pods, never the whole namespace.
-4. Validate (below), then open a pull request. Add the names to the hub reference first if they are new.
+4. Validate (below), then open a pull request. Document new names, hosts and versions in the same pull request, in
+   [the hub platform](docs/delivery/platform.md) or the component's design.
 
 ## Add a CI tenant
 
 A repository runs its CI in namespace `ci-<repository>` (`.github` has no CI):
 
 1. Copy a directory under `platform/ci-tenants/manifests/tenants/`, set its `namespace`, and list it in
-   `platform/ci-tenants/manifests/kustomization.yaml`. This creates the namespace, the `pipeline` ServiceAccount and the
-   RoleBinding that lets Octomaton run pipelines there.
-2. If its pipelines need Google Cloud access, grant it to the Workload Identity principal of `ci-<repository>/pipeline`
-   in `infra`.
+   `platform/ci-tenants/manifests/kustomization.yaml`. The base creates the namespace, the ServiceAccounts `pipeline`,
+   `docs-reader` and `docs-publisher`, the RoleBinding that lets Octomaton run pipelines there, and the pull request
+   reviewer's objects ([the hub platform](docs/delivery/platform.md#ci-tenants)).
+2. If a pipeline needs Google Cloud access, give it a ServiceAccount of its own in `tenants/<repository>/`
+   (`automountServiceAccountToken: false`, annotated `octomaton.dev/branches: main` when it publishes or applies), and
+   have `infra` grant that ServiceAccount's Workload Identity principal. Never grant `pipeline`: any branch's run can
+   use it.
 3. Add `.octomaton.yaml` and a PipelineRun file to the repository.
 
 ## Validate

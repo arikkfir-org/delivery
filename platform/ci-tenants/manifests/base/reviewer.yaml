@@ -1,5 +1,5 @@
-# The pull request reviewer's objects (see the reference, "Pull request reviewer"). Its PipelineRun, from
-# arikkfir-org/tooling, runs every task as ServiceAccount reviewer and labels every pod kfirs.com/sandbox=true.
+# The pull request reviewer's objects (see https://docs.dev.kfirs.com/tooling/designs/pr-reviewer.md). Its PipelineRun,
+# from arikkfir-org/tooling, runs every task as ServiceAccount reviewer and labels every pod kfirs.com/sandbox=true.
 
 # No RoleBinding, no mounted token, and no IAM role for its Workload Identity principal.
 apiVersion: v1

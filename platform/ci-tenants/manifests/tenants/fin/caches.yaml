@@ -1,4 +1,4 @@
-# The identity of fin's ci (see the reference, "GCP identities and permissions"): any branch may use it, and
+# The identity of fin's ci (see https://docs.dev.kfirs.com/infra/terraform/gcp.md, "IAM"): any branch may use it, and
 # terraform/gcp lets it read bucket arikkfir-fin-ci-cache through Workload Identity. ci restores the cache that
 # release saves; it holds nothing secret.
 apiVersion: v1
