@@ -79,7 +79,7 @@ spec:
           matchLabels:
             app: keycloak
             app.kubernetes.io/instance: keycloak
-  # What each instance uses (hub/designs/resource-requests.md in arikkfir-org/docs). Java takes 70% of the memory limit
+  # What each instance uses (docs/delivery/designs/resource-requests.md). Java takes 70% of the memory limit
   # for its heap, so the limit is the one Keycloak's sizing guide gives for 10,000 sessions, far more than the hub has.
   # CPU stays unlimited: every sign-in hashes a password, and the guide reports throttling slows Keycloak badly.
   resources:

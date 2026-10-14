@@ -80,7 +80,7 @@ controller:
     enabled: true
     maxUnavailable: 1
     unhealthyPodEvictionPolicy: AlwaysAllow
-  # What it uses (hub/designs/resource-requests.md in arikkfir-org/docs). Its memory is its cache of the resources it
+  # What it uses (docs/delivery/designs/resource-requests.md). Its memory is its cache of the resources it
   # manages, which grows with every pull request's Application, so the limit stays well above its peak. CPU unlimited.
   resources:
     requests:

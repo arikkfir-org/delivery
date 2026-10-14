@@ -3,7 +3,7 @@
 **Decision**: Every hub service runs on node pool `system`, which carries GKE's own taint for its managed components,
 `components.gke.io/gke-managed-components=true:NoSchedule`: only GKE's components and the hub's services tolerate it.
 CI runs go to pool `ci` through Tekton's default pod template, and Fin's environments to pool `fin` through Fin's
-`deploy/`, which policy `fin-node-pool` holds to that pool. infra's `docs/infra/designs/node-pools.md` designs the pools
+`deploy/`, which policy `fin-node-pool` holds to that pool. [infra's node pools](../../infra/designs/node-pools.md) designs the pools
 themselves; Fin's [environments](../../fin/designs/environments.md) keep production and pull requests on separate nodes.
 
 ## Why
@@ -19,7 +19,7 @@ themselves; Fin's [environments](../../fin/designs/environments.md) keep product
 flowchart TB
   subgraph system["pool system: taint components.gke.io/gke-managed-components, 1 to 3 on-demand nodes"]
     GKE["GKE: kube-dns, metrics-server, konnectivity, …"]
-    Hub["The hub's services: Argo CD, oauth2-proxy, cert-manager, docs, ESO, go-import, Grafana,<br/>KEDA, Keycloak, NATS, Octomaton and octomaton-logs, Reloader, Tekton, Traefik"]
+    Hub["The hub's services: Argo CD, oauth2-proxy, cert-manager, docs, tests, ESO, go-import, Grafana,<br/>KEDA, Keycloak, NATS, Octomaton and octomaton-logs, Reloader, Tekton, Traefik"]
   end
   subgraph ci["pool ci: taint kfirs.com/pool=ci, 0 to 10 Spot nodes"]
     Runs["TaskRun pods (Tekton's default pod template)"]
@@ -44,7 +44,7 @@ every taint, and the hub runs none of its own.
 | External Secrets Operator | `global.nodeSelector` and `global.tolerations`, which the operator, webhook and cert controller take |
 | NATS | `podTemplate.merge.spec` (the servers) and `natsBox.podTemplate.merge.spec` |
 | Reloader | `reloader.deployment.nodeSelector` and `tolerations` |
-| docs, go-import, Grafana's and Keycloak's PostgreSQL | their pod templates (`platform/<component>/manifests`) |
+| docs, tests, go-import, Grafana's and Keycloak's PostgreSQL | their pod templates (`platform/<component>/manifests`) |
 | Keycloak | the resource's `scheduling`: a required node affinity (the operator takes no node selector) and the toleration |
 | Keycloak's operator, Tekton's operator and its webhook | kustomize patches on the release manifests' Deployments |
 | Pipelines, Triggers, the Dashboard, the proxy webhook, the pruner | TektonConfig `spec.config`, which the operator sets on every Deployment and StatefulSet it makes, replacing theirs, and on the pruner's CronJob |
@@ -67,8 +67,8 @@ so the Dashboard could no longer show their logs. Its backend now asks `octomato
 log fails (TektonConfig's `dashboard.external-logs`):
 `http://octomaton-logs.octomaton.svc.cluster.local/logs/<namespace>/<pod>/<container>?startTime=…&completionTime=…`.
 `octomaton-logs` reads the step's log from Cloud Logging, which keeps every container's output 30 days. It runs with
-Octomaton, from Octomaton's `deploy/`, and only the Dashboard's pods reach it (Octomaton's
-`docs/octomaton/designs/archived-step-logs.md`).
+Octomaton, from Octomaton's `deploy/`, and only the Dashboard's pods reach it
+([archived step logs](../../octomaton/designs/archived-step-logs.md)).
 
 ## Decisions
 
@@ -89,17 +89,8 @@ Octomaton, from Octomaton's `deploy/`, and only the Dashboard's pods reach it (O
 - If GKE ever makes a managed component that doesn't tolerate its own taint, that component waits for a node. GKE
   documents the taint for exactly this pool.
 - `octomaton-logs` down: the Dashboard shows a gone pod's log as unavailable, as it did before.
+- Removing a hub service's placement while the system pool is tainted leaves it waiting for a node once it restarts: infra removes the taint first.
 
 ## Rollout
 
-1. infra adds pool `fin` (pipeline `apply` on merge).
-2. fin gives every pod template the pool's selector, toleration and anti-affinity. Production moves on the merge; a
-   pull request's environment moves when its branch has `main`.
-3. This pull request: every hub service restarts once, one replica at a time where it has two, onto the same system
-   nodes; single-replica ones (Argo CD's controller, Tekton's controllers, each PostgreSQL) restart. Policy
-   `fin-node-pool` comes into force. The Dashboard's external logs answer once Octomaton's `octomaton-logs` runs.
-4. infra taints the system pool. Pods already there stay; anything else on it (a Fin pod from before step 2) leaves when
-   it next restarts.
-
-Roll back in reverse order. Reverting this pull request alone, while the system pool is tainted, would leave every hub
-service that restarts waiting for a node.
+Done on 12 October 2026: infra added pool `fin`, fin moved its pods there, this design placed every hub service ([delivery#51](https://github.com/arikkfir-org/delivery/pull/51)), and infra then tainted the system pool.

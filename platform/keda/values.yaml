@@ -2,7 +2,7 @@
 crds:
   install: true
 
-# Nothing scales through KEDA yet. Once something does, a node drain must not stop it: two replicas of each component,
+# Fin's scraper scales through KEDA, so a node drain must not stop it: two replicas of each component,
 # spread over nodes when there are several, at most one evicted at a time. KEDA keeps one operator and one metrics
 # server active and the other on standby; both webhook replicas serve.
 operator:
@@ -12,7 +12,7 @@ metricsServer:
 webhooks:
   replicaCount: 2
 # What each component uses, memory limits above their peaks. The chart's limits of one CPU, far above use, stay
-# (hub/designs/resource-requests.md in arikkfir-org/docs).
+# (docs/delivery/designs/resource-requests.md).
 resources:
   operator:
     requests:

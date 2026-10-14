@@ -2,9 +2,9 @@
 
 Argo CD GitOps repository for the `arikkfir-org` development hub: everything that runs inside the GKE cluster `hub` is
 declared here, and Argo CD applies it from `main`. Octomaton's own manifests are the exception (below). Names, versions,
-hosts and identities follow the hub reference (`docs/hub/reference.md` in
-[arikkfir-org/docs](https://github.com/arikkfir-org/docs)), which is the contract between this repository, `infra` and
-`octomaton`.
+hosts and identities follow the [hub reference](https://docs.dev.kfirs.com/hub/reference.md), which is the contract
+between this repository, `infra` and `octomaton`. What `infra` provisions for the cluster is described in its
+[Terraform roots](https://docs.dev.kfirs.com/infra/terraform/gcp.md).
 
 ## Layout
 
@@ -32,7 +32,7 @@ Each file there is an Application in namespace `argocd`, project `default`:
   `octomaton`, Octomaton's own ClusterRoles and ClusterRoleBinding, and the namespaced kinds `deploy/` holds. Only
   reviewed commits on `main` deploy, so no admission policies hold what they say, unlike Fin's pull requests.
 - `fin-environments` deploys Fin the same way
-  ([design](https://github.com/arikkfir-org/fin/blob/main/docs/fin/designs/environments.md)). `deploy/` of
+  ([design](https://docs.dev.kfirs.com/fin/designs/environments.md)). `deploy/` of
   `arikkfir-org/fin` (Kustomize) is production as written: Application `fin` deploys it from that repository's `main`
   into namespace `fin`, and ApplicationSet `fin-pull-requests` deploys each open pull request's head commit into
   `fin-pr-<number>`, and each merge queue entry's merge group commit into `fin-pr-<number>-merge`,
