@@ -20,7 +20,7 @@ flowchart LR
   B[Browser] --> T["Traefik, protected entry point<br/>oidc: signed in?"]
   T -->|"Fin's hosts"| F[Fin]
   T -->|"the hub's tools"| A["Middleware admins<br/>/oauth2/auth?allowed_groups=admins"]
-  A -->|"group admins"| Tools["Argo CD, Tekton, Grafana, NUI,<br/>Traefik's dashboard, docs, Keycloak's console"]
+  A -->|"group admins"| Tools["Argo CD, Tekton, Grafana, NUI,<br/>Traefik's dashboard, docs, tests, Keycloak's console"]
   A -->|"anyone else"| X["403"]
 ```
 
@@ -32,6 +32,7 @@ flowchart LR
 | `nui.dev.kfirs.com` | `nats` | Before `strip-cookies`, which removes the session cookie that `admins` reads |
 | `traefik.dev.kfirs.com` | `traefik` | The dashboard's IngressRoute, through the chart's `ingressRoute.dashboard.middlewares` |
 | `docs.dev.kfirs.com` | `docs` | The rule's only filter; `legal.kfirs.com` stays public |
+| `tests.dev.kfirs.com` | `tests` | The rule's only filter |
 | `admin.id.kfirs.com` | `keycloak` | The console's rule |
 | `id.kfirs.com/realms/master` | `keycloak` | After `oidc`; `/realms/hub` and `/resources` stay public, for the login page |
 
@@ -45,7 +46,7 @@ oauth2-proxy reads the user's groups from the ID token's `groups` claim, which c
 | --- | --- | --- |
 | A Middleware per route, after the entry point's sign-in | The entry point's ForwardAuth starts the sign-in for anyone without a session; `/oauth2/auth` answers 401 instead of starting it, so it can only follow. Fin's hosts share the entry point, so the check can't live there | The group check on the entry point: Fin's test users would be refused too |
 | A copy in each namespace | A Gateway API route's `ExtensionRef` names a Middleware of its own namespace only | One Middleware in `traefik` |
-| Every tool, the docs site included | Test users need only Fin. The docs site serves CI reports, whose traces hold what tests typed | Argo CD's RBAC alone: Grafana, the Tekton Dashboard and NUI would stay open |
+| Every tool, the docs and tests sites included | Test users need only Fin. The tests site serves CI reports, whose traces hold what tests typed ([docs and tests servers](docs-and-tests-servers.md)) | Argo CD's RBAC alone: Grafana, the Tekton Dashboard and NUI would stay open |
 | The tools' own roles stay as they are | Only admins reach them now | Argo CD roles from groups now (Keycloak's design lists it for later) |
 | Keycloak admits `ci-fin` | The admin API has no public route; the runs reach it in the cluster, as Terraform does from `ci-infra` | A public admin route |
 

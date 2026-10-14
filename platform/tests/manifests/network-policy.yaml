@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: tests
+  namespace: tests
+  labels:
+    app.kubernetes.io/name: tests
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: tests
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+      ports:
+        - protocol: TCP
+          port: 8080

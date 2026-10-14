@@ -66,7 +66,7 @@ Each file there is an Application in namespace `argocd`, project `default`:
 | 1 | `gateway-api`, `cert-manager`, `external-secrets` |
 | 2 | `argocd` |
 | 3 | `traefik`, `tekton-operator`, `keda`, `reloader`, `nats`, `keycloak-operator` |
-| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton-environment`, `docs`, `ci-tenants`, `keycloak`, `fin-environments`, `go-import` |
+| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton-environment`, `docs`, `tests`, `ci-tenants`, `keycloak`, `fin-environments`, `go-import` |
 
 Within an Application, waves order dependent resources as well: ClusterIssuers and the ClusterSecretStore wait for their
 operators' webhooks; in `traefik` the Certificates (the wildcard and `octomaton-dev`) are issued before the Gateways
