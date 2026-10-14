@@ -13,8 +13,8 @@ sequenceDiagram
   participant O as Owner
   I->>I: arikkfir-org/infra#66 merges, and pipeline apply creates arikkfir-tests and its grants
   O->>O: step 1, copy the reports
-  D->>D: Application tests serves them, and the docs server redirects /reports/*
-  F->>F: Fin's e2e task uploads to arikkfir-tests
+  D->>D: arikkfir-org/delivery#59 merges, tests serves them, and docs redirects /reports/*
+  F->>F: arikkfir-org/fin#139 merges, and Fin's e2e task uploads to arikkfir-tests
   O->>O: steps 2 to 5, copy again, check, delete
   O->>I: step 6, a change drops the old grant and rule
 ```
@@ -29,7 +29,7 @@ sequenceDiagram
 
    Each object keeps its name, `reports/` for `.reports/`. A copy is a new object, so the bucket's 30 days start again
    at the copy.
-2. **Wait for Fin's branches.** Once Fin's change merges, its runs upload to `arikkfir-tests`, but a pull request's
+2. **Wait for Fin's branches.** Once arikkfir-org/fin#139 merges, its runs upload to `arikkfir-tests`, but a pull request's
    runs use its own branch's e2e task: one that hasn't merged `main` since still uploads to `.reports/fin/`, and its
    link redirects to the tests server, where its report shows only after the next copy. Wait until every open pull
    request of Fin has merged `main` or closed. The newest object left in the old prefix shows when the last such

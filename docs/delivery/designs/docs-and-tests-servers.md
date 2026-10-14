@@ -93,7 +93,7 @@ admits only namespace `traefik`, on port 8080.
 
 1. `docs`: the hub reference (arikkfir-org/docs#55).
 2. `infra`: bucket `arikkfir-tests`, its grants and host `tests.dev`, applied on merge (arikkfir-org/infra#66).
-3. `delivery`: Application `tests` and the docs server's redirect, with this design.
-4. `fin`: its e2e task uploads to `arikkfir-tests` and links the tests host.
+3. `delivery`: Application `tests` and the docs server's redirect, with this design (arikkfir-org/delivery#59).
+4. `fin`: its e2e task uploads to `arikkfir-tests` and links the tests host (arikkfir-org/fin#139).
 5. The owner moves the reports already in the docs bucket ([runbook](../runbooks/move-ci-reports.md)). Then `infra` drops
    `ci-fin-ci`'s grant on `arikkfir-docs` and its rule for `.reports/`, and `docs` drops the hub's CI reports design.
