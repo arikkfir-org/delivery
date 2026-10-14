@@ -35,7 +35,7 @@ sequenceDiagram
   Note over G,B: Drain: the budget is asked, never the Deployment
   G->>B: evict the pod?
   B-->>G: yes (one may go)
-  G->>N: evicted; the Deployment starts one elsewhere
+  G->>N: evicted, and the Deployment starts one elsewhere
 ```
 
 A single replica's budget needs no pod healthy, so a ready pod may always go. An unready one may go only because the
