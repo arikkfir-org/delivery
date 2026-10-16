@@ -13,7 +13,7 @@ Replicas, budgets and rollouts: [disruption budgets](designs/disruption-budgets.
 | --- | --- | --- | --- | --- |
 | cluster-scoped | Gateway API CRDs, standard channel (`gateway-api`) | `kubernetes-sigs/gateway-api` release manifest `standard-install.yaml` | `v1.6.2` | 1 |
 | `cert-manager` | cert-manager (`cert-manager`), with ClusterIssuers `letsencrypt` and `letsencrypt-staging` ([certificates](#certificates)) | Chart `cert-manager`, `https://charts.jetstack.io` | `v1.21.2` | 1 |
-| `external-secrets` | External Secrets Operator (`external-secrets`), with ClusterSecretStore `gcp-secret-manager`: Secret Manager of project `arikkfir`, for every namespace not labelled `kfirs.com/pull-request` | Chart `external-secrets`, `https://charts.external-secrets.io` | `2.11.0` | 1 |
+| `external-secrets` | External Secrets Operator (`external-secrets`), with ClusterSecretStore `gcp-secret-manager`: Secret Manager of project `arikkfir`, for every namespace not labelled `kfirs.com/pull-request` | Chart `external-secrets`, `https://charts.external-secrets.io` | `2.13.0` | 1 |
 | `argocd` | Argo CD (`argocd`), self-managed after Terraform's bootstrap ([infra's argocd root](../infra/terraform/argocd.md)) | Chart `argo-cd`, `https://argoproj.github.io/argo-helm` | `10.10.5` (Argo CD v3.5.5) | 2 |
 | `traefik` | Traefik (`traefik`): GatewayClass `traefik`, Gateways `protected` and `public`, two replicas ([ingress](#ingress)) | Chart `traefik`, `https://traefik.github.io/charts` | `41.6.0` (Traefik v3.7.13) | 3 |
 | `tekton-operator` | Tekton Operator (`tekton-operator`), which installs no default TektonConfig (`AUTOINSTALL_COMPONENTS: "false"`) | `tektoncd/operator` release manifest, from `infra.tekton.dev` | `v0.81.1` | 3 |
@@ -22,7 +22,7 @@ Replicas, budgets and rollouts: [disruption budgets](designs/disruption-budgets.
 | `nats` | NATS with JetStream (`nats`): three clustered servers, a 50Gi volume each, and nats-box ([NATS](#nats)) | Chart `nats`, `https://nats-io.github.io/k8s/helm/charts` | `2.15.0` | 3 |
 | `keycloak` | Keycloak Operator (`keycloak-operator`), watching namespace `keycloak` only | `keycloak/keycloak-k8s-resources` release kustomization (`kubernetes/`) | `26.8.1` | 3 |
 | `auth` | oauth2-proxy (`auth`), the hub's sign-in, two replicas ([phase 3](designs/phase-3-ingress-and-auth.md)) | Chart `oauth2-proxy`, `https://oauth2-proxy.github.io/manifests` | `10.7.1` (oauth2-proxy 7.15.5) | 4 |
-| `grafana` | Grafana (`grafana`), two replicas, reading Cloud Monitoring | Chart `grafana`, `https://grafana-community.github.io/helm-charts` | `13.2.7` (Grafana 13.2.3) | 4 |
+| `grafana` | Grafana (`grafana`), two replicas, reading Cloud Monitoring | Chart `grafana`, `https://grafana-community.github.io/helm-charts` | `14.0.0` (Grafana 13.2.4) | 4 |
 | `grafana` | PostgreSQL for Grafana: StatefulSet `postgres` ([Grafana](#grafana)) | `docker.io/library/postgres`, in `platform/grafana/manifests` | `18.6-trixie` | 4 |
 | `nats` | NACK, the JetStream controller (`nack`) | Chart `nack`, `https://nats-io.github.io/k8s/helm/charts` | `0.35.0` (NACK 0.24.0) | 4 |
 | `nats` | NUI (`nui`) | Chart `nui`, `https://nats-nui.github.io/k8s/helm/charts` | `0.1.6` (image `0.9.3`, pinned in its values: the chart's is `latest`) | 4 |
