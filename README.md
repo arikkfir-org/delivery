@@ -135,7 +135,7 @@ A repository runs its CI in namespace `ci-<repository>` (`.github` has no CI):
 ```bash
 yamllint --strict .
 for k in $(find platform -name kustomization.yaml); do kubectl kustomize "$(dirname "$k")" >/dev/null; done
-helm template traefik traefik --repo https://traefik.github.io/charts --version 41.6.0 -n traefik \
+helm template traefik traefik --repo https://traefik.github.io/charts --version 42.0.0 -n traefik \
   -f platform/traefik/values.yaml >/dev/null   # likewise for every chart-based component
 ```
 
