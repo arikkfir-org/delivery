@@ -13,7 +13,7 @@ Replicas, budgets and rollouts: [disruption budgets](designs/disruption-budgets.
 | --- | --- | --- | --- | --- |
 | cluster-scoped | Gateway API CRDs, standard channel (`gateway-api`) | `kubernetes-sigs/gateway-api` release manifest `standard-install.yaml` | `v1.6.2` | 1 |
 | `cert-manager` | cert-manager (`cert-manager`), with ClusterIssuers `letsencrypt` and `letsencrypt-staging` ([certificates](#certificates)) | Chart `cert-manager`, `https://charts.jetstack.io` | `v1.21.2` | 1 |
-| `external-secrets` | External Secrets Operator (`external-secrets`), with ClusterSecretStore `gcp-secret-manager`: Secret Manager of project `arikkfir`, for every namespace not labelled `kfirs.com/pull-request` | Chart `external-secrets`, `https://charts.external-secrets.io` | `2.11.0` | 1 |
+| `external-secrets` | External Secrets Operator (`external-secrets`), with ClusterSecretStore `gcp-secret-manager`: Secret Manager of project `arikkfir`, for every namespace not labelled `kfirs.com/pull-request` | Chart `external-secrets`, `https://charts.external-secrets.io` | `2.13.0` | 1 |
 | `argocd` | Argo CD (`argocd`), self-managed after Terraform's bootstrap ([infra's argocd root](../infra/terraform/argocd.md)) | Chart `argo-cd`, `https://argoproj.github.io/argo-helm` | `10.10.5` (Argo CD v3.5.5) | 2 |
 | `traefik` | Traefik (`traefik`): GatewayClass `traefik`, Gateways `protected` and `public`, two replicas ([ingress](#ingress)) | Chart `traefik`, `https://traefik.github.io/charts` | `41.6.0` (Traefik v3.7.13) | 3 |
 | `tekton-operator` | Tekton Operator (`tekton-operator`), which installs no default TektonConfig (`AUTOINSTALL_COMPONENTS: "false"`) | `tektoncd/operator` release manifest, from `infra.tekton.dev` | `v0.81.1` | 3 |
