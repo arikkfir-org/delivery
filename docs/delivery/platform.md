@@ -20,7 +20,7 @@ Replicas, budgets and rollouts: [disruption budgets](designs/disruption-budgets.
 | `keda` | KEDA (`keda`) | Chart `keda`, `https://kedacore.github.io/charts` | `2.21.0` | 3 |
 | `reloader` | Stakater Reloader (`reloader`) | Chart `reloader`, `https://stakater.github.io/stakater-charts` | `2.2.17` (Reloader v1.4.22) | 3 |
 | `nats` | NATS with JetStream (`nats`): three clustered servers, a 50Gi volume each, and nats-box ([NATS](#nats)) | Chart `nats`, `https://nats-io.github.io/k8s/helm/charts` | `2.15.0` | 3 |
-| `keycloak` | Keycloak Operator (`keycloak-operator`), watching namespace `keycloak` only | `keycloak/keycloak-k8s-resources` release kustomization (`kubernetes/`) | `26.8.0` | 3 |
+| `keycloak` | Keycloak Operator (`keycloak-operator`), watching namespace `keycloak` only | `keycloak/keycloak-k8s-resources` release kustomization (`kubernetes/`) | `26.8.1` | 3 |
 | `auth` | oauth2-proxy (`auth`), the hub's sign-in, two replicas ([phase 3](designs/phase-3-ingress-and-auth.md)) | Chart `oauth2-proxy`, `https://oauth2-proxy.github.io/manifests` | `10.7.0` (oauth2-proxy 7.15.3) | 4 |
 | `grafana` | Grafana (`grafana`), two replicas, reading Cloud Monitoring | Chart `grafana`, `https://grafana-community.github.io/helm-charts` | `13.2.7` (Grafana 13.2.3) | 4 |
 | `grafana` | PostgreSQL for Grafana: StatefulSet `postgres` ([Grafana](#grafana)) | `docker.io/library/postgres`, in `platform/grafana/manifests` | `18.6-trixie` | 4 |
@@ -32,7 +32,7 @@ Replicas, budgets and rollouts: [disruption budgets](designs/disruption-budgets.
 | `tests` | Tests site (`tests`): Caddy, two replicas ([design](designs/docs-and-tests-servers.md)) | `docker.io/library/caddy`, in `platform/tests/manifests` | `2.11.4-alpine` | 4 |
 | `go-import` | Go import pages (`go-import`): Caddy, two replicas ([design](designs/go-import-pages.md)) | `docker.io/library/caddy`, in `platform/go-import/manifests` | `2.11.4-alpine` | 4 |
 | `ci-<repository>` | CI tenants (`ci-tenants`) ([CI tenants](#ci-tenants)) | `platform/ci-tenants/manifests` | n/a | 4 |
-| `keycloak` | Keycloak (`keycloak`): resource `keycloak`, two instances, Service `keycloak-service` on 8080 ([design](designs/keycloak.md)) | `quay.io/keycloak/keycloak`, in `platform/keycloak/manifests` | `26.8.0` | 4 |
+| `keycloak` | Keycloak (`keycloak`): resource `keycloak`, two instances, Service `keycloak-service` on 8080 ([design](designs/keycloak.md)) | `quay.io/keycloak/keycloak`, in `platform/keycloak/manifests` | `26.8.1` | 4 |
 | `keycloak` | PostgreSQL for Keycloak: StatefulSet `postgres` ([design](designs/keycloak.md#in-the-cluster)) | `docker.io/library/postgres`, in `platform/keycloak/manifests` | `18.6-trixie` | 4 |
 | `fin`, `fin-pr-<number>`, `fin-pr-<number>-merge` | Fin (`fin-environments`): Application `fin` (production), ApplicationSet `fin-pull-requests`, Application `fin-identities`, AppProjects `fin` and `fin-pull-requests`, admission policies, and Gateway `traefik/fin-pull-requests` ([environments](../fin/designs/environments.md)) | `deploy/` of `arikkfir-org/fin`: `main`, each pull request's head commit and each merge queue entry's commit | The deployed commit's images | 4 |
 
