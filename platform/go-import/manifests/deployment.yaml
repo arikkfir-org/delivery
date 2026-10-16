@@ -50,7 +50,7 @@ spec:
           effect: NoSchedule
       containers:
         - name: caddy
-          image: docker.io/library/caddy:2.11.4-alpine
+          image: docker.io/library/caddy:2.11.7-alpine
           ports:
             - name: http
               containerPort: 8080
