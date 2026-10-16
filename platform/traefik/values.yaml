@@ -3,6 +3,10 @@
 #   public:    public-web (9080 -> 80, redirect) + public-websecure (9443 -> 443), Service "traefik-public", IP "ingress-public"
 # The Gateways (manifests/gateways.yaml) bind to entry points by port: protected -> 8443, public -> 9443.
 
+# Chart 42.0.0 ships v3.7.14; v3.7.15 rejects CONNECT requests before routing. Drop this once a chart ships v3.7.15 or later.
+image:
+  tag: v3.7.15
+
 providers:
   kubernetesCRD:
     enabled: true

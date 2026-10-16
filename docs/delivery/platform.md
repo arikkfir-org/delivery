@@ -15,7 +15,7 @@ Replicas, budgets and rollouts: [disruption budgets](designs/disruption-budgets.
 | `cert-manager` | cert-manager (`cert-manager`), with ClusterIssuers `letsencrypt` and `letsencrypt-staging` ([certificates](#certificates)) | Chart `cert-manager`, `https://charts.jetstack.io` | `v1.21.2` | 1 |
 | `external-secrets` | External Secrets Operator (`external-secrets`), with ClusterSecretStore `gcp-secret-manager`: Secret Manager of project `arikkfir`, for every namespace not labelled `kfirs.com/pull-request` | Chart `external-secrets`, `https://charts.external-secrets.io` | `2.13.0` | 1 |
 | `argocd` | Argo CD (`argocd`), self-managed after Terraform's bootstrap ([infra's argocd root](../infra/terraform/argocd.md)) | Chart `argo-cd`, `https://argoproj.github.io/argo-helm` | `10.10.5` (Argo CD v3.5.5) | 2 |
-| `traefik` | Traefik (`traefik`): GatewayClass `traefik`, Gateways `protected` and `public`, two replicas ([ingress](#ingress)) | Chart `traefik`, `https://traefik.github.io/charts` | `41.6.0` (Traefik v3.7.13) | 3 |
+| `traefik` | Traefik (`traefik`): GatewayClass `traefik`, Gateways `protected` and `public`, two replicas ([ingress](#ingress)) | Chart `traefik`, `https://traefik.github.io/charts` | `42.0.0` (Traefik v3.7.15, pinned in its values: the chart's is v3.7.14) | 3 |
 | `tekton-operator` | Tekton Operator (`tekton-operator`), which installs no default TektonConfig (`AUTOINSTALL_COMPONENTS: "false"`) | `tektoncd/operator` release manifest, from `infra.tekton.dev` | `v0.81.1` | 3 |
 | `keda` | KEDA (`keda`) | Chart `keda`, `https://kedacore.github.io/charts` | `2.21.0` | 3 |
 | `reloader` | Stakater Reloader (`reloader`) | Chart `reloader`, `https://stakater.github.io/stakater-charts` | `2.2.17` (Reloader v1.4.22) | 3 |
