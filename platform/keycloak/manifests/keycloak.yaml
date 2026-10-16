@@ -8,7 +8,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "1"
 spec:
   instances: 2
-  image: quay.io/keycloak/keycloak:26.8.0
+  image: quay.io/keycloak/keycloak:26.8.1
   # Naming an image makes the operator start it --optimized, which the stock image, never built for PostgreSQL or the
   # file vault, can't run.
   startOptimized: false

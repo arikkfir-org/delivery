@@ -32,7 +32,7 @@ Caddy's `map` turns the request's host into the domain's repository and redirect
 | --- | --- |
 | Application | `go-import`, wave 4 (its route needs Traefik's Gateway API), `platform/go-import/manifests` |
 | Namespace | `go-import`, labelled `kfirs.com/public-ingress: "true"` by the Application, so it may attach to the `public` gateway |
-| Deployment | Two replicas of `docker.io/library/caddy:2.11.4-alpine`, spread over nodes, on node pool `system`; a PodDisruptionBudget ([disruption budgets](disruption-budgets.md)); restarted by Reloader when the ConfigMap changes |
+| Deployment | Two replicas of `docker.io/library/caddy:2.11.7-alpine`, spread over nodes, on node pool `system`; a PodDisruptionBudget ([disruption budgets](disruption-budgets.md)); restarted by Reloader when the ConfigMap changes |
 | Container | Port 8080, `/healthz` for its probes; non-root, read-only root filesystem, every capability dropped but `NET_BIND_SERVICE`, which the image's binary needs to start; requests: [resource requests](resource-requests.md) |
 | Service | `go-import`, port 80 to 8080 |
 | NetworkPolicy | `go-import`: only namespace `traefik`, on 8080 |
