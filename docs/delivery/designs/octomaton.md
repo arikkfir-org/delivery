@@ -44,7 +44,7 @@ to it.
 
 | Octomaton asks for | The hub provides |
 | --- | --- |
-| A GitHub App, its webhook at `https://<host>/github/hooks` | App `octomaton-dev`, created by hand ([octomaton.dev](../../octomaton/designs/octomaton-dev.md#github-app)), webhook `https://octomaton.dev/github/hooks` |
+| A GitHub App, its webhook at `https://<host>/github/hooks` | App `octomaton-dev`, created by hand ([below](#the-github-app)), webhook `https://octomaton.dev/github/hooks` |
 | Secret `octomaton-github`: `app-id`, `private-key`, `webhook-secret` | ExternalSecret `octomaton-github` on ClusterSecretStore `gcp-secret-manager`, refreshed hourly from `infra`'s secrets `octomaton-github-app-id`, `octomaton-github-private-key` and `octomaton-github-webhook-secret` ([Secret Manager](../../infra/terraform/gcp.md#secret-manager)) |
 | ConfigMap `octomaton`, the server's settings | [Settings](#settings) below |
 | `deploy/` applied as written, the images tagged | Application `octomaton`: source `deploy` of `https://github.com/arikkfir-org/octomaton` at `main`; `kustomize.images` tag `me-west1-docker.pkg.dev/arikkfir/octomaton/octomaton` and `…/octomaton-logs` with `${ARGOCD_APP_REVISION_SHORT}`, the short SHA of the synced commit, which Octomaton's `release` publishes on every push; automated sync with prune and self-heal, retries, `SkipDryRunOnMissingResource=true`; no finalizer and no `CreateNamespace` |
