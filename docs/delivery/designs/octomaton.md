@@ -57,6 +57,28 @@ to it.
 | An admission boundary, if wanted | AppProject `octomaton`: source Octomaton's repository only, destination namespace `octomaton`, cluster-scoped objects by name, the namespaced kinds `deploy/` holds. The host objects here are synced by `octomaton-environment` under project `default`, so the project admits only what Octomaton's `main` may create |
 | Validation of `deploy/` as the host renders it | [CI](#ci) below |
 
+### The GitHub App
+
+Created by hand, once. What Octomaton needs of any App: the README's
+[GitHub App](https://github.com/arikkfir-org/octomaton#github-app).
+
+| Item | Value |
+| --- | --- |
+| Name | `octomaton-dev` (`Octomaton` is taken on GitHub) |
+| App ID | `5114814`. Octomaton (`OCTOMATON_GITHUB_APP_ID`) and the `Default branch` ruleset's required checks ([`infra`'s GitHub root](../../infra/terraform/github.md#the-default-branch-ruleset)) identify the App by it, never by its name |
+| Homepage | `https://github.com/arikkfir-org/octomaton` |
+| Installation | All `arikkfir-org` repositories |
+| Webhook URL | `https://octomaton.dev/github/hooks` |
+| Repository permissions | Checks: read and write; Contents: read; Metadata: read; Pull requests: read and write; Merge queues: read |
+| Events | `push`, `pull_request`, `issue_comment`, `check_suite`, `check_run`, `merge_group`; also `pull_request_review`, `pull_request_review_comment` and `pull_request_review_thread`, which Octomaton ignores ([reviewer](../../octomaton/designs/pr-reviewer.md)) |
+| Credentials | Its ID, private key and webhook secret, in Secret Manager, reach Octomaton through ExternalSecret `octomaton-github` |
+
+The domain `octomaton.dev` is Octomaton's own ([octomaton.dev](../../octomaton/designs/octomaton-dev.md)); the hub
+serves it: zone and certificate from `infra`, listener `octomaton-dev` on Gateway `traefik/public`, which admits routes
+only from namespaces `octomaton` and `go-import`. Every request but the webhook's is `go-import`'s
+([Go import pages](go-import-pages.md)). The migration that gave Octomaton the domain:
+[rename runbook](../runbooks/octomaton-rename.md).
+
 ### Settings
 
 ConfigMap `octomaton` ([server configuration](https://github.com/arikkfir-org/octomaton#server-configuration)):
