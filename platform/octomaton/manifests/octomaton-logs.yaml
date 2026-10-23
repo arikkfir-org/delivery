@@ -1,12 +1,15 @@
 # octomaton-logs, the step logs server, at the same revision as Octomaton: deploy/logs/ of arikkfir-org/octomaton as
 # written, its image tagged like Octomaton's, its Deployment on the system node pool. Separate from Application
 # octomaton because a host applies deploy/logs/ or not at all; this hub does, for the Tekton Dashboard's archived
-# logs. No resources finalizer: deleting this Application leaves octomaton-logs running.
+# logs. No CreateNamespace: Application octomaton's deploy/ holds the Namespace, so this one syncs a wave after it. No
+# resources finalizer: deleting this Application leaves octomaton-logs running.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: octomaton-logs
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   project: octomaton
   destination:

@@ -18,8 +18,9 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   same unit of work. If a change needs a new or different value from another repository, say so; do not diverge
   silently.
 - Pin everything: chart `targetRevision`, image tags, remote manifest URLs. Never `latest`, never a floating branch.
-  The exceptions run the image of the commit they sync: Application `octomaton` (`platform/octomaton/manifests`)
-  follows `main` of `arikkfir-org/octomaton` (its `deploy/`), and Fin's environments (`platform/fin/manifests`) follow `main` of
+  The exceptions run the image of the commit they sync: Applications `octomaton` and `octomaton-logs`
+  (`platform/octomaton/manifests`) follow `main` of `arikkfir-org/octomaton` (its `deploy/` and `deploy/logs/`), and
+  Fin's environments (`platform/fin/manifests`) follow `main` of
   `arikkfir-org/fin` (production), each pull request's head commit (its own environment) and each merge queue entry's
   merge group commit (its own).
 - Fin's `deploy/` comes from pull requests and holds its own Namespace, Gateway, routes, certificate, ExternalSecrets,
@@ -40,10 +41,11 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   `gcp-secret-manager` out of its reach, and lets the namespace
   reach NATS. NATS takes no credentials, so NetworkPolicy `nats/nats` admits only namespace `nats` and Fin's
   namespaces; a new client's namespace goes there first.
-- Octomaton's `deploy/` comes from its `main` only and holds its own Namespace and RBAC. Overrides (the images' tag, the
-  namespace's `kfirs.com/public-ingress` label, the node pool) go in the `kustomize` options of Application `octomaton`. AppProject
-  `octomaton` admits a kind, or a cluster-scoped object by name, only once Octomaton's `deploy/` needs it; merge that
-  here before Octomaton's change.
+- Octomaton's `deploy/` and `deploy/logs/` come from its `main` only; `deploy/` holds its own Namespace and RBAC.
+  Overrides (the images' tag, the namespace's `kfirs.com/public-ingress` label, the node pool) go in the `kustomize`
+  options of Application `octomaton` for `deploy/` and of Application `octomaton-logs` for `deploy/logs/`. AppProject
+  `octomaton` admits a kind, or a cluster-scoped object by name, only once Octomaton's `deploy/` or `deploy/logs/` needs
+  it; merge that here before Octomaton's change.
 - Every hub service's pods select node pool `system` (`kfirs.com/pool: system`) and tolerate its taint,
   `components.gke.io/gke-managed-components=true:NoSchedule`, GKE's own for its managed components: a new component's
   too, or it waits for a node (`docs/delivery/designs/node-pools.md`). TaskRun pods go to `ci` through Tekton's default
