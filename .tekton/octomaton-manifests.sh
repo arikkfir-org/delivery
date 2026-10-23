@@ -16,7 +16,7 @@ octomaton=https://github.com/arikkfir-org/octomaton
 
 work="$(mktemp -d)"
 trap 'rm -rf "${work}"' EXIT
-mkdir -p "${out}"
+mkdir -p "${out}" "${work}/render"
 failures=0
 
 # Every Application that deploys from Octomaton's repository, one per line as JSON: its name, revision, path and
@@ -47,10 +47,10 @@ while read -r file; do
   fi
 done < "${work}/files"
 
-# checkout REVISION puts Octomaton's repository at REVISION in WORK/octomaton/REVISION, once per revision, and prints
+# checkout REVISION puts Octomaton's repository at REVISION in WORK/repo/REVISION, once per revision, and prints
 # the commit, which is what Argo CD substitutes in the images.
 checkout() {
-  dir="${work}/octomaton/$1"
+  dir="${work}/repo/$1"
   if [ -n "${OCTOMATON:-}" ]; then
     dir="${OCTOMATON}"
   elif [ ! -d "${dir}" ]; then
@@ -64,7 +64,8 @@ checkout() {
 }
 
 # render NAME SOURCE OPTIONS renders a copy of the kustomization SOURCE with the kustomize options in the file OPTIONS
-# into OUT/NAME.yaml. It runs where set -e doesn't apply, so every step returns on failure.
+# into OUT/NAME.yaml, working under WORK/render, apart from the clones. It runs where set -e doesn't apply, so every
+# step returns on failure.
 render() {
   name="$1"
   source="$2"
@@ -86,7 +87,7 @@ render() {
   while [ "${i}" -lt "${patches}" ]; do
     targeted="$(I="${i}" yq '.patches[env(I)] | has("target")' "${options}")" || return 1
     if [ "${targeted}" = "true" ]; then
-      probe="${work}/${name}.probe-${i}"
+      probe="${work}/render/${name}.probe-${i}"
       cp -R "${source}" "${probe}" || return 1
       I="${i}" OPTIONS="${options}" yq -i '
         load(env(OPTIONS)).patches as $patches
@@ -108,9 +109,9 @@ render() {
     i=$((i + 1))
   done
 
-  cp -R "${source}" "${work}/${name}" || return 1
+  cp -R "${source}" "${work}/render/${name}" || return 1
   (
-    cd "${work}/${name}" || exit 1
+    cd "${work}/render/${name}" || exit 1
     for image in ${images}; do
       kustomize edit set image "${image}" || exit 1
     done
@@ -118,7 +119,7 @@ render() {
       OPTIONS="${options}" yq -i '.patches += load(env(OPTIONS)).patches' kustomization.yaml || exit 1
     fi
   ) || return 1
-  kustomize build "${work}/${name}" > "${out}/${name}.yaml" || return 1
+  kustomize build "${work}/render/${name}" > "${out}/${name}.yaml" || return 1
   echo "Octomaton as Application ${name} deploys it: ${out}/${name}.yaml"
 }
 
@@ -128,7 +129,7 @@ while read -r source; do
   name="$(printf '%s' "${source}" | yq -p=json '.name')"
   revision="$(printf '%s' "${source}" | yq -p=json '.revision')"
   path="$(printf '%s' "${source}" | yq -p=json '.path')"
-  printf '%s' "${source}" | yq -p=json -o=yaml '.kustomize' > "${work}/${name}.options.yaml"
+  printf '%s' "${source}" | yq -p=json -o=yaml '.kustomize' > "${work}/render/${name}.options.yaml"
   if ! commit="$(checkout "${revision}")"; then
     echo "could not fetch ${octomaton} at ${revision} for Application ${name}" >&2
     failures=$((failures + 1))
@@ -137,14 +138,14 @@ while read -r source; do
   if [ -n "${OCTOMATON:-}" ]; then
     dir="${OCTOMATON}"
   else
-    dir="${work}/octomaton/${revision}"
+    dir="${work}/repo/${revision}"
   fi
   # What Argo CD substitutes in images.
   export ARGOCD_APP_REVISION="${commit}"
   ARGOCD_APP_REVISION_SHORT="$(printf '%s' "${commit}" | cut -c1-7)"
   ARGOCD_APP_REVISION_SHORT_8="$(printf '%s' "${commit}" | cut -c1-8)"
   export ARGOCD_APP_REVISION_SHORT ARGOCD_APP_REVISION_SHORT_8
-  if ! render "${name}" "${dir}/${path}" "${work}/${name}.options.yaml"; then
+  if ! render "${name}" "${dir}/${path}" "${work}/render/${name}.options.yaml"; then
     echo "could not render Octomaton as Application ${name} deploys it" >&2
     failures=$((failures + 1))
   fi
