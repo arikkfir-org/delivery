@@ -88,7 +88,7 @@ A single replica's budget needs no pod healthy, so a ready pod may always go. An
 | Grafana's PostgreSQL | StatefulSet | n/a | `platform/grafana/manifests/postgres.yaml` |
 | Tekton operator | operator, its webhook | the patch that places them (`platform/tekton-operator/manifests`) | `platform/tekton-operator/manifests` |
 | Tekton | Pipelines' controller, webhook, remote resolvers and events controller; the proxy webhook; Triggers' controller, webhook and core interceptors; the Dashboard | TektonConfig's `options.deployments` under `pipeline`, `trigger` and `dashboard`. The operator replaces each named Deployment's whole strategy | `platform/tekton/manifests/pod-disruption-budgets.yaml` |
-| Octomaton | `octomaton` (two replicas), `octomaton-logs` | its `deploy/` | its `deploy/` |
+| Octomaton | `octomaton` (two replicas), `octomaton-logs` | its `deploy/` and `deploy/logs/` | its `deploy/` and `deploy/logs/` |
 
 Each budget selects exactly what its workload selects. An eviction refuses a pod that two budgets select, so a broader selector would block every drain of those pods.
 

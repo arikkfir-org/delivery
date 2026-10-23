@@ -1,0 +1,53 @@
+# octomaton-logs, the step logs server, at the same revision as Octomaton: deploy/logs/ of arikkfir-org/octomaton as
+# written, its image tagged like Octomaton's, its Deployment on the system node pool. Separate from Application
+# octomaton because a host applies deploy/logs/ or not at all; this hub does, for the Tekton Dashboard's archived
+# logs. No CreateNamespace: Application octomaton's deploy/ holds the Namespace, so this one syncs a wave after it. No
+# resources finalizer: deleting this Application leaves octomaton-logs running.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: octomaton-logs
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: octomaton
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: octomaton
+  source:
+    repoURL: https://github.com/arikkfir-org/octomaton
+    targetRevision: main
+    path: deploy/logs
+    kustomize:
+      images:
+        - "me-west1-docker.pkg.dev/arikkfir/octomaton/octomaton-logs:${ARGOCD_APP_REVISION_SHORT}"
+      patches:
+        # On the system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
+        - target:
+            kind: Deployment
+          patch: |-
+            - op: add
+              path: /spec/template/spec/nodeSelector
+              value:
+                kfirs.com/pool: system
+            - op: add
+              path: /spec/template/spec/tolerations
+              value:
+                - key: components.gke.io/gke-managed-components
+                  operator: Equal
+                  value: "true"
+                  effect: NoSchedule
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 10
+      refresh: true
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+    syncOptions:
+      - SkipDryRunOnMissingResource=true

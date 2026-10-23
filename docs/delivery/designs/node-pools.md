@@ -48,7 +48,7 @@ every taint, and the hub runs none of its own.
 | Keycloak | the resource's `scheduling`: a required node affinity (the operator takes no node selector) and the toleration |
 | Keycloak's operator, Tekton's operator and its webhook | kustomize patches on the release manifests' Deployments |
 | Pipelines, Triggers, the Dashboard, the proxy webhook, the pruner | TektonConfig `spec.config`, which the operator sets on every Deployment and StatefulSet it makes, replacing theirs, and on the pruner's CronJob |
-| Octomaton and octomaton-logs | a patch on every Deployment in Application `octomaton`'s `kustomize` options |
+| Octomaton and octomaton-logs | a patch on every Deployment in the `kustomize` options of Applications `octomaton` and `octomaton-logs` |
 | Fin | its own `deploy/`: every pod template selects `fin` and tolerates its taint |
 | TaskRun pods | Tekton's `default-pod-template`: pool `ci` |
 
@@ -67,7 +67,7 @@ so the Dashboard could no longer show their logs. Its backend now asks `octomato
 log fails (TektonConfig's `dashboard.external-logs`):
 `http://octomaton-logs.octomaton.svc.cluster.local/logs/<namespace>/<pod>/<container>?startTime=…&completionTime=…`.
 `octomaton-logs` reads the step's log from Cloud Logging, which keeps every container's output 30 days. It runs with
-Octomaton, from Octomaton's `deploy/`, and only the Dashboard's pods reach it
+Octomaton, from Octomaton's `deploy/logs/` through Application `octomaton-logs`, and only the Dashboard's pods reach it
 ([archived step logs](../../octomaton/designs/archived-step-logs.md)).
 
 ## Decisions

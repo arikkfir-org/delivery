@@ -23,16 +23,22 @@ flowchart LR
   subgraph delivery["delivery: platform/octomaton/manifests"]
     Env["Application octomaton-environment"] --> Project["AppProject octomaton"]
     Env --> App["Application octomaton<br/>images' tag, node pool, public-ingress label"]
+    Env --> Logs["Application octomaton-logs<br/>image's tag, node pool"]
     Env --> Host["ConfigMaps octomaton, octomaton-logs<br/>ExternalSecret octomaton-github<br/>HTTPRoute octomaton<br/>NetworkPolicies octomaton, octomaton-logs"]
   end
   subgraph octomaton["arikkfir-org/octomaton, main"]
-    Deploy["deploy/: Namespace, RBAC,<br/>ServiceAccounts, Deployments,<br/>Services, budgets"]
+    Deploy["deploy/: Namespace, RBAC,<br/>ServiceAccount, Deployment,<br/>Service, budget"]
+    DeployLogs["deploy/logs/: ServiceAccount,<br/>Deployment, Service, budget"]
   end
   App -- "renders with its kustomize options" --> Deploy
+  Logs -- "renders with its kustomize options" --> DeployLogs
   App --> NS["namespace octomaton"]
+  Logs --> NS
   Host --> NS
   Deploy -. "reads by name" .-> Host
-  CI["ci: .tekton/octomaton-manifests.sh"] -. "renders deploy/ as App deploys it" .-> Deploy
+  DeployLogs -. "reads by name" .-> Host
+  CI["ci: .tekton/octomaton-manifests.sh"] -. "renders each as its Application deploys it" .-> Deploy
+  CI -.-> DeployLogs
 ```
 
 Octomaton's pods read the host's objects by name: ConfigMap `octomaton` through `envFrom`, Secret `octomaton-github`
@@ -47,14 +53,14 @@ to it.
 | A GitHub App, its webhook at `https://<host>/github/hooks` | App `octomaton-dev`, created by hand ([below](#the-github-app)), webhook `https://octomaton.dev/github/hooks` |
 | Secret `octomaton-github`: `app-id`, `private-key`, `webhook-secret` | ExternalSecret `octomaton-github` on ClusterSecretStore `gcp-secret-manager`, refreshed hourly from `infra`'s secrets `octomaton-github-app-id`, `octomaton-github-private-key` and `octomaton-github-webhook-secret` ([Secret Manager](../../infra/terraform/gcp.md#secret-manager)) |
 | ConfigMap `octomaton`, the server's settings | [Settings](#settings) below |
-| `deploy/` applied as written, the images tagged | Application `octomaton`: source `deploy` of `https://github.com/arikkfir-org/octomaton` at `main`; `kustomize.images` tag `me-west1-docker.pkg.dev/arikkfir/octomaton/octomaton` and `…/octomaton-logs` with `${ARGOCD_APP_REVISION_SHORT}`, the short SHA of the synced commit, which Octomaton's `release` publishes on every push; automated sync with prune and self-heal, retries, `SkipDryRunOnMissingResource=true`; no finalizer and no `CreateNamespace` |
-| `deploy/logs/` optionally, with ConfigMap `octomaton-logs` | ConfigMap `octomaton-logs` here already; Application `octomaton-logs` comes with Octomaton's split of `deploy/logs/` ([plan](../../octomaton/designs/host-agnostic.md#plan)); until then Application `octomaton` deploys `octomaton-logs` with the server |
-| Additions through kustomize options | `patches`: Namespace `octomaton` gets `kfirs.com/public-ingress: "true"` (the webhook's route attaches to the public gateway); every Deployment gets node pool `system` ([node pools](node-pools.md)) |
+| `deploy/` applied as written, the images tagged | Application `octomaton`: source `deploy` of `https://github.com/arikkfir-org/octomaton` at `main`; `kustomize.images` tags `me-west1-docker.pkg.dev/arikkfir/octomaton/octomaton` with `${ARGOCD_APP_REVISION_SHORT}`, the short SHA of the synced commit, which Octomaton's `release` publishes on every push; automated sync with prune and self-heal, retries, `SkipDryRunOnMissingResource=true`; no finalizer and no `CreateNamespace` |
+| `deploy/logs/` optionally, with ConfigMap `octomaton-logs` | Application `octomaton-logs`: source `deploy/logs` of the same repository at `main`, project `octomaton`, the image `…/octomaton-logs` tagged the same way, the Deployment on node pool `system`; the same sync policy. ConfigMap `octomaton-logs` here. The hub wants the archived step logs in its Tekton Dashboard, so it applies it |
+| Additions through kustomize options | `patches`: Namespace `octomaton` gets `kfirs.com/public-ingress: "true"` (the webhook's route attaches to the public gateway); every Deployment, of both Applications, gets node pool `system` ([node pools](node-pools.md)) |
 | A route to Service `octomaton` | HTTPRoute `octomaton`: `octomaton.dev`, exact `/github/hooks`, Gateway `traefik/public`, listener `octomaton-dev`; everything else on that host is `go-import`'s ([Go import pages](go-import-pages.md)) |
 | Network admission | NetworkPolicy `octomaton`: only namespace `traefik`, on 8080. NetworkPolicy `octomaton-logs`: only the Tekton Dashboard's pods (namespace `tekton-pipelines`, label `app.kubernetes.io/name: dashboard`), on 8080 |
 | Cloud identities and grants | Workload Identity principals of ServiceAccounts `octomaton/octomaton` (telemetry) and `octomaton/octomaton-logs` (the log view), granted by `infra` ([IAM](../../infra/terraform/gcp.md#iam)) |
 | Where the Dashboard finds archived logs | TektonConfig `config`'s external logs URL, `http://octomaton-logs.octomaton.svc.cluster.local/logs` ([platform](../platform.md#components)) |
-| An admission boundary, if wanted | AppProject `octomaton`: source Octomaton's repository only, destination namespace `octomaton`, cluster-scoped objects by name, the namespaced kinds `deploy/` holds. The host objects here are synced by `octomaton-environment` under project `default`, so the project admits only what Octomaton's `main` may create |
+| An admission boundary, if wanted | AppProject `octomaton`: source Octomaton's repository only, destination namespace `octomaton`, cluster-scoped objects by name, the namespaced kinds `deploy/` and `deploy/logs/` hold. The host objects here are synced by `octomaton-environment` under project `default`, so the project admits only what Octomaton's `main` may create |
 | Validation of `deploy/` as the host renders it | [CI](#ci) below |
 
 ### The GitHub App
@@ -118,11 +124,14 @@ written and nothing of any host.
 
 ## The hand-over
 
-Until [octomaton#40](https://github.com/arikkfir-org/octomaton/pull/40) and Octomaton's split of `deploy/` are both
-synced, Application `octomaton` and `octomaton-environment` both hold the ConfigMap, the ExternalSecret, the route and
-the policies, by the same names. Both copies carry `argocd.argoproj.io/sync-options: Prune=false`, which Argo CD reads
-from the live object, so neither Application prunes what the other synced; each sync overwrites the object with the
-same content. Once `deploy/` no longer holds them, the annotation comes off here.
+Done. While Octomaton's `deploy/` still held the ConfigMap, the ExternalSecret, the route and the policies
+([octomaton#40](https://github.com/arikkfir-org/octomaton/pull/40) to
+[octomaton#42](https://github.com/arikkfir-org/octomaton/pull/42)), both copies carried
+`argocd.argoproj.io/sync-options: Prune=false`, which Argo CD reads from the live object, so neither Application pruned
+what the other synced. `octomaton-logs` changed hands the same way: Application `octomaton` stopped naming its objects
+when `deploy/logs/` split off, and Application `octomaton-logs` adopted them by name. The annotation is off the host's
+copies here; Octomaton removes it from `deploy/logs/` in a change of its own, after which an object that leaves either
+kustomization is pruned by the Application that held it, as it should be.
 
 ## Security and failure modes
 

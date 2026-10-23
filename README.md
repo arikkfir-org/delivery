@@ -28,15 +28,16 @@ Each file there is an Application in namespace `argocd`, project `default`:
   `platform/<component>/manifests` when it has extra manifests. A manifest-only component has one source, that path.
 - `octomaton-environment` is the exception: Octomaton's manifests live with its code. `deploy/` of
   `arikkfir-org/octomaton` (Kustomize) is what every installation of Octomaton applies as written, its Namespace
-  included, and Application `octomaton` (`platform/octomaton/manifests`) deploys it from that repository's `main`,
-  overriding in its `kustomize` options what this repository decides: the tag of its images, `octomaton` and
-  `octomaton-logs`, `${ARGOCD_APP_REVISION_SHORT}` (the short SHA of the synced commit, which Octomaton's `release`
-  publishes on every push), the namespace's label `kfirs.com/public-ingress: "true"`, and the system node pool for its
-  Deployments. A merge there deploys itself. What the hub decides around it lives beside the Application: the servers'
+  included, and `deploy/logs/` its step logs server, which a host applies or not. Applications `octomaton` and
+  `octomaton-logs` (`platform/octomaton/manifests`) deploy them from that repository's `main`, overriding in their
+  `kustomize` options what this repository decides: the tag of the images, `octomaton` and `octomaton-logs`,
+  `${ARGOCD_APP_REVISION_SHORT}` (the short SHA of the synced commit, which Octomaton's `release` publishes on every
+  push), the namespace's label `kfirs.com/public-ingress: "true"`, and the system node pool for the Deployments. A
+  merge there deploys itself. What the hub decides around it lives beside the Application: the servers'
   ConfigMaps, the GitHub App's ExternalSecret, the webhook's HTTPRoute and the NetworkPolicies
-  ([hosting Octomaton](docs/delivery/designs/octomaton.md)), and `ci` renders `deploy/` the way the Application deploys
+  ([hosting Octomaton](docs/delivery/designs/octomaton.md)), and `ci` renders each the way its Application deploys
   it (`.tekton/octomaton-manifests.sh`). AppProject `octomaton` admits only namespace `octomaton`, Octomaton's own
-  ClusterRoles and ClusterRoleBinding, and the namespaced kinds `deploy/` holds. Only reviewed commits on `main`
+  ClusterRoles and ClusterRoleBinding, and the namespaced kinds `deploy/` and `deploy/logs/` hold. Only reviewed commits on `main`
   deploy, so no admission policies hold what they say, unlike Fin's pull requests.
 - `fin-environments` deploys Fin the same way
   ([design](https://docs.dev.kfirs.com/fin/designs/environments.md)). `deploy/` of
@@ -58,7 +59,8 @@ Each file there is an Application in namespace `argocd`, project `default`:
   lists its pull requests with its own GitHub App (Secret `argocd/github-app`).
 - Every Application syncs automatically with prune and self-heal, retries with backoff (`refresh: true`, so a retry
   picks up a newer commit; ten times, but twice for Fin's pull requests, whose syncs can wait 20 minutes a try for
-  images that never come), and creates its namespace, except those whose `deploy/` holds it (Octomaton's and Fin's).
+  images that never come), and creates its namespace, except those whose `deploy/` holds it (Octomaton's and Fin's)
+  and `octomaton-logs`, which syncs a wave after `octomaton`, whose `deploy/` holds the namespace it shares.
   Namespace labels come from `managedNamespaceMetadata`
   (for example `kfirs.com/public-ingress: "true"` on `auth`, `docs`, `keycloak` and `go-import`). `ServerSideApply=true` is set where CRDs
   are too large for client-side apply; `SkipDryRunOnMissingResource=true` where resources use CRDs of another component.
@@ -92,8 +94,8 @@ interceptor. Every UI but Fin's then admits only group `admins` (Middleware `adm
 Every hub service runs on node pool `system`, whose GKE taint for managed components
 (`components.gke.io/gke-managed-components=true:NoSchedule`) only GKE's components and the hub's services tolerate:
 each one's pods select `kfirs.com/pool: system` and tolerate that taint, through its chart's values, its manifests, a
-patch on a release manifest, TektonConfig's `spec.config` (whatever the Tekton operator installs) or Application
-`octomaton`'s `kustomize` options. TaskRun pods go to pool `ci` through Tekton's default pod template, and Fin's to pool
+patch on a release manifest, TektonConfig's `spec.config` (whatever the Tekton operator installs) or the `kustomize`
+options of Applications `octomaton` and `octomaton-logs`, each placing its own Deployments. TaskRun pods go to pool `ci` through Tekton's default pod template, and Fin's to pool
 `fin` through Fin's `deploy/`; policy `fin-node-pool` refuses a pod in a Fin namespace that tolerates any other taint or
 names its node ([design](docs/delivery/designs/node-pools.md)). The Tekton Dashboard reads the log of a step whose pod is
 gone from `octomaton-logs`, which reads Cloud Logging.

@@ -1,13 +1,10 @@
 # The hub's settings for Octomaton's two servers, read as environment variables (envFrom). What each variable means:
-# Octomaton's README. The objects of its deploy/ that carried them are handing over to these, by name
-# (docs/octomaton/designs/host-agnostic.md): Prune=false until the hand-over is done.
+# Octomaton's README; the host contract, docs/octomaton/designs/host-agnostic.md.
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: octomaton
   namespace: octomaton
-  annotations:
-    argocd.argoproj.io/sync-options: Prune=false
   labels:
     app.kubernetes.io/name: octomaton
 data:
@@ -26,8 +23,6 @@ kind: ConfigMap
 metadata:
   name: octomaton-logs
   namespace: octomaton
-  annotations:
-    argocd.argoproj.io/sync-options: Prune=false
   labels:
     app.kubernetes.io/name: octomaton-logs
 data:
