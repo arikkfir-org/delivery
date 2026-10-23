@@ -21,8 +21,8 @@ spec:
     path: deploy
     kustomize:
       images:
-        - "me-west1-docker.pkg.dev/arikkfir/images/octomaton:${ARGOCD_APP_REVISION_SHORT}"
-        - "me-west1-docker.pkg.dev/arikkfir/images/octomaton-logs:${ARGOCD_APP_REVISION_SHORT}"
+        - "me-west1-docker.pkg.dev/arikkfir/octomaton/octomaton:${ARGOCD_APP_REVISION_SHORT}"
+        - "me-west1-docker.pkg.dev/arikkfir/octomaton/octomaton-logs:${ARGOCD_APP_REVISION_SHORT}"
       patches:
         - target:
             kind: Namespace
