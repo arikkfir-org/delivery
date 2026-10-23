@@ -27,7 +27,7 @@ Replicas, budgets and rollouts: [disruption budgets](designs/disruption-budgets.
 | `nats` | NACK, the JetStream controller (`nack`) | Chart `nack`, `https://nats-io.github.io/k8s/helm/charts` | `0.35.0` (NACK 0.24.0) | 4 |
 | `nats` | NUI (`nui`) | Chart `nui`, `https://nats-nui.github.io/k8s/helm/charts` | `0.1.6` (image `0.9.3`, pinned in its values: the chart's is `latest`) | 4 |
 | `tekton-pipelines` | Pipelines, Triggers and the Dashboard (`tekton`), through TektonConfig `config` (profile `all`), with Results, Chains, Pipelines-as-Code and the operator's NetworkPolicies off. Default ServiceAccount `pipeline`; TaskRun pods on node pool `ci`; 30 PipelineRuns kept per namespace. The Dashboard reads the logs of steps whose pods are gone from `http://octomaton-logs.octomaton.svc.cluster.local/logs` | `platform/tekton/manifests`, installed by the operator | Those of operator `v0.81.1` | 4 |
-| `octomaton` | Octomaton and `octomaton-logs` (`octomaton-environment`): Application `octomaton`, AppProject `octomaton` ([deployment](../octomaton/designs/deployment.md)) | `deploy/` of `arikkfir-org/octomaton` at `main` | The synced commit's short SHA | 4 |
+| `octomaton` | Octomaton and `octomaton-logs` (`octomaton-environment`): Application `octomaton`, AppProject `octomaton`, and the hub's side of Octomaton's host contract: ConfigMaps `octomaton` and `octomaton-logs`, ExternalSecret `octomaton-github`, HTTPRoute `octomaton`, NetworkPolicies `octomaton` and `octomaton-logs` ([hosting Octomaton](designs/octomaton.md)) | `deploy/` of `arikkfir-org/octomaton` at `main`; the host objects in `platform/octomaton/manifests` | The synced commit's short SHA | 4 |
 | `docs` | Docs site (`docs`): Caddy, two replicas ([design](designs/docs-and-tests-servers.md)) | `docker.io/library/caddy`, in `platform/docs/manifests` | `2.11.7-alpine` | 4 |
 | `tests` | Tests site (`tests`): Caddy, two replicas ([design](designs/docs-and-tests-servers.md)) | `docker.io/library/caddy`, in `platform/tests/manifests` | `2.11.7-alpine` | 4 |
 | `go-import` | Go import pages (`go-import`): Caddy, two replicas ([design](designs/go-import-pages.md)) | `docker.io/library/caddy`, in `platform/go-import/manifests` | `2.11.7-alpine` | 4 |
@@ -106,7 +106,7 @@ Each route's Middlewares are in its own namespace.
 | `id.kfirs.com` | public | `keycloak/keycloak-service:8080` | `/realms/hub`, `/resources`; POSTs under `/realms/hub/login-actions`; `/realms/master` | None; `sign-in-attempts`; `oidc`, `admins` |
 | `legal.kfirs.com` | public | `docs/docs:80` | Exact `/privacy.html`, `/privacy.md.html`, `/tos.html`, `/tos.md.html` | None |
 | `fin.kfirs.com` | public | `go-import/go-import:80` | All | None |
-| `octomaton.dev` | public, listener `octomaton-dev` | `octomaton/octomaton:80` (Octomaton's `deploy/`); `go-import/go-import:80` | Exact `/github/hooks`; everything else | None |
+| `octomaton.dev` | public, listener `octomaton-dev` | `octomaton/octomaton:80` (HTTPRoute `octomaton`, [hosting Octomaton](designs/octomaton.md)); `go-import/go-import:80` | Exact `/github/hooks`; everything else | None |
 
 ### Fin's gateways
 
@@ -137,7 +137,7 @@ Every tenant gets the base (`platform/ci-tenants/manifests/base`):
 | ServiceAccount `pipeline` | Tekton's default, for every PipelineRun that names no other. Any branch's run can use it, so it never holds a Google Cloud role; no `octomaton.dev/branches` |
 | ServiceAccount `docs-reader` | The organization pipeline `docs` (check `Docs`), on pull requests and merge groups. No token mounted; no `octomaton.dev/branches` |
 | ServiceAccount `docs-publisher` | The organization pipeline `docs-publish`, on pushes to `main`, writing the repository's layer. No token mounted; `octomaton.dev/branches: main` |
-| RoleBinding `octomaton` | ClusterRole `octomaton-tenant` to ServiceAccount `octomaton/octomaton`. Octomaton's `deploy/` defines the role ([deployment](../octomaton/designs/deployment.md)) |
+| RoleBinding `octomaton` | ClusterRole `octomaton-tenant` to ServiceAccount `octomaton/octomaton`. Octomaton's `deploy/` defines the role ([hosting Octomaton](designs/octomaton.md)) |
 | ServiceAccount `reviewer` | The pull request reviewer's tasks. No token mounted, no RoleBinding, no Google Cloud role |
 | NetworkPolicy `sandbox` | Pods labelled `kfirs.com/sandbox: "true"`: no ingress; egress only to `0.0.0.0/0` except `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10` and `169.254.0.0/16` (pods, Services, nodes, the metadata server, cluster DNS) |
 | ExternalSecret `reviewer-deepseek-api-key` | Secret `reviewer-deepseek-api-key`, key `api-key`, from Secret Manager `reviewer-deepseek-api-key` |

@@ -1,0 +1,112 @@
+# Hosting Octomaton
+
+**Decision**: the hub hosts [Octomaton](https://github.com/arikkfir-org/octomaton) the way any installation does
+([host-agnostic Octomaton](../../octomaton/designs/host-agnostic.md)): Octomaton's `deploy/` is applied as written,
+from its `main`, and everything the hub decides lives here, in `platform/octomaton/manifests`: the servers' settings,
+the GitHub App's credentials, the webhook's route, who reaches each Service, the images' tag and the node pool. This
+repository's CI renders Octomaton's `deploy/` the way its Applications deploy it, so a change on either side that no
+longer fits fails a check before Argo CD syncs it. Pull requests: [delivery#75](https://github.com/arikkfir-org/delivery/pull/75)
+(the host objects and the check), with [octomaton#40](https://github.com/arikkfir-org/octomaton/pull/40) before it.
+
+## Why
+
+Octomaton's `deploy/` held the hub: its route on `traefik/public`, an ExternalSecret on the hub's secret store, the
+hub's ConfigMap values, NetworkPolicies naming the hub's namespaces. A second host had to patch every one of them, and a
+rename on either side broke the other silently. Octomaton now keeps only what every installation needs, and asks its
+host for the rest under one contract, its README's
+[Hosting Octomaton](https://github.com/arikkfir-org/octomaton#hosting-octomaton). This page is the hub's side of it.
+
+## Design
+
+```mermaid
+flowchart LR
+  subgraph delivery["delivery: platform/octomaton/manifests"]
+    Env["Application octomaton-environment"] --> Project["AppProject octomaton"]
+    Env --> App["Application octomaton<br/>images' tag, node pool, public-ingress label"]
+    Env --> Host["ConfigMaps octomaton, octomaton-logs<br/>ExternalSecret octomaton-github<br/>HTTPRoute octomaton<br/>NetworkPolicies octomaton, octomaton-logs"]
+  end
+  subgraph octomaton["arikkfir-org/octomaton, main"]
+    Deploy["deploy/: Namespace, RBAC,<br/>ServiceAccounts, Deployments,<br/>Services, budgets"]
+  end
+  App -- "renders with its kustomize options" --> Deploy
+  App --> NS["namespace octomaton"]
+  Host --> NS
+  Deploy -. "reads by name" .-> Host
+  CI["ci: .tekton/octomaton-manifests.sh"] -. "renders deploy/ as App deploys it" .-> Deploy
+```
+
+Octomaton's pods read the host's objects by name: ConfigMap `octomaton` and Secret `octomaton-github` through
+`envFrom`, ConfigMap `octomaton-logs` likewise. The route and the policies select its Services and pods by the labels
+`deploy/` gives them. Nothing in `deploy/` names the hub, and nothing here patches an object of `deploy/` except to add
+to it.
+
+### The hub's side of the contract
+
+| Octomaton asks for | The hub provides |
+| --- | --- |
+| A GitHub App, its webhook at `https://<host>/github/hooks` | App `octomaton-dev`, created by hand ([octomaton.dev](../../octomaton/designs/octomaton-dev.md#github-app)), webhook `https://octomaton.dev/github/hooks` |
+| Secret `octomaton-github`: `app-id`, `private-key`, `webhook-secret` | ExternalSecret `octomaton-github` on ClusterSecretStore `gcp-secret-manager`, refreshed hourly from `infra`'s secrets `octomaton-github-app-id`, `octomaton-github-private-key` and `octomaton-github-webhook-secret` ([Secret Manager](../../infra/terraform/gcp.md#secret-manager)) |
+| ConfigMap `octomaton`, the server's settings | [Settings](#settings) below |
+| `deploy/` applied as written, the images tagged | Application `octomaton`: source `deploy` of `https://github.com/arikkfir-org/octomaton` at `main`; `kustomize.images` tag `me-west1-docker.pkg.dev/arikkfir/octomaton/octomaton` and `…/octomaton-logs` with `${ARGOCD_APP_REVISION_SHORT}`, the short SHA of the synced commit, which Octomaton's `release` publishes on every push; automated sync with prune and self-heal, retries, `SkipDryRunOnMissingResource=true`; no finalizer and no `CreateNamespace` |
+| `deploy/logs/` optionally, with ConfigMap `octomaton-logs` | ConfigMap `octomaton-logs` here already; Application `octomaton-logs` comes with Octomaton's split of `deploy/logs/` ([plan](../../octomaton/designs/host-agnostic.md#plan)); until then Application `octomaton` deploys `octomaton-logs` with the server |
+| Additions through kustomize options | `patches`: Namespace `octomaton` gets `kfirs.com/public-ingress: "true"` (the webhook's route attaches to the public gateway); every Deployment gets node pool `system` ([node pools](node-pools.md)) |
+| A route to Service `octomaton` | HTTPRoute `octomaton`: `octomaton.dev`, exact `/github/hooks`, Gateway `traefik/public`, listener `octomaton-dev`; everything else on that host is `go-import`'s ([Go import pages](go-import-pages.md)) |
+| Network admission | NetworkPolicy `octomaton`: only namespace `traefik`, on 8080. NetworkPolicy `octomaton-logs`: only the Tekton Dashboard's pods (namespace `tekton-pipelines`, label `app.kubernetes.io/name: dashboard`), on 8080 |
+| Cloud identities and grants | Workload Identity principals of ServiceAccounts `octomaton/octomaton` (telemetry) and `octomaton/octomaton-logs` (the log view), granted by `infra` ([IAM](../../infra/terraform/gcp.md#iam)) |
+| Where the Dashboard finds archived logs | TektonConfig `config`'s external logs URL, `http://octomaton-logs.octomaton.svc.cluster.local/logs` ([platform](../platform.md#components)) |
+| An admission boundary, if wanted | AppProject `octomaton`: source Octomaton's repository only, destination namespace `octomaton`, cluster-scoped objects by name, the namespaced kinds `deploy/` holds. The host objects here are synced by `octomaton-environment` under project `default`, so the project admits only what Octomaton's `main` may create |
+| Validation of `deploy/` as the host renders it | [CI](#ci) below |
+
+### Settings
+
+ConfigMap `octomaton` ([server configuration](https://github.com/arikkfir-org/octomaton#server-configuration)):
+
+| Variable | Value |
+| --- | --- |
+| `OCTOMATON_GITHUB_ALLOWED_OWNERS` | `arikkfir-org`: installations on any other owner are ignored |
+| `OCTOMATON_TEKTON_DASHBOARD_URL` | `https://tekton.dev.kfirs.com` |
+| `OCTOMATON_NAMESPACE_TEMPLATE` | `ci-{{ .Repository.Name }}`, the CI tenants' namespaces ([CI tenants](../platform.md#ci-tenants)) |
+| `OCTOMATON_ORGANIZATION_REPOSITORY` | `tooling` |
+| `OCTOMATON_RELAY_URLS` | `http://argocd-server.argocd.svc.cluster.local/api/webhook`: Argo CD refreshes on pushes |
+| `OCTOMATON_RETENTION_FREE_PVCS_AFTER` | `1h` |
+
+ConfigMap `octomaton-logs` ([step logs server](https://github.com/arikkfir-org/octomaton#archived-step-logs-octomaton-logs)):
+
+| Variable | Value |
+| --- | --- |
+| `OCTOMATON_LOGS_VIEW` | `projects/arikkfir/locations/global/buckets/_Default/views/_Default` |
+| `OCTOMATON_LOGS_CLUSTER` | `hub` |
+| `OCTOMATON_LOGS_LOCATION` | `me-west1-a` |
+
+Reloader restarts the Deployments when a ConfigMap or the Secret changes, as `deploy/` annotates them.
+
+### CI
+
+The `octomaton` step of `ci` (`.tekton/octomaton-manifests.sh`) finds every Application under `apps/` and `platform/`
+whose source is Octomaton's repository, fetches that repository at the Application's `targetRevision`, and renders the
+source path with the Application's `kustomize` options the way Argo CD applies them: `images`, with
+`ARGOCD_APP_REVISION*` substituted from the fetched commit, then `patches` appended to the kustomization. A targeted
+patch that matches nothing fails the step: kustomize would skip it and Argo CD would deploy without it, so a rename on
+either side is caught here. The rendered manifests land in `.ci/rendered/octomaton/`, where the `kubeconform` step
+validates them with the built-in kinds' schemas and the CRDs catalog. Any other kustomize option fails the step too,
+until the script applies it.
+
+The step runs in `docker.io/alpine/k8s`, whose kustomize is Argo CD's. Octomaton's own CI validates `deploy/` as
+written and nothing of any host.
+
+## The hand-over
+
+Until [octomaton#40](https://github.com/arikkfir-org/octomaton/pull/40) and Octomaton's split of `deploy/` are both
+synced, Application `octomaton` and `octomaton-environment` both hold the ConfigMap, the ExternalSecret, the route and
+the policies, by the same names. Both copies carry `argocd.argoproj.io/sync-options: Prune=false`, which Argo CD reads
+from the live object, so neither Application prunes what the other synced; each sync overwrites the object with the
+same content. Once `deploy/` no longer holds them, the annotation comes off here.
+
+## Security and failure modes
+
+| Case | What happens |
+| --- | --- |
+| ConfigMap `octomaton` missing or `OCTOMATON_GITHUB_ALLOWED_OWNERS` empty | The pod waits in `CreateContainerConfigError`, or the server exits at startup listing the problem. Nothing serves webhooks for everyone |
+| Secret Manager's secrets missing a version | The ExternalSecret stays `SecretSyncedError`, the Secret is not created, the pod waits in `CreateContainerConfigError` |
+| A patch's target renamed in `deploy/` | CI fails the pull request here when the Application is edited, and Octomaton's merge when its `targetRevision` is `main` only after the fact: the next CI run here, or a sync that Argo CD reports |
+| `go-import` and `octomaton` both match `octomaton.dev` | Exact `/github/hooks` takes precedence over `go-import`'s prefix, as before |

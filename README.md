@@ -15,7 +15,7 @@ pages, which this repository links. A change that needs a new or different value
 apps/<component>.yaml                One Argo CD Application per component (synced by the root Application)
 platform/<component>/values.yaml     Helm values, for chart-based components
 platform/<component>/manifests/      Plain manifests with a kustomization.yaml, where needed
-.octomaton.yaml, .tekton/ci.yaml   CI for this repository (run by Octomaton on Tekton)
+.octomaton.yaml, .tekton/          CI for this repository (run by Octomaton on Tekton)
 ```
 
 ## How it syncs
@@ -27,13 +27,17 @@ Each file there is an Application in namespace `argocd`, project `default`:
   `valueFiles: [$values/platform/<component>/values.yaml]`), this repository as `ref: values`, and
   `platform/<component>/manifests` when it has extra manifests. A manifest-only component has one source, that path.
 - `octomaton-environment` is the exception: Octomaton's manifests live with its code. `deploy/` of
-  `arikkfir-org/octomaton` (Kustomize) is the hub's deployment as written, its Namespace included, and Application
-  `octomaton` (`platform/octomaton/manifests`) deploys it from that repository's `main`, overriding in its `kustomize`
-  options what this repository decides: the tag of its images, `octomaton` and `octomaton-logs`,
-  `${ARGOCD_APP_REVISION_SHORT}` (the short SHA of the synced commit, which Octomaton's `release` publishes on every
-  push), the namespace's label `kfirs.com/public-ingress: "true"`, and the system node pool for its Deployments. A merge there deploys itself. AppProject `octomaton` admits only namespace
-  `octomaton`, Octomaton's own ClusterRoles and ClusterRoleBinding, and the namespaced kinds `deploy/` holds. Only
-  reviewed commits on `main` deploy, so no admission policies hold what they say, unlike Fin's pull requests.
+  `arikkfir-org/octomaton` (Kustomize) is what every installation of Octomaton applies as written, its Namespace
+  included, and Application `octomaton` (`platform/octomaton/manifests`) deploys it from that repository's `main`,
+  overriding in its `kustomize` options what this repository decides: the tag of its images, `octomaton` and
+  `octomaton-logs`, `${ARGOCD_APP_REVISION_SHORT}` (the short SHA of the synced commit, which Octomaton's `release`
+  publishes on every push), the namespace's label `kfirs.com/public-ingress: "true"`, and the system node pool for its
+  Deployments. A merge there deploys itself. What the hub decides around it lives beside the Application: the servers'
+  ConfigMaps, the GitHub App's ExternalSecret, the webhook's HTTPRoute and the NetworkPolicies
+  ([hosting Octomaton](docs/delivery/designs/octomaton.md)), and `ci` renders `deploy/` the way the Application deploys
+  it (`.tekton/octomaton-manifests.sh`). AppProject `octomaton` admits only namespace `octomaton`, Octomaton's own
+  ClusterRoles and ClusterRoleBinding, and the namespaced kinds `deploy/` holds. Only reviewed commits on `main`
+  deploy, so no admission policies hold what they say, unlike Fin's pull requests.
 - `fin-environments` deploys Fin the same way
   ([design](https://docs.dev.kfirs.com/fin/designs/environments.md)). `deploy/` of
   `arikkfir-org/fin` (Kustomize) is production as written: Application `fin` deploys it from that repository's `main`

@@ -1,0 +1,52 @@
+# Who reaches Octomaton's two Services: the public gateway (Traefik) reaches octomaton, the Tekton Dashboard's pods reach
+# octomaton-logs, which has no route. Handing over from Octomaton's deploy/ by name: Prune=false until it is done.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: octomaton
+  namespace: octomaton
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+  labels:
+    app.kubernetes.io/name: octomaton
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: octomaton
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: octomaton-logs
+  namespace: octomaton
+  annotations:
+    argocd.argoproj.io/sync-options: Prune=false
+  labels:
+    app.kubernetes.io/name: octomaton-logs
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: octomaton-logs
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: tekton-pipelines
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: dashboard
+      ports:
+        - protocol: TCP
+          port: 8080
