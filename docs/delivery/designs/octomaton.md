@@ -5,7 +5,7 @@
 from its `main`, and everything the hub decides lives here, in `platform/octomaton/manifests`: the servers' settings,
 the GitHub App's credentials, the webhook's route, who reaches each Service, the images' tag and the node pool. This
 repository's CI renders Octomaton's `deploy/` the way its Applications deploy it, so a change on either side that no
-longer fits fails a check before Argo CD syncs it. Pull requests: [delivery#75](https://github.com/arikkfir-org/delivery/pull/75)
+longer fits fails a check before Argo CD syncs it. Pull requests: [delivery#76](https://github.com/arikkfir-org/delivery/pull/76)
 (the host objects and the check), with [octomaton#40](https://github.com/arikkfir-org/octomaton/pull/40) before it.
 
 ## Why
