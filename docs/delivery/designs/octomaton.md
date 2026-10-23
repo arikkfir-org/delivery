@@ -14,7 +14,7 @@ Octomaton's `deploy/` held the hub: its route on `traefik/public`, an ExternalSe
 hub's ConfigMap values, NetworkPolicies naming the hub's namespaces. A second host had to patch every one of them, and a
 rename on either side broke the other silently. Octomaton now keeps only what every installation needs, and asks its
 host for the rest under one contract, its README's
-[Hosting Octomaton](https://github.com/arikkfir-org/octomaton#hosting-octomaton). This page is the hub's side of it.
+[the host contract](../../octomaton/designs/host-agnostic.md#the-host-contract). This page is the hub's side of it.
 
 ## Design
 
@@ -35,8 +35,8 @@ flowchart LR
   CI["ci: .tekton/octomaton-manifests.sh"] -. "renders deploy/ as App deploys it" .-> Deploy
 ```
 
-Octomaton's pods read the host's objects by name: ConfigMap `octomaton` and Secret `octomaton-github` through
-`envFrom`, ConfigMap `octomaton-logs` likewise. The route and the policies select its Services and pods by the labels
+Octomaton's pods read the host's objects by name: ConfigMap `octomaton` through `envFrom`, Secret `octomaton-github`
+through three `env` entries, ConfigMap `octomaton-logs` through `envFrom` like the first. The route and the policies select its Services and pods by the labels
 `deploy/` gives them. Nothing in `deploy/` names the hub, and nothing here patches an object of `deploy/` except to add
 to it.
 
