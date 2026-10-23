@@ -1,11 +1,12 @@
-# Octomaton's environment: its project, the Application that deploys Octomaton's deploy/, and what the hub decides
-# around it (docs/octomaton/designs/host-agnostic.md): the servers' settings, the App's credentials, the webhook's route
-# and who reaches each Service.
+# Octomaton's environment: its project, the Applications that deploy Octomaton's deploy/ and deploy/logs/, and what
+# the hub decides around it (docs/octomaton/designs/host-agnostic.md): the servers' settings, the App's credentials,
+# the webhook's route and who reaches each Service.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - project.yaml
   - octomaton.yaml
+  - octomaton-logs.yaml
   - config-maps.yaml
   - external-secret.yaml
   - http-route.yaml

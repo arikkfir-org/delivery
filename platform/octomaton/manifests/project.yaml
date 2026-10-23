@@ -1,6 +1,7 @@
 # The project of Octomaton's deployment. Its source, deploy/ in arikkfir-org/octomaton, comes from octomaton's main, so
 # a merge there changes the cluster; this holds it to what Octomaton needs: namespace octomaton, its own ClusterRoles
-# and ClusterRoleBinding, and the namespaced kinds deploy/ holds. Wave -1: before the Application that names it.
+# and ClusterRoleBinding, and the namespaced kinds deploy/ and deploy/logs/ hold. Wave -1: before the Applications that
+# name it.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -36,17 +37,9 @@ spec:
       kind: Role
     - group: rbac.authorization.k8s.io
       kind: RoleBinding
-    - group: ""
-      kind: ConfigMap
-    - group: external-secrets.io
-      kind: ExternalSecret
     - group: apps
       kind: Deployment
     - group: policy
       kind: PodDisruptionBudget
     - group: ""
       kind: Service
-    - group: gateway.networking.k8s.io
-      kind: HTTPRoute
-    - group: networking.k8s.io
-      kind: NetworkPolicy
