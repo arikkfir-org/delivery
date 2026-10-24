@@ -1,7 +1,7 @@
-# The project of Octomaton's deployment. Its source, deploy/ in arikkfir-org/octomaton, comes from octomaton's main, so
-# a merge there changes the cluster; this holds it to what Octomaton needs: namespace octomaton, its own ClusterRoles
-# and ClusterRoleBinding, and the namespaced kinds deploy/ and deploy/logs/ hold. Wave -1: before the Applications that
-# name it.
+# The project of Octomaton's deployment. Its source, deploy/ in arikkfir-org/octomaton, comes from the version the
+# Applications pin, so a pull request here that bumps it changes the cluster; this holds it to what Octomaton needs:
+# namespace octomaton, its own ClusterRoles and ClusterRoleBinding, and the namespaced kinds deploy/ and deploy/logs/
+# hold. Wave -1: before the Applications that name it.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -10,7 +10,7 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "-1"
 spec:
-  description: Octomaton, from octomaton's main.
+  description: Octomaton, at the version its Applications pin.
   sourceRepos:
     - https://github.com/arikkfir-org/octomaton
   destinations:
