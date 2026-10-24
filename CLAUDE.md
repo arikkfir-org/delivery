@@ -14,9 +14,9 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   same unit of work. If a change needs a new or different value from another repository, say so; do not diverge
   silently.
 - Pin everything: chart `targetRevision`, image tags, remote manifest URLs. Never `latest`, never a floating branch.
-  The exceptions run the image of the commit they sync: Applications `octomaton` and `octomaton-logs`
-  (`platform/octomaton/manifests`) follow `main` of `arikkfir-org/octomaton` (its `deploy/` and `deploy/logs/`), and
-  Fin's environments (`platform/fin/manifests`) follow `main` of
+  Applications `octomaton` and `octomaton-logs` (`platform/octomaton/manifests`) pin a version of
+  `arikkfir-org/octomaton`: its tag as `targetRevision` and as the images' tag, the same in both. The exceptions run
+  the image of the commit they sync: Fin's environments (`platform/fin/manifests`) follow `main` of
   `arikkfir-org/fin` (production), each pull request's head commit (its own environment) and each merge queue entry's
   merge group commit (its own).
 - Fin's `deploy/` comes from pull requests and holds its own Namespace, Gateway, routes, certificate, ExternalSecrets,
@@ -37,7 +37,8 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   `gcp-secret-manager` out of its reach, and lets the namespace
   reach NATS. NATS takes no credentials, so NetworkPolicy `nats/nats` admits only namespace `nats` and Fin's
   namespaces; a new client's namespace goes there first.
-- Octomaton's `deploy/` and `deploy/logs/` come from its `main` only; `deploy/` holds its own Namespace and RBAC.
+- Octomaton's `deploy/` and `deploy/logs/` come from a version's tag only (a commit of its `main`); `deploy/` holds its
+  own Namespace and RBAC.
   Overrides (the images' tag, the namespace's `kfirs.com/public-ingress` label, the node pool) go in the `kustomize`
   options of Application `octomaton` for `deploy/` and of Application `octomaton-logs` for `deploy/logs/`. AppProject
   `octomaton` admits a kind, or a cluster-scoped object by name, only once Octomaton's `deploy/` or `deploy/logs/` needs

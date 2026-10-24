@@ -29,15 +29,15 @@ Each file there is an Application in namespace `argocd`, project `default`:
 - `octomaton-environment` is the exception: Octomaton's manifests live with its code. `deploy/` of
   `arikkfir-org/octomaton` (Kustomize) is what every installation of Octomaton applies as written, its Namespace
   included, and `deploy/logs/` its step logs server, which a host applies or not. Applications `octomaton` and
-  `octomaton-logs` (`platform/octomaton/manifests`) deploy them from that repository's `main`, overriding in their
-  `kustomize` options what this repository decides: the tag of the images, `octomaton` and `octomaton-logs`,
-  `${ARGOCD_APP_REVISION_SHORT}` (the short SHA of the synced commit, which Octomaton's `main` publishes on every
-  push), the namespace's label `kfirs.com/public-ingress: "true"`, and the system node pool for the Deployments. A
-  merge there deploys itself. What the hub decides around it lives beside the Application: the servers'
+  `octomaton-logs` (`platform/octomaton/manifests`) deploy them from a version of that repository (its tag, such as
+  `v0.0.1`), overriding in their `kustomize` options what this repository decides: the tag of the images, `octomaton`
+  and `octomaton-logs`, the same version (which Octomaton's `tag` pipeline adds to the images its `main` published for
+  that commit), the namespace's label `kfirs.com/public-ingress: "true"`, and the system node pool for the
+  Deployments. A new version deploys through a pull request here that bumps it in both Applications. What the hub decides around it lives beside the Application: the servers'
   ConfigMaps, the GitHub App's ExternalSecret, the webhook's HTTPRoute and the NetworkPolicies
   ([hosting Octomaton](docs/delivery/designs/octomaton.md)), and `ci` renders each the way its Application deploys
   it (`.tekton/octomaton-manifests.sh`). AppProject `octomaton` admits only namespace `octomaton`, Octomaton's own
-  ClusterRoles and ClusterRoleBinding, and the namespaced kinds `deploy/` and `deploy/logs/` hold. Only reviewed commits on `main`
+  ClusterRoles and ClusterRoleBinding, and the namespaced kinds `deploy/` and `deploy/logs/` hold. Only versions, tags of reviewed commits on `main`,
   deploy, so no admission policies hold what they say, unlike Fin's pull requests.
 - `fin-environments` deploys Fin the same way
   ([design](https://docs.dev.kfirs.com/fin/designs/environments.md)). `deploy/` of

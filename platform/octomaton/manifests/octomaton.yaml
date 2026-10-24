@@ -1,8 +1,8 @@
 # Octomaton, namespace octomaton, at octomaton.dev. Its deployment lives with its code, in deploy/ of
-# arikkfir-org/octomaton. Argo CD follows octomaton's main and runs the image of the synced commit, which Octomaton's
-# main publishes for every push to main, tagged with the commit's short SHA. No CreateNamespace: deploy/ holds the
-# Namespace, which Argo CD creates before anything else. No resources finalizer: deleting this Application leaves
-# Octomaton running.
+# arikkfir-org/octomaton. The hub runs a version: deploy/ at the version's tag, and the images with that tag, which
+# Octomaton's pipeline tag adds to the images main published for the commit. A new version deploys by a pull request
+# that bumps the version here and in octomaton-logs.yaml. No CreateNamespace: deploy/ holds the Namespace, which Argo CD
+# creates before anything else. No resources finalizer: deleting this Application leaves Octomaton running.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -17,12 +17,12 @@ spec:
   # gateway, for GitHub's webhook deliveries, and the node pool.
   source:
     repoURL: https://github.com/arikkfir-org/octomaton
-    targetRevision: main
+    targetRevision: v0.0.1
     path: deploy
     kustomize:
       images:
-        - "me-west1-docker.pkg.dev/arikkfir/octomaton/octomaton:${ARGOCD_APP_REVISION_SHORT}"
-        - "me-west1-docker.pkg.dev/arikkfir/octomaton/octomaton-logs:${ARGOCD_APP_REVISION_SHORT}"
+        - "me-west1-docker.pkg.dev/arikkfir/octomaton/octomaton:v0.0.1"
+        - "me-west1-docker.pkg.dev/arikkfir/octomaton/octomaton-logs:v0.0.1"
       patches:
         - target:
             kind: Namespace

@@ -1,4 +1,4 @@
-# octomaton-logs, the step logs server, at the same revision as Octomaton: deploy/logs/ of arikkfir-org/octomaton as
+# octomaton-logs, the step logs server, at the same version as Octomaton: deploy/logs/ of arikkfir-org/octomaton as
 # written, its image tagged like Octomaton's, its Deployment on the system node pool. Separate from Application
 # octomaton because a host applies deploy/logs/ or not at all; this hub does, for the Tekton Dashboard's archived
 # logs. No CreateNamespace: Application octomaton's deploy/ holds the Namespace, so this one syncs a wave after it. No
@@ -17,11 +17,11 @@ spec:
     namespace: octomaton
   source:
     repoURL: https://github.com/arikkfir-org/octomaton
-    targetRevision: main
+    targetRevision: v0.0.1
     path: deploy/logs
     kustomize:
       images:
-        - "me-west1-docker.pkg.dev/arikkfir/octomaton/octomaton-logs:${ARGOCD_APP_REVISION_SHORT}"
+        - "me-west1-docker.pkg.dev/arikkfir/octomaton/octomaton-logs:v0.0.1"
       patches:
         # On the system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
         - target:
