@@ -1,0 +1,8 @@
+# The identity of octomaton's ci (see https://docs.dev.kfirs.com/infra/terraform/gcp.md, "IAM"): any branch may use it,
+# and terraform/gcp lets it read bucket arikkfir-octomaton-ci-cache, and write under its pull-requests/ only, through
+# Workload Identity. ci restores main's Go caches, which main saves, or its pull request's, which it saves.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ci-octomaton-ci
+automountServiceAccountToken: false
