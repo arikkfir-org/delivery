@@ -1,4 +1,4 @@
-# Identity of octomaton's release pipeline (see https://docs.dev.kfirs.com/infra/terraform/gcp.md, "IAM"):
+# Identity of octomaton's main and tag pipelines (see https://docs.dev.kfirs.com/infra/terraform/gcp.md, "IAM"):
 # terraform/gcp lets it push to the octomaton repository through Workload Identity. Octomaton refuses any run that
 # names it unless the run's branch is main or its tag is a version (v1.2.3, created by publishing a GitHub release:
 # https://docs.dev.kfirs.com/octomaton/designs/releases.md).

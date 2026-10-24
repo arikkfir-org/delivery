@@ -155,7 +155,7 @@ token:
 | --- | --- | --- | --- |
 | `ci-infra` | `ci-infra-plan` | None | `ci`: plans on pull requests and in the merge queue |
 | `ci-infra` | `ci-infra-apply` | `main` | `apply`: applies merges to `main` |
-| `ci-octomaton` | `ci-octomaton-release` | branch `main`, tags `v*` | `release`: pushes Octomaton's images, of every commit on `main` and of every version ([versioned releases](../octomaton/designs/releases.md)) |
+| `ci-octomaton` | `ci-octomaton-release` | branch `main`, tags `v*` | `main`: pushes Octomaton's images of every commit on `main`; `tag`: adds a version's tag to them ([versioned releases](../octomaton/designs/releases.md)) |
 | `ci-tooling` | `ci-tooling-publish` | `main` | `publish`: writes bucket `arikkfir-claude`; `reviewer-image`: pushes the reviewer image |
 | `ci-fin` | `ci-fin-release` | `main` | `release`: production's images; saves the CI cache |
 | `ci-fin` | `ci-fin-preview` | None | `preview`: pull requests' images |
