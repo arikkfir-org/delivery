@@ -50,5 +50,5 @@ Caddy's `map` turns the request's host into the domain's repository and redirect
 ## Security and failure modes
 
 - The pages are public and static, without the hub's sign-in: the `go` command fetches them anonymously. They name only repositories; reading a private one (`fin`) still takes access to it.
-- A second namespace can attach routes to `octomaton.dev`. Both namespaces' contents come from `main` of their repositories, and Octomaton's webhook path is an exact match, which `go-import`'s prefix never outranks.
+- A second namespace can attach routes to `octomaton.dev`. Both namespaces' contents come from reviewed commits on `main` of their repositories (Octomaton's at a version's tag), and Octomaton's webhook path is an exact match, which `go-import`'s prefix never outranks.
 - If `go-import` is down, new `go install`s and builds that resolve these modules directly fail; versions already in the Go proxy keep working.
