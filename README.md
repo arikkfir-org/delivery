@@ -31,7 +31,7 @@ Each file there is an Application in namespace `argocd`, project `default`:
   included, and `deploy/logs/` its step logs server, which a host applies or not. Applications `octomaton` and
   `octomaton-logs` (`platform/octomaton/manifests`) deploy them from that repository's `main`, overriding in their
   `kustomize` options what this repository decides: the tag of the images, `octomaton` and `octomaton-logs`,
-  `${ARGOCD_APP_REVISION_SHORT}` (the short SHA of the synced commit, which Octomaton's `release` publishes on every
+  `${ARGOCD_APP_REVISION_SHORT}` (the short SHA of the synced commit, which Octomaton's `main` publishes on every
   push), the namespace's label `kfirs.com/public-ingress: "true"`, and the system node pool for the Deployments. A
   merge there deploys itself. What the hub decides around it lives beside the Application: the servers'
   ConfigMaps, the GitHub App's ExternalSecret, the webhook's HTTPRoute and the NetworkPolicies
