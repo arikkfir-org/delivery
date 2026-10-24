@@ -155,7 +155,7 @@ token:
 | --- | --- | --- | --- |
 | `ci-infra` | `ci-infra-plan` | None | `ci`: plans on pull requests and in the merge queue |
 | `ci-infra` | `ci-infra-apply` | `main` | `apply`: applies merges to `main` |
-| `ci-octomaton` | `ci-octomaton-release` | `main` | `release`: pushes Octomaton's images |
+| `ci-octomaton` | `ci-octomaton-release` | `main`, and `octomaton.dev/tags: v*` | `release`: pushes Octomaton's images, of every commit on `main` and of every version ([versioned releases](../octomaton/designs/releases.md)) |
 | `ci-tooling` | `ci-tooling-publish` | `main` | `publish`: writes bucket `arikkfir-claude`; `reviewer-image`: pushes the reviewer image |
 | `ci-fin` | `ci-fin-release` | `main` | `release`: production's images; saves the CI cache |
 | `ci-fin` | `ci-fin-preview` | None | `preview`: pull requests' images |
@@ -175,5 +175,5 @@ Hub-wide labels share the prefix `kfirs.com/`.
 | `kfirs.com/sandbox: "true"` | Pod | A pull request reviewer's or check `Linear`'s pod, which NetworkPolicy `sandbox` holds | `tooling`'s reviewer and `linear` PipelineRuns |
 
 Octomaton writes its bookkeeping labels and annotations under `octomaton.dev/` on the objects it creates
-([Octomaton's README](https://github.com/arikkfir-org/octomaton#deployment)); the one it reads,
-`octomaton.dev/branches`, is set here on tenants' ServiceAccounts ([CI tenants](#ci-tenants)).
+([Octomaton's README](https://github.com/arikkfir-org/octomaton#deployment)); the ones it reads,
+`octomaton.dev/branches` and `octomaton.dev/tags`, are set here on tenants' ServiceAccounts ([CI tenants](#ci-tenants)).
