@@ -156,6 +156,7 @@ token:
 | `ci-infra` | `ci-infra-plan` | None | `ci`: plans on pull requests and in the merge queue |
 | `ci-infra` | `ci-infra-apply` | `main` | `apply`: applies merges to `main` |
 | `ci-octomaton` | `ci-octomaton-release` | `main` | `release`: pushes Octomaton's images |
+| `ci-octomaton` | `ci-octomaton-ci` | None | `ci`: restores `main`'s or its pull request's Go caches, saves its pull request's |
 | `ci-tooling` | `ci-tooling-publish` | `main` | `publish`: writes bucket `arikkfir-claude`; `reviewer-image`: pushes the reviewer image |
 | `ci-fin` | `ci-fin-release` | `main` | `release`: production's images; saves the CI cache |
 | `ci-fin` | `ci-fin-preview` | None | `preview`: pull requests' images |
