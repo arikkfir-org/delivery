@@ -76,6 +76,7 @@ Created by hand, once. What Octomaton needs of any App: the README's
 | Installation | All `arikkfir-org` repositories |
 | Webhook URL | `https://octomaton.dev/github/hooks` |
 | Repository permissions | Checks: read and write; Contents: read; Metadata: read; Pull requests: read and write; Merge queues: read |
+| Organization permissions | Members: read, for the `teams` of comment commands' allow-lists ([comment commands](../../octomaton/designs/comment-commands.md)) |
 | Events | `push`, `pull_request`, `issue_comment`, `check_suite`, `check_run`, `merge_group`; also `pull_request_review`, `pull_request_review_comment` and `pull_request_review_thread`, which Octomaton ignores ([reviewer](../../octomaton/designs/pr-reviewer.md)) |
 | Credentials | Its ID, private key and webhook secret, in Secret Manager, reach Octomaton through ExternalSecret `octomaton-github` |
 
