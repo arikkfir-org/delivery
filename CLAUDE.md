@@ -67,10 +67,10 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   that needs one gets its own ServiceAccount in `platform/ci-tenants/manifests/tenants/<repository>/`
   (`automountServiceAccountToken: false`), annotated `octomaton.dev/branches: main` when it publishes or applies.
 - Tekton files stay short and composed (https://docs.dev.kfirs.com/CONTRIBUTING.md, "Continuous integration"): a
-  PipelineRun references its Pipeline or Tasks by name, each in a file beside it (`<name>.pipeline.yaml`,
-  `<name>.task.yaml`), steps that Tasks share are StepActions (`<name>.step.yaml`), and a step names its command or
-  runs a script file of this repository rather than an inline script of more than a few lines. A change to a long,
-  inlined file splits what it touches.
+  PipelineRun references its Pipeline (`pipelineRef`), or its inline `pipelineSpec` its Tasks (`taskRef`), by name,
+  each in a file beside it (`<name>.pipeline.yaml`, `<name>.task.yaml`), steps that Tasks share are StepActions
+  (`<name>.step.yaml`), and a step names its command or runs a script file of this repository rather than an inline
+  script of more than a few lines. A change to a long, inlined file splits what it touches.
 - `public` gateway routes need the namespace label `kfirs.com/public-ingress: "true"` and a deliberate reason.
 - Keep the Application conventions: multi-source for charts, sync waves by dependency, `automated` prune + self-heal,
   retry, `CreateNamespace=true`, `ServerSideApply=true` for large CRDs (plus the compare option `ServerSideDiff=true`
