@@ -151,11 +151,11 @@ The docs pipelines: [docs site composition](../hub/designs/docs-site-composition
 A pipeline that needs Google Cloud names a ServiceAccount of its own, from `tenants/<repository>/`, without a mounted
 token:
 
-| Tenant | ServiceAccount | `octomaton.dev/branches` | Pipeline |
+| Tenant | ServiceAccount | Refs (`octomaton.dev/branches`, `octomaton.dev/tags`) | Pipeline |
 | --- | --- | --- | --- |
 | `ci-infra` | `ci-infra-plan` | None | `ci`: plans on pull requests and in the merge queue |
 | `ci-infra` | `ci-infra-apply` | `main` | `apply`: applies merges to `main` |
-| `ci-octomaton` | `ci-octomaton-release` | `main`, and `octomaton.dev/tags: v*` | `release`: pushes Octomaton's images, of every commit on `main` and of every version ([versioned releases](../octomaton/designs/releases.md)) |
+| `ci-octomaton` | `ci-octomaton-release` | branch `main`, tags `v*` | `release`: pushes Octomaton's images, of every commit on `main` and of every version ([versioned releases](../octomaton/designs/releases.md)) |
 | `ci-tooling` | `ci-tooling-publish` | `main` | `publish`: writes bucket `arikkfir-claude`; `reviewer-image`: pushes the reviewer image |
 | `ci-fin` | `ci-fin-release` | `main` | `release`: production's images; saves the CI cache |
 | `ci-fin` | `ci-fin-preview` | None | `preview`: pull requests' images |
