@@ -17,12 +17,12 @@ spec:
   # gateway, for GitHub's webhook deliveries, and the node pool.
   source:
     repoURL: https://github.com/arikkfir-org/octomaton
-    targetRevision: v0.0.1
+    targetRevision: v0.1.0
     path: deploy
     kustomize:
       images:
-        - "me-west1-docker.pkg.dev/arikkfir/octomaton/octomaton:v0.0.1"
-        - "me-west1-docker.pkg.dev/arikkfir/octomaton/octomaton-logs:v0.0.1"
+        - "me-west1-docker.pkg.dev/arikkfir/octomaton/octomaton:v0.1.0"
+        - "me-west1-docker.pkg.dev/arikkfir/octomaton/octomaton-logs:v0.1.0"
       patches:
         - target:
             kind: Namespace

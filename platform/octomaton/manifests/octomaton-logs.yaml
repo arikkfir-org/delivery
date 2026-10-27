@@ -17,11 +17,11 @@ spec:
     namespace: octomaton
   source:
     repoURL: https://github.com/arikkfir-org/octomaton
-    targetRevision: v0.0.1
+    targetRevision: v0.1.0
     path: deploy/logs
     kustomize:
       images:
-        - "me-west1-docker.pkg.dev/arikkfir/octomaton/octomaton-logs:v0.0.1"
+        - "me-west1-docker.pkg.dev/arikkfir/octomaton/octomaton-logs:v0.1.0"
       patches:
         # On the system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
         - target:
