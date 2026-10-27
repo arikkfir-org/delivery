@@ -127,8 +127,8 @@ DNS records and the two IPs are `infra`'s: [DNS](../infra/terraform/gcp.md#dns),
 ## CI tenants
 
 Application `ci-tenants` creates namespace `ci-<repository>` for every repository but `.github`, which has no CI:
-`ci-infra`, `ci-delivery`, `ci-octomaton`, `ci-tooling`, `ci-docs` and `ci-fin`. Octomaton runs each repository's
-pipelines in its tenant.
+`ci-infra`, `ci-delivery`, `ci-octomaton`, `ci-tooling`, `ci-docs`, `ci-fin` and `ci-devhub`. Octomaton runs each
+repository's pipelines in its tenant.
 
 Every tenant gets the base (`platform/ci-tenants/manifests/base`):
 
@@ -162,7 +162,8 @@ token:
 | `ci-fin` | `ci-fin-preview` | None | `preview`: pull requests' images |
 | `ci-fin` | `ci-fin-ci` | None | `ci` and `e2e`: restore the CI cache, upload end-to-end reports |
 
-`ci-delivery` and `ci-docs` have the base only. Their Google Cloud roles: [infra's IAM](../infra/terraform/gcp.md#iam).
+`ci-delivery`, `ci-docs` and `ci-devhub` have the base only. Their Google Cloud roles:
+[infra's IAM](../infra/terraform/gcp.md#iam).
 
 ## Labels
 
