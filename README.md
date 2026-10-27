@@ -30,7 +30,7 @@ Each file there is an Application in namespace `argocd`, project `default`:
   `arikkfir-org/octomaton` (Kustomize) is what every installation of Octomaton applies as written, its Namespace
   included, and `deploy/logs/` its step logs server, which a host applies or not. Applications `octomaton` and
   `octomaton-logs` (`platform/octomaton/manifests`) deploy them from a version of that repository (its tag, such as
-  `v0.0.1`), overriding in their `kustomize` options what this repository decides: the tag of the images, `octomaton`
+  `v0.1.0`), overriding in their `kustomize` options what this repository decides: the tag of the images, `octomaton`
   and `octomaton-logs`, the same version (which Octomaton's `tag` pipeline adds to the images its `main` published for
   that commit), the namespace's label `kfirs.com/public-ingress: "true"`, and the system node pool for the
   Deployments. A new version deploys through a pull request here that bumps it in both Applications. What the hub decides around it lives beside the Application: the servers'
