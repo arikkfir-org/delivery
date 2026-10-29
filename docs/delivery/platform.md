@@ -34,6 +34,7 @@ Replicas, budgets and rollouts: [disruption budgets](designs/disruption-budgets.
 | `ci-<repository>` | CI tenants (`ci-tenants`) ([CI tenants](#ci-tenants)) | `platform/ci-tenants/manifests` | n/a | 4 |
 | `keycloak` | Keycloak (`keycloak`): resource `keycloak`, two instances, Service `keycloak-service` on 8080 ([design](designs/keycloak.md)) | `quay.io/keycloak/keycloak`, in `platform/keycloak/manifests` | `26.8.1` | 4 |
 | `keycloak` | PostgreSQL for Keycloak: StatefulSet `postgres` ([design](designs/keycloak.md#in-the-cluster)) | `docker.io/library/postgres`, in `platform/keycloak/manifests` | `18.6-trixie` | 4 |
+| `devhub` | DevHub's demo (`devhub-environment`): Namespace `devhub`, AppProject `devhub`, Application `devhub` (the chart's Console, REST and GraphQL servers, migrate Job and PostgreSQL), ExternalSecret `devhub-postgresql-password`, HTTPRoute `devhub`, Middleware `admins`, NetworkPolicy `devhub` ([hosting DevHub's demo](designs/devhub.md)) | `chart/devhub` of `arikkfir-org/devhub` at `main`; the host objects in `platform/devhub/manifests` | The synced commit's images | 4 |
 | `fin`, `fin-pr-<number>`, `fin-pr-<number>-merge` | Fin (`fin-environments`): Application `fin` (production), ApplicationSet `fin-pull-requests`, Application `fin-identities`, AppProjects `fin` and `fin-pull-requests`, admission policies, and Gateway `traefik/fin-pull-requests` ([environments](../fin/designs/environments.md)) | `deploy/` of `arikkfir-org/fin`: `main`, each pull request's head commit and each merge queue entry's commit | The deployed commit's images | 4 |
 
 ## NATS
@@ -101,6 +102,7 @@ Each route's Middlewares are in its own namespace.
 | `nui.dev.kfirs.com` | protected | `nats/nui:31311` | All | `admins`, `strip-cookies` |
 | `docs.dev.kfirs.com` | protected | `docs/docs:80` | All | `admins` |
 | `tests.dev.kfirs.com` | protected | `tests/tests:80` | All | `admins` |
+| `devhub.dev.kfirs.com` | protected | `devhub/devhub-rest-server:80`; `devhub/devhub-graphql-server:80`; `devhub/devhub-console:80` | `/api` and `/graphql`, each prefix rewritten to `/`; everything else | `admins` |
 | `admin.id.kfirs.com` | protected | `keycloak/keycloak-service:8080` | Exact `/` (Keycloak redirects it to the console), `/admin`, `/realms/master`, `/resources` | `admins` |
 | `auth.kfirs.com` | public | `auth/oauth2-proxy:80` | `/oauth2` | None |
 | `id.kfirs.com` | public | `keycloak/keycloak-service:8080` | `/realms/hub`, `/resources`; POSTs under `/realms/hub/login-actions`; `/realms/master` | None; `sign-in-attempts`; `oidc`, `admins` |
@@ -157,12 +159,13 @@ token:
 | `ci-infra` | `ci-infra-apply` | `main` | `apply`: applies merges to `main` |
 | `ci-octomaton` | `ci-octomaton-release` | branch `main`, tags `v*` | `main`: pushes Octomaton's images of every commit on `main`; `tag`: adds a version's tag to them ([versioned releases](../octomaton/designs/releases.md)) |
 | `ci-octomaton` | `ci-octomaton-ci` | None | `ci`: restores `main`'s or its pull request's Go caches, saves its pull request's |
+| `ci-devhub` | `ci-devhub-release` | `main` | `main`: pushes DevHub's images of `main`'s newest commit ([hosting DevHub's demo](designs/devhub.md)) |
 | `ci-tooling` | `ci-tooling-publish` | `main` | `publish`: writes bucket `arikkfir-claude`; `reviewer-image`: pushes the reviewer image |
 | `ci-fin` | `ci-fin-release` | `main` | `release`: production's images; saves the CI cache |
 | `ci-fin` | `ci-fin-preview` | None | `preview`: pull requests' images |
 | `ci-fin` | `ci-fin-ci` | None | `ci` and `e2e`: restore the CI cache, upload end-to-end reports |
 
-`ci-delivery`, `ci-docs` and `ci-devhub` have the base only. Their Google Cloud roles:
+`ci-delivery` and `ci-docs` have the base only. Their Google Cloud roles:
 [infra's IAM](../infra/terraform/gcp.md#iam).
 
 ## Labels

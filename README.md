@@ -57,6 +57,11 @@ Each file there is an Application in namespace `argocd`, project `default`:
   labelled `kfirs.com/pull-request: "true"`. Pull requests share Gateway `traefik/fin-pull-requests` and its
   one wildcard certificate, so a pull request issues no certificate. Argo CD reads `fin`, an internal repository, and
   lists its pull requests with its own GitHub App (Secret `argocd/github-app`).
+- `devhub-environment` deploys DevHub's demo ([hosting DevHub's demo](docs/delivery/designs/devhub.md)): Application
+  `devhub` installs `chart/devhub` of `arikkfir-org/devhub` from its `main` into namespace `devhub`, with the images of
+  the synced commit, which devhub's pipeline `main` publishes, and the values this repository decides. Its namespace,
+  AppProject `devhub`, the database's generated password, the route behind Middleware `admins` and the NetworkPolicy
+  live beside it in `platform/devhub/manifests`.
 - Every Application syncs automatically with prune and self-heal, retries with backoff (`refresh: true`, so a retry
   picks up a newer commit; ten times, but twice for Fin's pull requests, whose syncs can wait 20 minutes a try for
   images that never come), and creates its namespace, except those whose `deploy/` holds it (Octomaton's and Fin's)
@@ -75,7 +80,7 @@ Each file there is an Application in namespace `argocd`, project `default`:
 | 1 | `gateway-api`, `cert-manager`, `external-secrets` |
 | 2 | `argocd` |
 | 3 | `traefik`, `tekton-operator`, `keda`, `reloader`, `nats`, `keycloak-operator` |
-| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton-environment`, `docs`, `tests`, `ci-tenants`, `keycloak`, `fin-environments`, `go-import` |
+| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton-environment`, `docs`, `tests`, `ci-tenants`, `keycloak`, `fin-environments`, `go-import`, `devhub-environment` |
 
 Within an Application, waves order dependent resources as well: ClusterIssuers and the ClusterSecretStore wait for their
 operators' webhooks; in `traefik` the Certificates (the wildcard and `octomaton-dev`) are issued before the Gateways

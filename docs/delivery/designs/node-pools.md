@@ -19,7 +19,7 @@ themselves; Fin's [environments](../../fin/designs/environments.md) keep product
 flowchart TB
   subgraph system["pool system: taint components.gke.io/gke-managed-components, 1 to 3 on-demand nodes"]
     GKE["GKE: kube-dns, metrics-server, konnectivity, …"]
-    Hub["The hub's services: Argo CD, oauth2-proxy, cert-manager, docs, tests, ESO, go-import, Grafana,<br/>KEDA, Keycloak, NATS, Octomaton and octomaton-logs, Reloader, Tekton, Traefik"]
+    Hub["The hub's services: Argo CD, oauth2-proxy, cert-manager, docs, tests, ESO, go-import, Grafana,<br/>KEDA, Keycloak, NATS, Octomaton and octomaton-logs, Reloader, Tekton, Traefik,<br/>DevHub's demo"]
   end
   subgraph ci["pool ci: taint kfirs.com/pool=ci, 0 to 10 Spot nodes"]
     Runs["TaskRun pods (Tekton's default pod template)"]
@@ -49,6 +49,7 @@ every taint, and the hub runs none of its own.
 | Keycloak's operator, Tekton's operator and its webhook | kustomize patches on the release manifests' Deployments |
 | Pipelines, Triggers, the Dashboard, the proxy webhook, the pruner | TektonConfig `spec.config`, which the operator sets on every Deployment and StatefulSet it makes, replacing theirs, and on the pruner's CronJob |
 | Octomaton and octomaton-logs | a patch on every Deployment in the `kustomize` options of Applications `octomaton` and `octomaton-logs` |
+| DevHub's demo | `nodeSelector` and `tolerations` of each workload (`restServer`, `graphqlServer`, `console`, `migrate`, `postgresql`) in Application `devhub`'s Helm values |
 | Fin | its own `deploy/`: every pod template selects `fin` and tolerates its taint |
 | TaskRun pods | Tekton's `default-pod-template`: pool `ci` |
 

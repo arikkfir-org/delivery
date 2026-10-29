@@ -91,6 +91,7 @@ These requested what they need from the start, and neither round measured them.
 | Docs and tests sites, each replica: GKE's Cloud Storage FUSE sidecar | 10m, 64Mi | 256Mi | the same, as `gke-gcsfuse/*` pod annotations |
 | `go-import`, each replica | 10m, 32Mi | 128Mi | `platform/go-import/manifests/deployment.yaml` |
 | Grafana's and Keycloak's PostgreSQL (Grafana's init container too) | 50m, 128Mi | 512Mi | `platform/grafana/manifests/postgres.yaml`, `platform/keycloak/manifests/postgres.yaml` |
+| DevHub's demo: the REST and GraphQL servers, each replica; the Console, each replica; the migrate Job; PostgreSQL | 100m, 128Mi; 10m, 32Mi; 50m, 64Mi; 100m, 256Mi | 512Mi; 128Mi; 256Mi; 1Gi | DevHub's chart's defaults ([hosting DevHub's demo](devhub.md)) |
 | Tekton's pipelines webhook | 100m CPU, the release's | the release's | unchanged (decisions) |
 
 ## Decisions

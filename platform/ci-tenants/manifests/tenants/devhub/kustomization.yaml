@@ -3,3 +3,4 @@ kind: Kustomization
 namespace: ci-devhub
 resources:
   - ../../base
+  - release.yaml
