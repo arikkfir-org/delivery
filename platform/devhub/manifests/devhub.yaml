@@ -69,9 +69,6 @@ spec:
               value: "true"
               effect: NoSchedule
         migrate:
-          # A sync can start before main's pipeline has published the commit's images; the Job's pod waits for them
-          # (pulls back off to five minutes apart) within this deadline, which leaves the pipeline about 25 minutes.
-          activeDeadlineSeconds: 1800
           nodeSelector:
             kfirs.com/pool: system
           tolerations:
@@ -94,6 +91,9 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    # A sync can start before main's pipeline has published the commit's images. The Console, the chart's first wave,
+    # then holds the migrate Job and the servers back, and fails the sync at its Deployment's 10-minute progress
+    # deadline; these retries, about half an hour of them, each from main's newest commit, carry on once they exist.
     retry:
       limit: 10
       refresh: true

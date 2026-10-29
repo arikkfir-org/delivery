@@ -51,7 +51,7 @@ sequenceDiagram
   A->>K: prune the last migrate Job
 ```
 
-Argo CD can sync a commit before its pipeline has pushed its images: its pods wait for them, retrying the pull. The Console's new pods surge beside the old ones, which keep serving; the migrate Job's pod waits within the Job's deadline, raised here to 30 minutes; the servers roll out only once the Job is done.
+Argo CD can sync a commit before its pipeline has pushed its images. The Console, the chart's first sync wave, then holds the rest back: its new pods wait for their image, retrying the pull, beside the old ones, which keep serving, and the migrate Job and the servers wait for it. If the images take longer than the Deployment's 10-minute progress deadline, the sync fails there, and Argo CD retries it, backing off to five minutes apart, for about half an hour more, each time from `main`'s newest commit; once the images exist, the Console turns healthy and the rest follows.
 
 ### The hub's side
 
@@ -63,7 +63,7 @@ Argo CD can sync a commit before its pipeline has pushed its images: its pods wa
 | `blob.url` | `gs://arikkfir-devhub`, which the servers' ServiceAccount, `devhub-server`, reaches through Workload Identity, with no Google service account or key |
 | `postgresql.auth.existingSecret` | Secret `devhub-postgresql-password`, key `password`, made once in the cluster by an ESO `Password` generator (`refreshPolicy: CreatedOnce`): under Argo CD the chart can't keep a password of its own |
 | Placement | Every pod on node pool `system` (`nodeSelector` and `tolerations` of `restServer`, `graphqlServer`, `console`, `migrate` and `postgresql`) ([node pools](node-pools.md)) |
-| Time for the images | `migrate.activeDeadlineSeconds: 1800` ([above](#a-merge-to-devhubs-main)) |
+| Time for the images | Ten retries of a failed sync, backing off to five minutes apart, each from `main`'s newest commit ([above](#a-merge-to-devhubs-main)) |
 | A route to each workload | HTTPRoute `devhub` on Gateway `traefik/protected`, host `devhub.dev.kfirs.com`: `/api` to `devhub-rest-server` and `/graphql` to `devhub-graphql-server`, each prefix rewritten to `/`, and everything else to `devhub-console`; Middleware `admins` on every rule |
 | Network admission | NetworkPolicy `devhub`: only namespace `traefik`, on 8080, to the Console's and the servers' pods. The chart's own admits only the servers and the migrate Job to PostgreSQL |
 
@@ -89,7 +89,7 @@ AppProject `devhub` admits sources from devhub's repository only, destination na
 
 - **Only admins reach it.** The protected entry point signs every request in, and Middleware `admins` answers 403 to anyone outside group `admins`. DevHub has no sign-in of its own yet, so this gate is its only one.
 - **A merge reaches the cluster unreviewed by this repository.** The project admits only namespace `devhub` and the chart's kinds, with no cluster-scoped object, no Secret and no route; the namespace enforces the restricted Pod Security Standard; the only cloud grant is `devhub-server`'s, on its own bucket.
-- **Images late or missing.** A commit whose pipeline fails never gets its images, nor does one that a newer push overtakes while its build waits (pipeline `main` builds only `main`'s newest commit). The Console's new pods and the migrate Job wait, the old pods keep serving, and the Job fails after 30 minutes. A retry then syncs `main`'s newest commit, whose Job has a new name; if there is none, the sync stays failed until the next commit.
+- **Images late or missing.** A commit whose pipeline fails never gets its images, nor does one that a newer push overtakes while its build waits (pipeline `main` builds only `main`'s newest commit). The Console's new pods wait, the old pods keep serving, and the sync fails at the Console's 10-minute progress deadline, before the migrate Job starts. Argo CD's retries then sync `main`'s newest commit; if none has its images by the last retry, the sync stays failed until the next commit.
 - **The password.** Deleting Secret `devhub-postgresql-password` makes a new one, which the database, initialized with the old one, refuses: delete the database's volume too, and its data with it.
 - **Losing the data.** The database lives on one volume, without backups; the demo's data is disposable.
 
@@ -97,5 +97,5 @@ AppProject `devhub` admits sources from devhub's repository only, destination na
 
 1. `infra`: repository `devhub` with its grants, bucket `arikkfir-devhub` with its grant, and record `devhub.dev` ([infra#91](https://github.com/arikkfir-org/infra/pull/91)), applied by pipeline `apply` on merge.
 2. This repository: ServiceAccount `ci-devhub-release` and this environment.
-3. devhub: pipeline `main`, which publishes the images of `main`'s newest commit ([devhub#7](https://github.com/arikkfir-org/devhub/pull/7)). Until its first run, the demo's pods wait for images.
+3. devhub: pipeline `main`, which publishes the images of `main`'s newest commit ([devhub#7](https://github.com/arikkfir-org/devhub/pull/7)). Until its first run, the demo's sync fails at the Console, waiting for images; the pull request's merge is itself a new commit on `main`, which Argo CD syncs again.
 4. Open `https://devhub.dev.kfirs.com`: the Console shows the REST API's version.
