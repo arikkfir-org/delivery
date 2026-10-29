@@ -51,7 +51,7 @@ sequenceDiagram
   A->>K: prune the last migrate Job
 ```
 
-Argo CD can sync a commit before its pipeline has pushed its images. The migrate Job, the chart's first wave after PostgreSQL, then waits for its image, retrying the pull, within its deadline, raised here to 30 minutes; the servers, which need the schema it migrates, and the Console, which calls them, roll out only once it is done, and the old pods keep serving meanwhile. A Job that fails keeps its commit failing: the Job is named by a hash of its spec, so syncing the same commit again finds the same failed Job. Argo CD retries a failed sync from `main`'s newest commit, whose Job, if it is a newer commit, has a new name.
+Argo CD can sync a commit before its pipeline has pushed its images. The migrate Job, the chart's first wave after PostgreSQL, then waits for its image, retrying the pull, within its deadline, raised here to 30 minutes; the servers, which need the schema it migrates, and the Console, which calls them, roll out only once it is done, and the old pods keep serving meanwhile. A Job that fails keeps its commit failing: the Job is named by a hash of its spec, so syncing the same commit again finds the same failed Job. Argo CD retries a failed sync from `main`'s newest commit, whose Job, if it is a newer commit, has a new name. The Job runs image `devhub`; the Console runs `devhub-console`, which the pipeline pushes right after, and waits for it within its Deployment's own 10-minute progress deadline. A Console that misses it fails the sync, which a retry of the same commit recovers once the image is there.
 
 ### The hub's side
 
@@ -63,7 +63,7 @@ Argo CD can sync a commit before its pipeline has pushed its images. The migrate
 | `blob.url` | `gs://arikkfir-devhub`, which the servers' ServiceAccount, `devhub-server`, reaches through Workload Identity, with no Google service account or key |
 | `postgresql.auth.existingSecret` | Secret `devhub-postgresql-password`, key `password`, made once in the cluster by an ESO `Password` generator (`refreshPolicy: CreatedOnce`): under Argo CD the chart can't keep a password of its own |
 | Placement | Every pod on node pool `system` (`nodeSelector` and `tolerations` of `restServer`, `graphqlServer`, `console`, `migrate` and `postgresql`) ([node pools](node-pools.md)) |
-| Time for the images | `migrate.activeDeadlineSeconds: 1800`, and ten retries of a failed sync, each from `main`'s newest commit ([above](#a-merge-to-devhubs-main)) |
+| Time for the images | `migrate.activeDeadlineSeconds: 1800` for image `devhub` (the Console waits for `devhub-console` within its Deployment's default 10 minutes), and ten retries of a failed sync, each from `main`'s newest commit ([above](#a-merge-to-devhubs-main)) |
 | A route to each workload | HTTPRoute `devhub` on Gateway `traefik/protected`, host `devhub.dev.kfirs.com`: `/api` to `devhub-rest-server` and `/graphql` to `devhub-graphql-server`, each prefix rewritten to `/`, and everything else to `devhub-console`; Middleware `admins` on every rule |
 | Network admission | NetworkPolicy `devhub`: only namespace `traefik`, on 8080, to the Console's and the servers' pods. The chart's own admits only the servers and the migrate Job to PostgreSQL |
 
@@ -89,7 +89,7 @@ AppProject `devhub` admits sources from devhub's repository only, destination na
 
 - **Only admins reach it.** The protected entry point signs every request in, and Middleware `admins` answers 403 to anyone outside group `admins`. DevHub has no sign-in of its own yet, so this gate is its only one.
 - **A merge reaches the cluster unreviewed by this repository.** The project admits only namespace `devhub` and the chart's kinds, with no cluster-scoped object, no Secret and no route; the namespace enforces the restricted Pod Security Standard; the only cloud grant is `devhub-server`'s, on its own bucket.
-- **Images late or missing.** A commit whose pipeline fails never gets its images, nor does one that a newer push overtakes while its build waits (pipeline `main` builds only `main`'s newest commit). Its migrate Job waits, the old pods keep serving, and the Job fails after 30 minutes. A retry then syncs `main`'s newest commit, whose Job has a new name; if there is none, the sync stays failed until the next commit.
+- **Images late or missing.** A commit whose pipeline fails never gets its images, nor does one that a newer push overtakes while its build waits (pipeline `main` builds only `main`'s newest commit). Its migrate Job waits for image `devhub`, the old pods keep serving, and the Job fails after 30 minutes. A retry then syncs `main`'s newest commit, whose Job has a new name; if there is none, the sync stays failed until the next commit. If only image `devhub-console` is missing, the Job and the servers roll out and the sync fails at the Console's 10-minute progress deadline instead; the retries recover it once the image is pushed.
 - **The password.** Deleting Secret `devhub-postgresql-password` makes a new one, which the database, initialized with the old one, refuses: delete the database's volume too, and its data with it.
 - **Losing the data.** The database lives on one volume, without backups; the demo's data is disposable.
 
