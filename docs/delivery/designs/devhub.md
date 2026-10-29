@@ -41,17 +41,17 @@ sequenceDiagram
   participant K as namespace devhub
   G->>P: push
   G-->>A: new commit (polled)
-  A->>K: wave 0: PostgreSQL, the Console at the commit's tag
-  Note over K: pulls back off until the images exist
+  A->>K: wave 0: PostgreSQL
+  A->>K: wave 1: migrate Job devhub-migrate-<hash> at the commit's tag
+  Note over K: its pull backs off until the image exists
   P->>R: devhub, devhub-console at the short SHA
-  R-->>K: the Console's new pods start
-  A->>K: wave 1: migrate Job devhub-migrate-<hash>
+  R-->>K: the Job's pod starts
   K-->>A: Job complete: the schema is the commit's
-  A->>K: wave 2: the REST and GraphQL servers roll out
+  A->>K: wave 2: the REST and GraphQL servers and the Console roll out
   A->>K: prune the last migrate Job
 ```
 
-Argo CD can sync a commit before its pipeline has pushed its images. The Console, the chart's first sync wave, then holds the rest back: its new pods wait for their image, retrying the pull, beside the old ones, which keep serving, and the migrate Job and the servers wait for it. If the images take longer than the Deployment's 10-minute progress deadline, the sync fails there, and Argo CD retries it, backing off to five minutes apart, for about half an hour more, each time from `main`'s newest commit; once the images exist, the Console turns healthy and the rest follows.
+Argo CD can sync a commit before its pipeline has pushed its images. The migrate Job, the chart's first wave after PostgreSQL, then waits for its image, retrying the pull, within its deadline, raised here to 30 minutes; the servers, which need the schema it migrates, and the Console, which calls them, roll out only once it is done, and the old pods keep serving meanwhile. A Job that fails keeps its commit failing: the Job is named by a hash of its spec, so syncing the same commit again finds the same failed Job. Argo CD retries a failed sync from `main`'s newest commit, whose Job, if it is a newer commit, has a new name.
 
 ### The hub's side
 
@@ -63,7 +63,7 @@ Argo CD can sync a commit before its pipeline has pushed its images. The Console
 | `blob.url` | `gs://arikkfir-devhub`, which the servers' ServiceAccount, `devhub-server`, reaches through Workload Identity, with no Google service account or key |
 | `postgresql.auth.existingSecret` | Secret `devhub-postgresql-password`, key `password`, made once in the cluster by an ESO `Password` generator (`refreshPolicy: CreatedOnce`): under Argo CD the chart can't keep a password of its own |
 | Placement | Every pod on node pool `system` (`nodeSelector` and `tolerations` of `restServer`, `graphqlServer`, `console`, `migrate` and `postgresql`) ([node pools](node-pools.md)) |
-| Time for the images | Ten retries of a failed sync, backing off to five minutes apart, each from `main`'s newest commit ([above](#a-merge-to-devhubs-main)) |
+| Time for the images | `migrate.activeDeadlineSeconds: 1800`, and ten retries of a failed sync, each from `main`'s newest commit ([above](#a-merge-to-devhubs-main)) |
 | A route to each workload | HTTPRoute `devhub` on Gateway `traefik/protected`, host `devhub.dev.kfirs.com`: `/api` to `devhub-rest-server` and `/graphql` to `devhub-graphql-server`, each prefix rewritten to `/`, and everything else to `devhub-console`; Middleware `admins` on every rule |
 | Network admission | NetworkPolicy `devhub`: only namespace `traefik`, on 8080, to the Console's and the servers' pods. The chart's own admits only the servers and the migrate Job to PostgreSQL |
 
@@ -89,7 +89,7 @@ AppProject `devhub` admits sources from devhub's repository only, destination na
 
 - **Only admins reach it.** The protected entry point signs every request in, and Middleware `admins` answers 403 to anyone outside group `admins`. DevHub has no sign-in of its own yet, so this gate is its only one.
 - **A merge reaches the cluster unreviewed by this repository.** The project admits only namespace `devhub` and the chart's kinds, with no cluster-scoped object, no Secret and no route; the namespace enforces the restricted Pod Security Standard; the only cloud grant is `devhub-server`'s, on its own bucket.
-- **Images late or missing.** A commit whose pipeline fails never gets its images, nor does one that a newer push overtakes while its build waits (pipeline `main` builds only `main`'s newest commit). The Console's new pods wait, the old pods keep serving, and the sync fails at the Console's 10-minute progress deadline, before the migrate Job starts. Argo CD's retries then sync `main`'s newest commit; if none has its images by the last retry, the sync stays failed until the next commit.
+- **Images late or missing.** A commit whose pipeline fails never gets its images, nor does one that a newer push overtakes while its build waits (pipeline `main` builds only `main`'s newest commit). Its migrate Job waits, the old pods keep serving, and the Job fails after 30 minutes. A retry then syncs `main`'s newest commit, whose Job has a new name; if there is none, the sync stays failed until the next commit.
 - **The password.** Deleting Secret `devhub-postgresql-password` makes a new one, which the database, initialized with the old one, refuses: delete the database's volume too, and its data with it.
 - **Losing the data.** The database lives on one volume, without backups; the demo's data is disposable.
 
@@ -97,5 +97,6 @@ AppProject `devhub` admits sources from devhub's repository only, destination na
 
 1. `infra`: repository `devhub` with its grants, bucket `arikkfir-devhub` with its grant, and record `devhub.dev` ([infra#91](https://github.com/arikkfir-org/infra/pull/91)), applied by pipeline `apply` on merge.
 2. This repository: ServiceAccount `ci-devhub-release` and this environment.
-3. devhub: pipeline `main`, which publishes the images of `main`'s newest commit ([devhub#7](https://github.com/arikkfir-org/devhub/pull/7)). Until its first run, the demo's sync fails at the Console, waiting for images; the pull request's merge is itself a new commit on `main`, which Argo CD syncs again.
-4. Open `https://devhub.dev.kfirs.com`: the Console shows the REST API's version.
+3. devhub: pipeline `main`, which publishes the images of `main`'s newest commit ([devhub#7](https://github.com/arikkfir-org/devhub/pull/7)). Until its first run, the demo's sync failed, waiting for images; the pull request's merge was itself a new commit on `main`, which Argo CD synced.
+4. devhub: the Console rolls out with the servers, after the migrate Job ([devhub#8](https://github.com/arikkfir-org/devhub/pull/8)), so the Job, whose deadline this repository raises, waits for a commit's images.
+5. Open `https://devhub.dev.kfirs.com`: the Console shows the REST API's version.
