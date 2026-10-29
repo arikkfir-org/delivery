@@ -1,0 +1,32 @@
+# DevHub's demo environment (platform/devhub): its namespace and project, Application devhub, which installs devhub's
+# chart from its main, and what the hub decides around it. Wave 4: it needs External Secrets and Traefik's Gateway API.
+# No resources finalizer: removing this file leaves the demo running.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: devhub-environment
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  source:
+    repoURL: https://github.com/arikkfir-org/delivery
+    targetRevision: main
+    path: platform/devhub/manifests
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 10
+      refresh: true
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+    syncOptions:
+      - SkipDryRunOnMissingResource=true

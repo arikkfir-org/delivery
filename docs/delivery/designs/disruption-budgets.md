@@ -63,6 +63,7 @@ sequenceDiagram
 | Keycloak | 2 | Sessions live in its PostgreSQL ([Keycloak](keycloak.md)) |
 | NATS | 3 | JetStream keeps a quorum with two of three servers |
 | Octomaton | 2 | Every replica serves webhooks; the Lease holder reports, schedules and cleans up |
+| DevHub's demo: the REST and GraphQL servers, the Console | 2 each | State in PostgreSQL and the bucket ([hosting DevHub's demo](devhub.md)) |
 
 The replicas spread by host with `whenUnsatisfiable: ScheduleAnyway`. They land on different nodes when the system pool has several, and share one otherwise, instead of making the pool grow. A drain still keeps one replica serving with a single node: the evicted replica waits for room, which the autoscaler adds, and the budget holds the second until the first is ready. What each replica requests: [resource requests](resource-requests.md).
 
@@ -89,6 +90,7 @@ A single replica's budget needs no pod healthy, so a ready pod may always go. An
 | Tekton operator | operator, its webhook | the patch that places them (`platform/tekton-operator/manifests`) | `platform/tekton-operator/manifests` |
 | Tekton | Pipelines' controller, webhook, remote resolvers and events controller; the proxy webhook; Triggers' controller, webhook and core interceptors; the Dashboard | TektonConfig's `options.deployments` under `pipeline`, `trigger` and `dashboard`. The operator replaces each named Deployment's whole strategy | `platform/tekton/manifests/pod-disruption-budgets.yaml` |
 | Octomaton | `octomaton` (two replicas), `octomaton-logs` | its `deploy/` and `deploy/logs/` | its `deploy/` and `deploy/logs/` |
+| DevHub's demo | REST and GraphQL servers and the Console (two replicas each), PostgreSQL (StatefulSet) | its chart | its chart |
 
 Each budget selects exactly what its workload selects. An eviction refuses a pod that two budgets select, so a broader selector would block every drain of those pods.
 
