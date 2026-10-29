@@ -159,7 +159,7 @@ token:
 | `ci-infra` | `ci-infra-apply` | `main` | `apply`: applies merges to `main` |
 | `ci-octomaton` | `ci-octomaton-release` | branch `main`, tags `v*` | `main`: pushes Octomaton's images of every commit on `main`; `tag`: adds a version's tag to them ([versioned releases](../octomaton/designs/releases.md)) |
 | `ci-octomaton` | `ci-octomaton-ci` | None | `ci`: restores `main`'s or its pull request's Go caches, saves its pull request's |
-| `ci-devhub` | `ci-devhub-release` | `main` | `main`: pushes DevHub's images of every commit on `main` ([hosting DevHub's demo](designs/devhub.md)) |
+| `ci-devhub` | `ci-devhub-release` | `main` | `main`: pushes DevHub's images of `main`'s newest commit ([hosting DevHub's demo](designs/devhub.md)) |
 | `ci-tooling` | `ci-tooling-publish` | `main` | `publish`: writes bucket `arikkfir-claude`; `reviewer-image`: pushes the reviewer image |
 | `ci-fin` | `ci-fin-release` | `main` | `release`: production's images; saves the CI cache |
 | `ci-fin` | `ci-fin-preview` | None | `preview`: pull requests' images |

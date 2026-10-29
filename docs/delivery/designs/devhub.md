@@ -89,7 +89,7 @@ AppProject `devhub` admits sources from devhub's repository only, destination na
 
 - **Only admins reach it.** The protected entry point signs every request in, and Middleware `admins` answers 403 to anyone outside group `admins`. DevHub has no sign-in of its own yet, so this gate is its only one.
 - **A merge reaches the cluster unreviewed by this repository.** The project admits only namespace `devhub` and the chart's kinds, with no cluster-scoped object, no Secret and no route; the namespace enforces the restricted Pod Security Standard; the only cloud grant is `devhub-server`'s, on its own bucket.
-- **Images late or missing.** A commit whose pipeline fails never gets its images: the Console's new pods and the migrate Job wait, the old pods keep serving, and the Job fails after 30 minutes. The sync then stays failed until the next commit, whose Job has a new name.
+- **Images late or missing.** A commit whose pipeline fails never gets its images, nor does one that a newer push overtakes while its build waits (pipeline `main` builds only `main`'s newest commit). The Console's new pods and the migrate Job wait, the old pods keep serving, and the Job fails after 30 minutes. A retry then syncs `main`'s newest commit, whose Job has a new name; if there is none, the sync stays failed until the next commit.
 - **The password.** Deleting Secret `devhub-postgresql-password` makes a new one, which the database, initialized with the old one, refuses: delete the database's volume too, and its data with it.
 - **Losing the data.** The database lives on one volume, without backups; the demo's data is disposable.
 
@@ -97,5 +97,5 @@ AppProject `devhub` admits sources from devhub's repository only, destination na
 
 1. `infra`: repository `devhub` with its grants, bucket `arikkfir-devhub` with its grant, and record `devhub.dev` ([infra#91](https://github.com/arikkfir-org/infra/pull/91)), applied by pipeline `apply` on merge.
 2. This repository: ServiceAccount `ci-devhub-release` and this environment.
-3. devhub: pipeline `main`, which publishes the images of every push to `main` ([devhub#7](https://github.com/arikkfir-org/devhub/pull/7)). Until its first run, the demo's pods wait for images.
+3. devhub: pipeline `main`, which publishes the images of `main`'s newest commit ([devhub#7](https://github.com/arikkfir-org/devhub/pull/7)). Until its first run, the demo's pods wait for images.
 4. Open `https://devhub.dev.kfirs.com`: the Console shows the REST API's version.
