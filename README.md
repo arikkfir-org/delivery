@@ -109,7 +109,9 @@ names its node ([design](docs/delivery/designs/node-pools.md)). The Tekton Dashb
 gone from `octomaton-logs`, which reads Cloud Logging.
 
 Removing a file from `apps/` deletes the Application but not its resources (no cascading finalizer). Delete the
-resources deliberately, or cascade-delete the Application before removing its file.
+resources deliberately, or cascade-delete the Application before removing its file. The one exception, for DevHub's
+rename to Cobranch only, is `devhub-environment`, whose finalizer deletes the old demo and previews with it
+([DevHub](docs/delivery/designs/devhub.md)).
 
 ## Add a component
 
