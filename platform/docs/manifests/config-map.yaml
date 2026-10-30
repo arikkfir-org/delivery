@@ -18,7 +18,7 @@ data:
     # The overlay, in order: the docs repository's layer, then every other repository's layer from A to Z (see
     # https://docs.dev.kfirs.com/hub/designs/docs-site-composition.md). page.html repeats it.
     (layers) {
-    	try_files /.layers/docs{path} /.layers/delivery{path} /.layers/devhub{path} \
+    	try_files /.layers/docs{path} /.layers/cobranch{path} /.layers/delivery{path} /.layers/devhub{path} \
     		/.layers/fin{path} /.layers/infra{path} /.layers/octomaton{path} /.layers/tooling{path}
     }
 
@@ -89,7 +89,8 @@ data:
     {{- /* Renders X.md for a request to X.md.html, from the first layer that has it (the Caddyfile's overlay order). */ -}}
     {{- $md := trimSuffix ".html" (placeholder "http.request.orig_uri.path") -}}
     {{- $file := "" -}}
-    {{- range list "/.layers/docs" "/.layers/delivery" "/.layers/devhub" "/.layers/fin" "/.layers/infra" "/.layers/octomaton" "/.layers/tooling" -}}
+    {{- range list "/.layers/docs" "/.layers/cobranch" "/.layers/delivery" "/.layers/devhub" "/.layers/fin" "/.layers/infra"
+      "/.layers/octomaton" "/.layers/tooling" -}}
     {{- if and (not $file) (fileExists (print . $md)) }}{{ $file = print . $md }}{{ end -}}
     {{- end -}}
     {{- if not $file }}{{ httpError 404 }}{{ end -}}

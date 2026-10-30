@@ -1,11 +1,14 @@
 # DevHub's demo environment (platform/devhub): its namespace and project, Application devhub, which installs devhub's
 # chart from its main, and what the hub decides around it. Wave 4: it needs External Secrets and Traefik's Gateway API.
-# No resources finalizer: removing this file leaves the demo running.
+# DevHub is becoming Cobranch (apps/cobranch-environment.yaml follows): for the move only, a resources finalizer, so that
+# removing this file deletes what it still holds rather than leaving it running unmanaged.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: devhub-environment
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "4"
 spec:

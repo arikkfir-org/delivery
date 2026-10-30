@@ -1,0 +1,8 @@
+# Cobranch, DevHub's new name: its tenant stands beside ci-devhub until the repository is renamed and DevHub's go.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ci-cobranch
+resources:
+  - ../../base
+  - release.yaml
+  - preview.yaml

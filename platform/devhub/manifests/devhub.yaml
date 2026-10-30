@@ -1,13 +1,16 @@
 # DevHub's demo, namespace devhub, at devhub.dev.kfirs.com. Its chart lives with its code, in chart/devhub of
 # arikkfir-org/devhub. Argo CD follows devhub's main and runs the images of the synced commit, which devhub's pipeline
 # main publishes for main's newest commit, tagged with its short SHA. Each sync migrates the database first (the chart's
-# migrate Job, ordered by its sync waves). No CreateNamespace: namespace.yaml holds it. No resources finalizer:
-# deleting this Application leaves the demo, and its database, running.
+# migrate Job, ordered by its sync waves). No CreateNamespace: namespace.yaml holds it. DevHub is becoming Cobranch:
+# for the move only, a resources finalizer, so that removing this Application deletes the demo rather than leaving it
+# running unmanaged (it holds nothing to keep: no tables yet, no seed).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: devhub
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: devhub
   destination:

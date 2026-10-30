@@ -57,7 +57,7 @@ Argo CD can sync a commit before its pipeline has pushed its images. The migrate
 
 | DevHub asks for | The hub provides |
 | --- | --- |
-| The chart, installed with its values | Application `devhub`, project `devhub`: source `chart/devhub` of `https://github.com/arikkfir-org/devhub` at `main`, release `devhub`, Helm's tests skipped (`skipTests`), automated sync with prune (which removes each superseded migrate Job) and self-heal, retries; no finalizer and no `CreateNamespace` |
+| The chart, installed with its values | Application `devhub`, project `devhub`: source `chart/devhub` of `https://github.com/arikkfir-org/devhub` at `main`, release `devhub`, Helm's tests skipped (`skipTests`), automated sync with prune (which removes each superseded migrate Job) and self-heal, retries; no `CreateNamespace`. While DevHub becomes Cobranch, it and `devhub-environment` carry the resources finalizer, so that removing them deletes the old demo rather than orphaning it |
 | Its images | `images.devhub.repository` and `images.console.repository` in `me-west1-docker.pkg.dev/arikkfir/devhub`, tagged `${ARGOCD_APP_REVISION_SHORT}`, the synced commit's first 7 characters, as Helm parameters (Argo CD substitutes its build environment in parameters only), as strings |
 | `urls.console`, `urls.rest`, `urls.graphql` | `https://devhub.dev.kfirs.com`, `…/api` and `…/graphql`: the servers' CORS origin and the REST URL the Console's `config.json` gives. The chart's own routes stay off (`httpRoute.enabled: false`): the hub's carries the gate |
 | `blob.url` | `gs://arikkfir-devhub`, which the servers' ServiceAccount, `devhub-server`, reaches through Workload Identity, with no Google service account or key |

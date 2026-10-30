@@ -10,3 +10,4 @@ resources:
   - tenants/docs
   - tenants/fin
   - tenants/devhub
+  - tenants/cobranch
