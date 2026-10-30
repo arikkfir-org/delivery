@@ -180,5 +180,7 @@ Hub-wide labels share the prefix `kfirs.com/`.
 | `kfirs.com/sandbox: "true"` | Pod | A pull request reviewer's or check `Linear`'s pod, which NetworkPolicy `sandbox` holds | `tooling`'s reviewer and `linear` PipelineRuns |
 
 Octomaton writes its bookkeeping labels and annotations under `octomaton.dev/` on the objects it creates
-([Octomaton's README](https://github.com/arikkfir-org/octomaton#deployment)); the ones it reads,
-`octomaton.dev/branches` and `octomaton.dev/tags`, are set here on tenants' ServiceAccounts ([CI tenants](#ci-tenants)).
+([Octomaton's README](https://github.com/arikkfir-org/octomaton#deployment)). It reads three on tenants'
+ServiceAccounts: `octomaton.dev/branches`, `octomaton.dev/tags` and `octomaton.dev/organization-pipelines`
+([organization pipelines on restricted ServiceAccounts](../octomaton/designs/organization-pipeline-accounts.md)). Only the
+first two are set here ([CI tenants](#ci-tenants)); no tenant's ServiceAccount carries the third.
