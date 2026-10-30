@@ -109,7 +109,7 @@ flowchart TB
 | Host `pr-<number>.devhub-previews.dev.kfirs.com` | Off the demo's `devhub.dev`: nothing DevHub scopes to the demo's domain reaches a pull request's code | `pr-<number>.devhub.dev.kfirs.com` |
 | Label `kfirs.com/devhub-pull-request` | Fin's `kfirs.com/pull-request` also admits a namespace to NATS, which takes no credentials, and to Fin's Gateway | Reusing Fin's label |
 | The route, Middleware, quota and password from delivery, as a second source | A pull request's code then decides no host, Gateway or gate; the chart stays the product, with nothing of the hub in it | The chart's own HTTPRoute (`httpRoute.enabled`) |
-| Pull requests labelled `preview` | `devhub` is public: Argo CD lists forks' pull requests too, and fetches their head commits from `devhub`, whose chart could run anything on pool `ci`. Only people with triage access to `devhub` label, and sessions label the pull requests they open | Every open pull request; matching devhub's branch list, which costs a GitHub call per pull request and previews a fork named like a devhub branch |
+| Pull requests labelled `preview` | `devhub` is public: Argo CD lists forks' pull requests too, and fetches their head commits from `devhub`, whose chart could run anything on pool `ci`. Only people with triage access to `devhub` label, and sessions label the pull requests they open (owner, 2026-10-30) | Every open pull request; matching devhub's branch list, which costs a GitHub call per pull request and previews a fork named like a devhub branch |
 | Pull requests only, no merge queue entries | A preview is for a reviewer; DevHub's CI tests the chart on kind for every merge group | Fin's per-entry environments, which its end-to-end suite needs |
 
 ## Security and failure modes
