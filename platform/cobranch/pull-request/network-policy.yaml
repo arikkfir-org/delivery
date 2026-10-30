@@ -14,7 +14,7 @@ spec:
     matchExpressions:
       - key: app.kubernetes.io/component
         operator: In
-        values: [console, rest-server, graphql-server]
+        values: [console, rest-server, graphql-server, auth-server]
   policyTypes:
     - Ingress
   ingress:
