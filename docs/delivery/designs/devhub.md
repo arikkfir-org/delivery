@@ -75,7 +75,7 @@ AppProject `devhub` admits sources from devhub's repository only, destination na
 
 | Decision | Why | Rejected |
 | --- | --- | --- |
-| Follow devhub's `main`, with the synced commit's images | A demo of what was merged, minutes after the merge, as Fin's production follows Fin's `main` | Pinning a version, which DevHub doesn't release yet; a pull request here per merge |
+| Follow devhub's `main`, with the synced commit's images | A demo of what was merged, minutes after the merge, as Fin's production follows Fin's `main` | Pinning a version ([DevHub's releases](../../devhub/designs/repository.md)): the demo would show only what was released, and take a pull request here per release |
 | One host, the APIs under `/api` and `/graphql` | The Console calls the REST API from the same origin, so the sign-in's cookie goes with every call and no CORS preflight meets the sign-in's redirect; the wildcard `*.dev.kfirs.com` certificate covers one name | A host per workload: cross-origin calls behind a sign-in that redirects |
 | The hub's own HTTPRoute, the chart's off | The gate, Middleware `admins`, is Traefik's and the hub's; the hub's other hosted products (Octomaton) keep their routes here too | The chart's routes with a filters value in DevHub's chart |
 | The protected gateway and Middleware `admins` | The same gate as the docs site and every other tool: signed in, and in group `admins` ([admins only](admins-only.md)) | Any signed-in user, Fin's test users included |
