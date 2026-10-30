@@ -1,7 +1,7 @@
 # The project of Cobranch's demo. Its source, chart/cobranch in arikkfir-org/cobranch, comes from cobranch's main, so every merge
 # there changes the cluster; this holds it to namespace cobranch and the kinds the chart renders there: the servers', the
 # Console's and PostgreSQL's workloads, Services, budgets and the database's NetworkPolicy, the servers' ServiceAccount
-# and the migrate Job. No cluster-scoped kinds (namespace.yaml holds the Namespace), no Secrets (the database's password
+# the migrate Job and the maintenance CronJob. No cluster-scoped kinds (namespace.yaml holds the Namespace), no Secrets (the database's password
 # is postgresql-password.yaml's), no routes (http-route.yaml). Wave -1: before the Application that names it.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
@@ -29,6 +29,8 @@ spec:
       kind: ServiceAccount
     - group: batch
       kind: Job
+    - group: batch
+      kind: CronJob
     - group: policy
       kind: PodDisruptionBudget
     - group: networking.k8s.io

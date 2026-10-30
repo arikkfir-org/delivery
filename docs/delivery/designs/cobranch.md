@@ -25,7 +25,7 @@ flowchart LR
   end
   Main -- "pushes as ci-cobranch-release" --> Reg[("Artifact Registry<br/>me-west1-docker.pkg.dev/arikkfir/cobranch")]
   App -- "renders at main's commit" --> Chart
-  App --> Pods["namespace cobranch: Console, REST and GraphQL<br/>servers, migrate Job, PostgreSQL"]
+  App --> Pods["namespace cobranch: Console, REST and GraphQL<br/>servers, migrate Job, maintenance CronJob, PostgreSQL"]
   Reg -- "pulled as anyone" --> Pods
   Pods -- "cobranch-server, Workload Identity" --> Bucket[("bucket arikkfir-cobranch")]
 ```
@@ -64,14 +64,14 @@ Argo CD can sync a commit before its pipeline has pushed its images. The migrate
 | `urls.console`, `urls.rest`, `urls.graphql` | `https://cobranch.dev.kfirs.com`, `…/api` and `…/graphql`: the servers' CORS origin and the REST URL the Console's `config.json` gives. The chart's own routes stay off (`httpRoute.enabled: false`): the hub's carries the gate |
 | `blob.url` | `gs://arikkfir-cobranch`, which the servers' ServiceAccount, `cobranch-server`, reaches through Workload Identity, with no Google service account or key |
 | `postgresql.auth.existingSecret` | Secret `cobranch-postgresql-password`, key `password`, made once in the cluster by an ESO `Password` generator (`refreshPolicy: CreatedOnce`): under Argo CD the chart can't keep a password of its own |
-| Placement | Every pod on node pool `system` (`nodeSelector` and `tolerations` of `restServer`, `graphqlServer`, `console`, `migrate` and `postgresql`) ([node pools](node-pools.md)) |
+| Placement | Every pod on node pool `system` (`nodeSelector` and `tolerations` of `restServer`, `graphqlServer`, `console`, `migrate`, `maintenance` and `postgresql`) ([node pools](node-pools.md)) |
 | Time for the images | `migrate.activeDeadlineSeconds: 1800` for image `cobranch` (the Console waits for `cobranch-console` within its Deployment's default 10 minutes), and ten retries of a failed sync, each from `main`'s newest commit ([above](#a-merge-to-cobranchs-main)) |
 | A route to each workload | HTTPRoute `cobranch` on Gateway `traefik/protected`, host `cobranch.dev.kfirs.com`: `/api` to `cobranch-rest-server` and `/graphql` to `cobranch-graphql-server`, each prefix rewritten to `/`, and everything else to `cobranch-console`; Middleware `admins` on every rule |
 | Network admission | NetworkPolicy `cobranch`: only namespace `traefik`, on 8080, to the Console's and the servers' pods. The chart's own admits only the servers and the migrate Job to PostgreSQL |
 
 Replicas, budgets, rollouts and requests are the chart's: two of each server and of the Console, each with a budget of `maxUnavailable: 1`, rolling out by surging, and one PostgreSQL on an 8Gi volume of the cluster's default storage class.
 
-AppProject `cobranch` admits sources from cobranch's repository only, destination namespace `cobranch` only, no cluster-scoped kind, and the namespaced kinds the chart renders: Deployments, a StatefulSet, Services, a ServiceAccount, Jobs, PodDisruptionBudgets and a NetworkPolicy. A chart change that renders anything else, a Secret or an HTTPRoute say, fails the sync until the project admits it here.
+AppProject `cobranch` admits sources from cobranch's repository only, destination namespace `cobranch` only, no cluster-scoped kind, and the namespaced kinds the chart renders: Deployments, a StatefulSet, Services, a ServiceAccount, Jobs, CronJobs, PodDisruptionBudgets and a NetworkPolicy. A chart change that renders anything else, a Secret or an HTTPRoute say, fails the sync until the project admits it here.
 
 ## Decisions
 

@@ -24,7 +24,7 @@ flowchart LR
   Set -- "an Application per pull request" --> App["Application cobranch-pr-&lt;number&gt;"]
   App -- "source 1: Helm values" --> Chart
   App -- "source 2: kustomize" --> Extras
-  App --> NS["namespace cobranch-pr-&lt;number&gt; on pool ci:<br/>Console, servers, migrate Job and seeds, PostgreSQL"]
+  App --> NS["namespace cobranch-pr-&lt;number&gt; on pool ci:<br/>Console, servers, migrate Job and seeds,<br/>maintenance CronJob, PostgreSQL"]
   Reg -- "pulled by the nodes" --> NS
   Project -. "admits and holds" .-> NS
   GW --> NS
@@ -74,7 +74,7 @@ The generator stops listing a closed pull request, the ApplicationSet deletes it
 ```mermaid
 flowchart TB
   subgraph code["What a pull request's chart may render"]
-    K1["Deployments, StatefulSet, Job, Services,<br/>ServiceAccount, budgets, NetworkPolicy"]
+    K1["Deployments, StatefulSet, Job, CronJob, Services,<br/>ServiceAccount, budgets, NetworkPolicy"]
   end
   subgraph hub["What delivery adds"]
     K2["Namespace, ResourceQuota, Password and ExternalSecret,<br/>HTTPRoute, Middleware admins, NetworkPolicy"]
@@ -89,6 +89,7 @@ flowchart TB
   Pol --> P5["cobranch-cluster-ip-services"]
   Pol --> P6["cobranch-node-pool: tolerates ci only, no nodeName"]
   Pol --> P7["cobranch-disruption-budgets: never block a drain"]
+  Pol --> P8["cobranch-cron-jobs: one job at a time, each within an hour"]
 ```
 
 | Holds | How |
@@ -99,6 +100,7 @@ flowchart TB
 | No hub session | Every rule asks Middleware `admins` first, which reads the hub's session cookie, then removes `Cookie`, then may only rewrite the URL: browsers send that cookie (domain `.kfirs.com`) to previews too, and Traefik runs filters in order, so a redirect or mirror before `admins` would answer any hub user |
 | No room beyond its share | ResourceQuota `cobranch`: 2 CPUs and 4Gi requested, 8Gi of memory limits, 10 pods, one 2Gi volume |
 | No other pool | Policy `cobranch-node-pool`: pods tolerate only `kfirs.com/pool=ci` and name no node; budgets let every pod go, so a preview never keeps a CI node up |
+| No runaway schedule | Policy `cobranch-cron-jobs`: a CronJob (the chart's maintenance) runs one job at a time, each ending within an hour, so a tightened schedule can't pile pods onto the pool |
 
 ## Decisions
 
@@ -115,7 +117,7 @@ flowchart TB
 ## Security and failure modes
 
 - A preview runs a pull request's code on pool `ci`, beside other repositories' CI runs, as cobranch's CI already does there. Only a pull request that `cobranch`'s owner or Dependabot opens gets one: a fork's pull request runs nothing here, as Octomaton runs nothing for it in CI. A collaborator who isn't in the ApplicationSet's list gets no previews until added.
-- A pull request whose chart predates cobranch's `seed.enabled` value fails to render: the chart's values schema refuses unknown keys. Rebasing it on `main` fixes it; until then its Application shows the error and runs nothing.
+- A pull request whose chart predates cobranch's `seed.enabled` value, or its `maintenance` values, fails to render: the chart's values schema refuses unknown keys. Rebasing it on `main` fixes it; until then its Application shows the error and runs nothing.
 - Removing `Cookie` removes every cookie: once Cobranch signs people in itself ([ENG-197](https://linear.app/arikkfir/issue/ENG-197)), its own session cookie needs another way through, and this design changes with it. Previews share the demo's domain, and a preview can set a cookie for `cobranch.dev.kfirs.com` that the demo receives, so the demo's session cookie then takes the `__Host-` prefix, which no preview can set.
 - A commit whose migrate Job fails keeps failing on every retry (the Job is named by a hash of its spec); the next push recovers.
 - Argo CD's GitHub App lists the pull requests: the owner installs it on `cobranch` as well as `fin`. Without it the ApplicationSet lists nothing and no preview appears.

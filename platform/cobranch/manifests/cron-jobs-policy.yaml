@@ -1,0 +1,48 @@
+# A CronJob in a Cobranch preview, such as the chart's maintenance, runs one job at a time and every run ends: concurrency
+# Forbid, and a deadline on each job of an hour at most, so a schedule a pull request tightens can't pile pods onto pool
+# ci or hold one forever. Its pods are held like every other's (node-pool-policy.yaml). Matched by the namespace's name.
+# Wave -1: in force before any preview.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: cobranch-cron-jobs
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - batch
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - cronjobs
+  matchConditions:
+    - name: preview
+      expression: "request.namespace.startsWith('cobranch-pr-')"
+    # Deleting an object, the garbage collector drops its finalizer with an update that leaves the spec as it was; that
+    # update passes, so an object made before this policy last tightened still goes. Every other update is checked.
+    - name: changed
+      expression: >-
+        request.operation == 'CREATE' || !has(oldObject.metadata.deletionTimestamp) || object.spec != oldObject.spec
+  validations:
+    - expression: "has(object.spec.concurrencyPolicy) && object.spec.concurrencyPolicy == 'Forbid'"
+      message: A CronJob in a Cobranch preview runs one job at a time (concurrencyPolicy Forbid).
+    - expression: >-
+        has(object.spec.jobTemplate.spec.activeDeadlineSeconds) && object.spec.jobTemplate.spec.activeDeadlineSeconds <= 3600
+      message: A CronJob in a Cobranch preview ends each job within an hour (jobTemplate.spec.activeDeadlineSeconds).
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: cobranch-cron-jobs
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: cobranch-cron-jobs
+  validationActions:
+    - Deny

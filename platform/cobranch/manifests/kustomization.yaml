@@ -21,5 +21,6 @@ resources:
   - external-secrets-policy.yaml
   - disruption-budgets-policy.yaml
   - node-pool-policy.yaml
+  - cron-jobs-policy.yaml
   - pull-requests-gateway.yaml
   - pull-requests.yaml
