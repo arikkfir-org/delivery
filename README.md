@@ -65,9 +65,6 @@ Each file there is an Application in namespace `argocd`, project `default`:
   cobranch's members open ([Cobranch's previews](docs/delivery/designs/cobranch-previews.md)): ApplicationSet
   `cobranch-pull-requests` installs the chart from each head commit into `cobranch-pr-<number>`, beside
   `platform/cobranch/pull-request`, under AppProject `cobranch-pull-requests` and admission policies `cobranch-*`.
-- `devhub-environment` holds what is left of DevHub's, which [ENG-221](https://linear.app/arikkfir/issue/ENG-221)
-  renamed Cobranch: AppProjects `devhub` and `devhub-pull-requests` and admission policies `devhub-*`, which Argo CD
-  needs while it deletes the old demo and previews. A later pull request removes it.
 - Every Application syncs automatically with prune and self-heal, retries with backoff (`refresh: true`, so a retry
   picks up a newer commit; ten times, but twice for Fin's pull requests, whose syncs can wait 20 minutes a try for
   images that never come), and creates its namespace, except those whose `deploy/` holds it (Octomaton's and Fin's)
@@ -86,7 +83,7 @@ Each file there is an Application in namespace `argocd`, project `default`:
 | 1 | `gateway-api`, `cert-manager`, `external-secrets` |
 | 2 | `argocd` |
 | 3 | `traefik`, `tekton-operator`, `keda`, `reloader`, `nats`, `keycloak-operator` |
-| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton-environment`, `docs`, `tests`, `ci-tenants`, `keycloak`, `fin-environments`, `go-import`, `cobranch-environment`, `devhub-environment` |
+| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton-environment`, `docs`, `tests`, `ci-tenants`, `keycloak`, `fin-environments`, `go-import`, `cobranch-environment` |
 
 Within an Application, waves order dependent resources as well: ClusterIssuers and the ClusterSecretStore wait for their
 operators' webhooks; in `traefik` the Certificates (the wildcard, `octomaton-dev` and `cobranch-dev`) are issued before
@@ -112,9 +109,7 @@ names its node ([design](docs/delivery/designs/node-pools.md)). The Tekton Dashb
 gone from `octomaton-logs`, which reads Cloud Logging.
 
 Removing a file from `apps/` deletes the Application but not its resources (no cascading finalizer). Delete the
-resources deliberately, or cascade-delete the Application before removing its file. The one exception, for DevHub's
-rename to Cobranch only, is `devhub-environment`, whose finalizer deletes the old demo and previews with it
-([Cobranch](docs/delivery/designs/cobranch.md)).
+resources deliberately, or cascade-delete the Application before removing its file.
 
 ## Add a component
 
