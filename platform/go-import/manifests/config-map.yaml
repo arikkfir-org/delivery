@@ -30,6 +30,7 @@ data:
     	map {host} {repository} {redirect} {
     		fin.kfirs.com https://github.com/arikkfir-org/fin https://github.com/arikkfir-org/fin
     		octomaton.dev https://github.com/arikkfir-org/octomaton https://github.com/arikkfir-org/octomaton
+    		cobranch.dev https://github.com/arikkfir-org/cobranch https://github.com/arikkfir-org/cobranch
     		default "" https://github.com/arikkfir-org
     	}
 

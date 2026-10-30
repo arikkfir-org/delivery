@@ -1,4 +1,5 @@
-# DNS-01 through Cloud DNS: zone octomaton-dev for octomaton.dev, zone kfirs-com for everything else. No
+# DNS-01 through Cloud DNS: zone octomaton-dev for octomaton.dev, cobranch-dev for cobranch.dev, kfirs-com for everything
+# else. No
 # serviceAccountSecretRef: cert-manager uses the ambient Workload Identity credentials of its KSA (allowed for
 # ClusterIssuers by default). Wave 1 waits for the cert-manager webhook.
 apiVersion: cert-manager.io/v1
@@ -24,6 +25,13 @@ spec:
           cloudDNS:
             project: arikkfir
             hostedZoneName: octomaton-dev
+      - selector:
+          dnsZones:
+            - cobranch.dev
+        dns01:
+          cloudDNS:
+            project: arikkfir
+            hostedZoneName: cobranch-dev
 ---
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
@@ -48,3 +56,10 @@ spec:
           cloudDNS:
             project: arikkfir
             hostedZoneName: octomaton-dev
+      - selector:
+          dnsZones:
+            - cobranch.dev
+        dns01:
+          cloudDNS:
+            project: arikkfir
+            hostedZoneName: cobranch-dev

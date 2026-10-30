@@ -79,17 +79,19 @@ The middlewares and the sign-in: [phase 3](designs/phase-3-ingress-and-auth.md).
 ### Certificates
 
 cert-manager issues them from Let's Encrypt through ClusterIssuer `letsencrypt`, solving DNS-01 in Cloud DNS: zone
-`octomaton-dev` for `octomaton.dev`, zone `kfirs-com` for every other name.
+`octomaton-dev` for `octomaton.dev`, zone `cobranch-dev` for `cobranch.dev`, zone `kfirs-com` for every other name.
 
 | Listener | Hostname | Certificate / Secret |
 | --- | --- | --- |
 | `protected/websecure`, `public/public-websecure` | `*.kfirs.com`, which also matches deeper names | `wildcard-kfirs-com` (`*.kfirs.com`, `*.dev.kfirs.com`, `admin.id.kfirs.com`) / `traefik/wildcard-kfirs-com-tls`, also Traefik's default certificate |
 | `public/octomaton-dev` (9443) | `octomaton.dev` | `octomaton-dev` / `traefik/octomaton-dev-tls` |
+| `public/cobranch-dev` (9443) | `cobranch.dev` | `cobranch-dev` / `traefik/cobranch-dev-tls` |
 | `fin-pull-requests/app` (8443) | `*.app.dev.fin.kfirs.com` | `fin-pull-requests` / `traefik/fin-pull-requests-tls` |
 | `cobranch-pull-requests/previews` (8443) | `*.cobranch.dev.kfirs.com` | `cobranch-pull-requests` / `traefik/cobranch-pull-requests-tls` |
 
 Listener `octomaton-dev` admits routes only from namespaces `octomaton` (the webhook) and `go-import` (the Go import
-page), and only while they carry `kfirs.com/public-ingress: "true"`.
+page), and only while they carry `kfirs.com/public-ingress: "true"`. Listener `cobranch-dev` admits routes only from
+`go-import`, on the same condition.
 
 ### Hosts
 
@@ -112,6 +114,7 @@ Each route's Middlewares are in its own namespace.
 | `legal.kfirs.com` | public | `docs/docs:80` | Exact `/privacy.html`, `/privacy.md.html`, `/tos.html`, `/tos.md.html` | None |
 | `fin.kfirs.com` | public | `go-import/go-import:80` | All | None |
 | `octomaton.dev` | public, listener `octomaton-dev` | `octomaton/octomaton:80` (HTTPRoute `octomaton`, [hosting Octomaton](designs/octomaton.md)); `go-import/go-import:80` | Exact `/github/hooks`; everything else | None |
+| `cobranch.dev` | public, listener `cobranch-dev` | `go-import/go-import:80` (Cobranch's Go import page) | Everything | None |
 
 ### Fin's gateways
 
