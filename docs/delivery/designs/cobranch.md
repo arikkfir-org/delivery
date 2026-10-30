@@ -25,7 +25,7 @@ flowchart LR
   end
   Main -- "pushes as ci-cobranch-release" --> Reg[("Artifact Registry<br/>me-west1-docker.pkg.dev/arikkfir/cobranch")]
   App -- "renders at main's commit" --> Chart
-  App --> Pods["namespace cobranch: Console, REST and GraphQL<br/>servers, migrate Job, PostgreSQL"]
+  App --> Pods["namespace cobranch: Console, REST and GraphQL<br/>servers, migrate Job, maintenance CronJob, PostgreSQL"]
   Reg -- "pulled as anyone" --> Pods
   Pods -- "cobranch-server, Workload Identity" --> Bucket[("bucket arikkfir-cobranch")]
 ```
@@ -71,7 +71,7 @@ Argo CD can sync a commit before its pipeline has pushed its images. The migrate
 
 Replicas, budgets, rollouts and requests are the chart's: two of each server and of the Console, each with a budget of `maxUnavailable: 1`, rolling out by surging, and one PostgreSQL on an 8Gi volume of the cluster's default storage class.
 
-AppProject `cobranch` admits sources from cobranch's repository only, destination namespace `cobranch` only, no cluster-scoped kind, and the namespaced kinds the chart renders: Deployments, a StatefulSet, Services, a ServiceAccount, Jobs, PodDisruptionBudgets and a NetworkPolicy. A chart change that renders anything else, a Secret or an HTTPRoute say, fails the sync until the project admits it here.
+AppProject `cobranch` admits sources from cobranch's repository only, destination namespace `cobranch` only, no cluster-scoped kind, and the namespaced kinds the chart renders: Deployments, a StatefulSet, Services, a ServiceAccount, Jobs, CronJobs, PodDisruptionBudgets and a NetworkPolicy. A chart change that renders anything else, a Secret or an HTTPRoute say, fails the sync until the project admits it here.
 
 ## Decisions
 
