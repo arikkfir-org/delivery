@@ -35,7 +35,7 @@ spec:
   variables:
     # cobranch-pr-<number> serves pr-<number>.cobranch.dev.kfirs.com.
     - name: host
-      expression: "request.namespace.substring(7) + '.cobranch.dev.kfirs.com'"
+      expression: "request.namespace.substring(9) + '.cobranch.dev.kfirs.com'"
   validations:
     - expression: >-
         has(object.spec.hostnames) && size(object.spec.hostnames) > 0

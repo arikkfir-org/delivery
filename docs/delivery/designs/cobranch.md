@@ -97,7 +97,7 @@ AppProject `cobranch` admits sources from cobranch's repository only, destinatio
 
 ## Rollout
 
-1. `infra`: repository `cobranch` with its grants, bucket `arikkfir-cobranch` with its grant, and record `cobranch.dev` ([infra#91](https://github.com/arikkfir-org/infra/pull/91)), applied by pipeline `apply` on merge.
+1. `infra`: repository `cobranch` with its grants, bucket `arikkfir-cobranch` with its grant, and record `cobranch.dev` ([infra#96](https://github.com/arikkfir-org/infra/pull/96); DevHub's came from [infra#91](https://github.com/arikkfir-org/infra/pull/91)), applied by pipeline `apply` on merge.
 2. This repository: ServiceAccount `ci-cobranch-release` and this environment.
 3. cobranch: pipeline `main`, which publishes the images of `main`'s newest commit ([cobranch#7](https://github.com/arikkfir-org/cobranch/pull/7)). Until its first run, the demo's sync failed, waiting for images; the pull request's merge was itself a new commit on `main`, which Argo CD synced.
 4. cobranch: the Console rolls out with the servers, after the migrate Job ([cobranch#8](https://github.com/arikkfir-org/cobranch/pull/8)), so the Job, whose deadline this repository raises, waits for a commit's images.

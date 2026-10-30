@@ -89,8 +89,8 @@ Each file there is an Application in namespace `argocd`, project `default`:
 | 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton-environment`, `docs`, `tests`, `ci-tenants`, `keycloak`, `fin-environments`, `go-import`, `cobranch-environment`, `devhub-environment` |
 
 Within an Application, waves order dependent resources as well: ClusterIssuers and the ClusterSecretStore wait for their
-operators' webhooks; in `traefik` the Certificates (the wildcard and `octomaton-dev`) are issued before the Gateways
-that reference their Secrets, and so is `fin-pull-requests`'s in `fin-environments`.
+operators' webhooks; in `traefik` the Certificates (the wildcard, `octomaton-dev` and `cobranch-dev`) are issued before
+the Gateways that reference their Secrets, and so is `fin-pull-requests`'s in `fin-environments`.
 
 Secrets never live in Git: each one is an `ExternalSecret` reading Secret Manager through the `ClusterSecretStore`
 `gcp-secret-manager`. A credential only the cluster uses is generated instead, by an ESO `Password` generator with
