@@ -1,0 +1,67 @@
+# In a DevHub preview an HTTPRoute names only its own host, pr-<number>.devhub-previews.dev.kfirs.com, and attaches only
+# to traefik/devhub-pull-requests, which every preview shares (pull-requests-gateway.yaml); never traefik/protected,
+# which takes routes for any *.kfirs.com host from every namespace. Every rule asks Middleware admins, then removes
+# Cookie: the hub's sign-in admits every hub user, Fin's test users included, and browsers send the hub's session cookie
+# (domain .kfirs.com) here too, which a pull request's code never gets. Matched by the namespace's name. Wave -1: in
+# force before any preview.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: devhub-http-routes
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - gateway.networking.k8s.io
+        apiVersions:
+          - "*"
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - httproutes
+  matchConditions:
+    - name: preview
+      expression: "request.namespace.startsWith('devhub-pr-')"
+    # Deleting an object, the garbage collector drops its finalizer with an update that leaves the spec as it was; that
+    # update passes, so an object made before this policy last tightened still goes. Every other update is checked.
+    - name: changed
+      expression: >-
+        request.operation == 'CREATE' || !has(oldObject.metadata.deletionTimestamp) || object.spec != oldObject.spec
+  variables:
+    # devhub-pr-<number> serves pr-<number>.devhub-previews.dev.kfirs.com.
+    - name: host
+      expression: "request.namespace.substring(7) + '.devhub-previews.dev.kfirs.com'"
+  validations:
+    - expression: >-
+        has(object.spec.hostnames) && size(object.spec.hostnames) > 0
+        && object.spec.hostnames.all(h, h == variables.host)
+      messageExpression: "'An HTTPRoute in ' + request.namespace + ' names one host, ' + variables.host"
+    - expression: >-
+        has(object.spec.parentRefs) && size(object.spec.parentRefs) > 0
+        && object.spec.parentRefs.all(p, (!has(p.group) || p.group == 'gateway.networking.k8s.io')
+          && (!has(p.kind) || p.kind == 'Gateway')
+          && has(p.namespace) && p.namespace == 'traefik' && p.name == 'devhub-pull-requests')
+      message: An HTTPRoute in a DevHub preview attaches to Gateway traefik/devhub-pull-requests only.
+    - expression: >-
+        has(object.spec.rules) && object.spec.rules.all(r, has(r.filters)
+          && r.filters.exists(f, f.type == 'ExtensionRef' && has(f.extensionRef) && f.extensionRef.group == 'traefik.io'
+            && f.extensionRef.kind == 'Middleware' && f.extensionRef.name == 'admins')
+          && r.filters.exists(f, f.type == 'RequestHeaderModifier' && has(f.requestHeaderModifier)
+            && has(f.requestHeaderModifier.remove)
+            && f.requestHeaderModifier.remove.exists(name, name.lowerAscii() == 'cookie')))
+      message: Every rule of an HTTPRoute in a DevHub preview asks Middleware admins and removes the Cookie header.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: devhub-http-routes
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: devhub-http-routes
+  validationActions:
+    - Deny

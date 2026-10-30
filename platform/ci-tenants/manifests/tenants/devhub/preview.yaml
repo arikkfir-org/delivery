@@ -1,0 +1,8 @@
+# Identity of devhub's preview pipeline (see https://docs.dev.kfirs.com/infra/terraform/gcp.md, "IAM"): terraform/gcp
+# lets it push to repository devhub-previews through Workload Identity, and nowhere else. Any branch may use it: what it
+# pushes runs only in DevHub's pull requests' previews (https://docs.dev.kfirs.com/delivery/designs/devhub-previews.md).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ci-devhub-preview
+automountServiceAccountToken: false

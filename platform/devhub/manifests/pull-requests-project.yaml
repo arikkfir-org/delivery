@@ -1,0 +1,53 @@
+# The project of DevHub's previews, one per open pull request of devhub (pull-requests.yaml). Their chart comes from
+# each pull request's head commit, so this admits only what a preview needs: its Namespace, devhub-pr-<number>, and in
+# it the kinds the chart renders there (the servers', the Console's and PostgreSQL's workloads, Services, budgets and
+# NetworkPolicy, the servers' ServiceAccount, the migrate Job) and those delivery adds (platform/devhub/pull-request: the
+# quota, the database's generated password, the route and Middleware admins). Never Secrets (the password is a
+# generator's), RBAC, cluster-scoped kinds but the Namespace, Gateways, certificates or secret stores. The admission
+# policies beside this hold what the admitted kinds may do (docs/delivery/designs/devhub-previews.md). Its
+# ServiceAccounts hold no cloud role: no grant in infra names a devhub-pr-* namespace. Wave -1: before the
+# ApplicationSet that names it.
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: devhub-pull-requests
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  description: DevHub's pull requests' previews, from their head commits.
+  sourceRepos:
+    - https://github.com/arikkfir-org/devhub
+    - https://github.com/arikkfir-org/delivery
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: devhub-pr-*
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+      name: devhub-pr-*
+  namespaceResourceWhitelist:
+    - group: apps
+      kind: Deployment
+    - group: apps
+      kind: StatefulSet
+    - group: ""
+      kind: Service
+    - group: ""
+      kind: ServiceAccount
+    - group: ""
+      kind: ResourceQuota
+    - group: batch
+      kind: Job
+    - group: policy
+      kind: PodDisruptionBudget
+    - group: networking.k8s.io
+      kind: NetworkPolicy
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+    - group: traefik.io
+      kind: Middleware
+    - group: external-secrets.io
+      kind: ExternalSecret
+    - group: generators.external-secrets.io
+      kind: Password

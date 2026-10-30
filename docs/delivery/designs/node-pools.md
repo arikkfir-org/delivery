@@ -3,7 +3,8 @@
 **Decision**: Every hub service runs on node pool `system`, which carries GKE's own taint for its managed components,
 `components.gke.io/gke-managed-components=true:NoSchedule`: only GKE's components and the hub's services tolerate it.
 CI runs go to pool `ci` through Tekton's default pod template, and Fin's environments to pool `fin` through Fin's
-`deploy/`, which policy `fin-node-pool` holds to that pool. [infra's node pools](../../infra/designs/node-pools.md) designs the pools
+`deploy/`, which policy `fin-node-pool` holds to that pool. DevHub's pull requests' previews go to `ci` too, beside the
+CI runs of the same code, held there by policy `devhub-node-pool` ([DevHub's previews](devhub-previews.md)). [infra's node pools](../../infra/designs/node-pools.md) designs the pools
 themselves; Fin's [environments](../../fin/designs/environments.md) keep production and pull requests on separate nodes.
 
 ## Why
@@ -23,6 +24,7 @@ flowchart TB
   end
   subgraph ci["pool ci: taint kfirs.com/pool=ci, 0 to 10 Spot nodes"]
     Runs["TaskRun pods (Tekton's default pod template)"]
+    Previews["DevHub's previews"]
   end
   subgraph fin["pool fin: taint kfirs.com/pool=fin, 0 to 10 on-demand nodes"]
     Prod["production"]
@@ -30,6 +32,7 @@ flowchart TB
   end
   Prod -. "never on one node" .- PRs
   Policy["policy fin-node-pool: a Fin pod tolerates fin's taint only"] --> fin
+  PolicyDH["policy devhub-node-pool: a preview's pod tolerates ci's taint only"] --> ci
 ```
 
 Each hub service's pods select `kfirs.com/pool: system` and tolerate the system pool's taint. The selector keeps them
@@ -52,6 +55,7 @@ every taint, and the hub runs none of its own.
 | DevHub's demo | `nodeSelector` and `tolerations` of each workload (`restServer`, `graphqlServer`, `console`, `migrate`, `postgresql`) in Application `devhub`'s Helm values |
 | Fin | its own `deploy/`: every pod template selects `fin` and tolerates its taint |
 | TaskRun pods | Tekton's `default-pod-template`: pool `ci` |
+| DevHub's previews | `nodeSelector` and `tolerations` of each workload in ApplicationSet `devhub-pull-requests`'s Helm values: pool `ci`, which policy `devhub-node-pool` holds ([DevHub's previews](devhub-previews.md)) |
 
 ### Fin's pods
 

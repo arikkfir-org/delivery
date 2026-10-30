@@ -1,0 +1,49 @@
+# Previews share pool ci with every CI run, and the cluster autoscaler drains a node only as far as its pods' budgets
+# let it: a budget in a DevHub preview lets a pod go (maxUnavailable at least one, never minAvailable) even while it isn't
+# ready, so a preview never keeps a CI node up. Matched by the namespace's name. Wave -1: in force before any preview.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: devhub-disruption-budgets
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - policy
+        apiVersions:
+          - "*"
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - poddisruptionbudgets
+  matchConditions:
+    - name: preview
+      expression: "request.namespace.startsWith('devhub-pr-')"
+    # Deleting an object, the garbage collector drops its finalizer with an update that leaves the spec as it was; that
+    # update passes, so an object made before this policy last tightened still goes. Every other update is checked.
+    - name: changed
+      expression: >-
+        request.operation == 'CREATE' || !has(oldObject.metadata.deletionTimestamp) || object.spec != oldObject.spec
+  validations:
+    - expression: >-
+        !has(object.spec.minAvailable) && has(object.spec.maxUnavailable)
+        && !(string(object.spec.maxUnavailable) in ['0', '0%'])
+        && has(object.spec.unhealthyPodEvictionPolicy) && object.spec.unhealthyPodEvictionPolicy == 'AlwaysAllow'
+      message: >-
+        A PodDisruptionBudget in a DevHub preview sets maxUnavailable to at least one, no minAvailable, and
+        unhealthyPodEvictionPolicy AlwaysAllow.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: devhub-disruption-budgets
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: devhub-disruption-budgets
+  validationActions:
+    - Deny

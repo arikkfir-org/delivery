@@ -61,7 +61,10 @@ Each file there is an Application in namespace `argocd`, project `default`:
   `devhub` installs `chart/devhub` of `arikkfir-org/devhub` from its `main` into namespace `devhub`, with the images of
   the synced commit, which devhub's pipeline `main` publishes, and the values this repository decides. Its namespace,
   AppProject `devhub`, the database's generated password, the route behind Middleware `admins` and the NetworkPolicy
-  live beside it in `platform/devhub/manifests`.
+  live beside it in `platform/devhub/manifests`. It also previews every open pull request of devhub
+  ([DevHub's previews](docs/delivery/designs/devhub-previews.md)): ApplicationSet `devhub-pull-requests` installs the
+  chart from each head commit into `devhub-pr-<number>`, beside `platform/devhub/pull-request`, under AppProject
+  `devhub-pull-requests` and admission policies `devhub-*`.
 - Every Application syncs automatically with prune and self-heal, retries with backoff (`refresh: true`, so a retry
   picks up a newer commit; ten times, but twice for Fin's pull requests, whose syncs can wait 20 minutes a try for
   images that never come), and creates its namespace, except those whose `deploy/` holds it (Octomaton's and Fin's)

@@ -29,7 +29,7 @@ spec:
           env: "pr-{{ .number }}"
           revision: "{{ .head_sha }}"
     # An entry's branch is gh-readonly-queue/main/pr-<number>-<SHA>: the merge group that ends with pull request
-    # <number>, on main at <SHA>. The App, installed on fin alone, lists only fin's branches.
+    # <number>, on main at <SHA>. The App lists fin's and devhub's branches; repositoryMatch keeps fin's.
     - scmProvider:
         github:
           organization: arikkfir-org
