@@ -124,6 +124,14 @@ spec:
                     operator: Equal
                     value: ci
                     effect: NoSchedule
+              maintenance:
+                nodeSelector:
+                  kfirs.com/pool: ci
+                tolerations:
+                  - key: kfirs.com/pool
+                    operator: Equal
+                    value: ci
+                    effect: NoSchedule
               postgresql:
                 # Generated in the namespace (platform/cobranch/pull-request): the chart's own would change at every render.
                 auth:

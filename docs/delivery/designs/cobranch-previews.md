@@ -117,7 +117,7 @@ flowchart TB
 ## Security and failure modes
 
 - A preview runs a pull request's code on pool `ci`, beside other repositories' CI runs, as cobranch's CI already does there. Only a pull request that `cobranch`'s owner or Dependabot opens gets one: a fork's pull request runs nothing here, as Octomaton runs nothing for it in CI. A collaborator who isn't in the ApplicationSet's list gets no previews until added.
-- A pull request whose chart predates cobranch's `seed.enabled` value fails to render: the chart's values schema refuses unknown keys. Rebasing it on `main` fixes it; until then its Application shows the error and runs nothing.
+- A pull request whose chart predates cobranch's `seed.enabled` value, or its `maintenance` values, fails to render: the chart's values schema refuses unknown keys. Rebasing it on `main` fixes it; until then its Application shows the error and runs nothing.
 - Removing `Cookie` removes every cookie: once Cobranch signs people in itself ([ENG-197](https://linear.app/arikkfir/issue/ENG-197)), its own session cookie needs another way through, and this design changes with it. Previews share the demo's domain, and a preview can set a cookie for `cobranch.dev.kfirs.com` that the demo receives, so the demo's session cookie then takes the `__Host-` prefix, which no preview can set.
 - A commit whose migrate Job fails keeps failing on every retry (the Job is named by a hash of its spec); the next push recovers.
 - Argo CD's GitHub App lists the pull requests: the owner installs it on `cobranch` as well as `fin`. Without it the ApplicationSet lists nothing and no preview appears.

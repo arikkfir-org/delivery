@@ -79,6 +79,14 @@ spec:
               operator: Equal
               value: "true"
               effect: NoSchedule
+        maintenance:
+          nodeSelector:
+            kfirs.com/pool: system
+          tolerations:
+            - key: components.gke.io/gke-managed-components
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
         postgresql:
           # Generated once in the cluster (postgresql-password.yaml): the chart's own would change at every render.
           auth:
