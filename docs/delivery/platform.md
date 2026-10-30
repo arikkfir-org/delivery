@@ -27,7 +27,7 @@ Replicas, budgets and rollouts: [disruption budgets](designs/disruption-budgets.
 | `nats` | NACK, the JetStream controller (`nack`) | Chart `nack`, `https://nats-io.github.io/k8s/helm/charts` | `0.35.0` (NACK 0.24.0) | 4 |
 | `nats` | NUI (`nui`) | Chart `nui`, `https://nats-nui.github.io/k8s/helm/charts` | `0.1.6` (image `0.9.3`, pinned in its values: the chart's is `latest`) | 4 |
 | `tekton-pipelines` | Pipelines, Triggers and the Dashboard (`tekton`), through TektonConfig `config` (profile `all`), with Results, Chains, Pipelines-as-Code and the operator's NetworkPolicies off. Default ServiceAccount `pipeline`; TaskRun pods on node pool `ci`; 30 PipelineRuns kept per namespace. The Dashboard reads the logs of steps whose pods are gone from `http://octomaton-logs.octomaton.svc.cluster.local/logs` | `platform/tekton/manifests`, installed by the operator | Those of operator `v0.81.1` | 4 |
-| `octomaton` | Octomaton and `octomaton-logs` (`octomaton-environment`): Applications `octomaton` and `octomaton-logs`, AppProject `octomaton`, and the hub's side of Octomaton's host contract: ConfigMaps `octomaton` and `octomaton-logs`, ExternalSecret `octomaton-github`, HTTPRoute `octomaton`, NetworkPolicies `octomaton` and `octomaton-logs` ([hosting Octomaton](designs/octomaton.md)) | `deploy/` and `deploy/logs/` of `arikkfir-org/octomaton` at the version's tag; the host objects in `platform/octomaton/manifests` | `v0.1.0` ([versioned releases](../octomaton/designs/releases.md)) | 4 |
+| `octomaton` | Octomaton and `octomaton-logs` (`octomaton-environment`): Applications `octomaton` and `octomaton-logs`, AppProject `octomaton`, and the hub's side of Octomaton's host contract: ConfigMaps `octomaton` and `octomaton-logs`, ExternalSecret `octomaton-github`, HTTPRoute `octomaton`, NetworkPolicies `octomaton` and `octomaton-logs` ([hosting Octomaton](designs/octomaton.md)) | `deploy/` and `deploy/logs/` of `arikkfir-org/octomaton` at the version's tag; the host objects in `platform/octomaton/manifests` | `v0.5.0` ([versioned releases](../octomaton/designs/releases.md)) | 4 |
 | `docs` | Docs site (`docs`): Caddy, two replicas ([design](designs/docs-and-tests-servers.md)) | `docker.io/library/caddy`, in `platform/docs/manifests` | `2.11.7-alpine` | 4 |
 | `tests` | Tests site (`tests`): Caddy, two replicas ([design](designs/docs-and-tests-servers.md)) | `docker.io/library/caddy`, in `platform/tests/manifests` | `2.11.7-alpine` | 4 |
 | `go-import` | Go import pages (`go-import`): Caddy, two replicas ([design](designs/go-import-pages.md)) | `docker.io/library/caddy`, in `platform/go-import/manifests` | `2.11.7-alpine` | 4 |
@@ -180,5 +180,7 @@ Hub-wide labels share the prefix `kfirs.com/`.
 | `kfirs.com/sandbox: "true"` | Pod | A pull request reviewer's or check `Linear`'s pod, which NetworkPolicy `sandbox` holds | `tooling`'s reviewer and `linear` PipelineRuns |
 
 Octomaton writes its bookkeeping labels and annotations under `octomaton.dev/` on the objects it creates
-([Octomaton's README](https://github.com/arikkfir-org/octomaton#deployment)); the ones it reads,
-`octomaton.dev/branches` and `octomaton.dev/tags`, are set here on tenants' ServiceAccounts ([CI tenants](#ci-tenants)).
+([Octomaton's README](https://github.com/arikkfir-org/octomaton#deployment)). It reads three on tenants'
+ServiceAccounts: `octomaton.dev/branches`, `octomaton.dev/tags` and `octomaton.dev/organization-pipelines`
+([organization pipelines on restricted ServiceAccounts](../octomaton/designs/organization-pipeline-accounts.md)). Only the
+first two are set here ([CI tenants](#ci-tenants)); no tenant's ServiceAccount carries the third.
