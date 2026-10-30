@@ -20,12 +20,14 @@ flowchart LR
     Env["Application cobranch-environment"] --> NS["Namespace cobranch<br/>restricted Pod Security"]
     Env --> Project["AppProject cobranch"]
     Env --> Pass["Password and ExternalSecret<br/>cobranch-postgresql-password"]
+    Env --> KC["ExternalSecret cobranch-keycloak"]
     Env --> App["Application cobranch<br/>Helm values: images, urls, bucket,<br/>password, node pool"]
     Env --> Gate["HTTPRoute cobranch, Middleware admins,<br/>NetworkPolicy cobranch"]
   end
   Main -- "pushes as ci-cobranch-release" --> Reg[("Artifact Registry<br/>me-west1-docker.pkg.dev/arikkfir/cobranch")]
   App -- "renders at main's commit" --> Chart
-  App --> Pods["namespace cobranch: Console, REST and GraphQL<br/>servers, migrate Job, maintenance CronJob, PostgreSQL"]
+  App --> Pods["namespace cobranch: Console, REST, GraphQL and Auth<br/>servers, migrate Job, maintenance CronJob, PostgreSQL"]
+  Pods -- "client cobranch" --> Keycloak["Keycloak, realm hub<br/>id.kfirs.com"]
   Reg -- "pulled as anyone" --> Pods
   Pods -- "cobranch-server, Workload Identity" --> Bucket[("bucket arikkfir-cobranch")]
 ```
@@ -61,13 +63,14 @@ Argo CD can sync a commit before its pipeline has pushed its images. The migrate
 | --- | --- |
 | The chart, installed with its values | Application `cobranch`, project `cobranch`: source `chart/cobranch` of `https://github.com/arikkfir-org/cobranch` at `main`, release `cobranch`, Helm's tests skipped (`skipTests`), automated sync with prune (which removes each superseded migrate Job) and self-heal, retries; no `CreateNamespace`. |
 | Its images | `images.cobranch.repository` and `images.console.repository` in `me-west1-docker.pkg.dev/arikkfir/cobranch`, tagged `${ARGOCD_APP_REVISION_SHORT}`, the synced commit's first 7 characters, as Helm parameters (Argo CD substitutes its build environment in parameters only), as strings |
-| `urls.console`, `urls.rest`, `urls.graphql` | `https://cobranch.dev.kfirs.com`, `…/api` and `…/graphql`: the servers' CORS origin and the REST URL the Console's `config.json` gives. The chart's own routes stay off (`httpRoute.enabled: false`): the hub's carries the gate |
+| `urls.console`, `urls.rest`, `urls.graphql`, `urls.auth` | `https://cobranch.dev.kfirs.com`, `…/api`, `…/graphql` and `…/auth`: the servers' CORS origin and the URLs the Console's `config.json` gives. One host, so Cobranch's session cookie is `__Host-cobranch-session`. The chart's own routes stay off (`httpRoute.enabled: false`): the hub's carries the gate |
+| `auth.providers`, `auth.admins` | Provider `hub`: issuer `https://id.kfirs.com/realms/hub`, client `cobranch` ([infra's Keycloak](../../infra/terraform/keycloak.md#clients)), so the demo's sign-in is the hub's Google sign-in, for the people realm `hub` declares. Its secret: Secret `cobranch-keycloak`, key `client-secret`, from ExternalSecret `cobranch-keycloak` on `keycloak-cobranch-client-secret` ([Secret Manager](../../infra/terraform/gcp.md#secret-manager)), which only the Auth server reads. The owner's email in `auth.admins` makes them the installation's administrator |
 | `blob.url` | `gs://arikkfir-cobranch`, which the servers' ServiceAccount, `cobranch-server`, reaches through Workload Identity, with no Google service account or key |
 | `postgresql.auth.existingSecret` | Secret `cobranch-postgresql-password`, key `password`, made once in the cluster by an ESO `Password` generator (`refreshPolicy: CreatedOnce`): under Argo CD the chart can't keep a password of its own |
-| Placement | Every pod on node pool `system` (`nodeSelector` and `tolerations` of `restServer`, `graphqlServer`, `console`, `migrate`, `maintenance` and `postgresql`) ([node pools](node-pools.md)) |
+| Placement | Every pod on node pool `system` (`nodeSelector` and `tolerations` of `authServer`, `restServer`, `graphqlServer`, `console`, `migrate`, `maintenance` and `postgresql`) ([node pools](node-pools.md)) |
 | Time for the images | `migrate.activeDeadlineSeconds: 1800` for image `cobranch` (the Console waits for `cobranch-console` within its Deployment's default 10 minutes), and ten retries of a failed sync, each from `main`'s newest commit ([above](#a-merge-to-cobranchs-main)) |
-| A route to each workload | HTTPRoute `cobranch` on Gateway `traefik/protected`, host `cobranch.dev.kfirs.com`: `/api` to `cobranch-rest-server` and `/graphql` to `cobranch-graphql-server`, each prefix rewritten to `/`, and everything else to `cobranch-console`; Middleware `admins` on every rule |
-| Network admission | NetworkPolicy `cobranch`: only namespace `traefik`, on 8080, to the Console's and the servers' pods. The chart's own admits only the servers and the migrate Job to PostgreSQL |
+| A route to each workload | HTTPRoute `cobranch` on Gateway `traefik/protected`, host `cobranch.dev.kfirs.com`: `/api` to `cobranch-rest-server`, `/graphql` to `cobranch-graphql-server` and `/auth` to `cobranch-auth-server`, each prefix rewritten to `/`, and everything else to `cobranch-console`; Middleware `admins` on every rule |
+| Network admission | NetworkPolicy `cobranch`: only namespace `traefik`, on 8080, to the Console's and the servers' pods, the Auth server's included. The chart's own admits only the servers and the migrate Job to PostgreSQL |
 
 Replicas, budgets, rollouts and requests are the chart's: two of each server and of the Console, each with a budget of `maxUnavailable: 1`, rolling out by surging, and one PostgreSQL on an 8Gi volume of the cluster's default storage class.
 
@@ -89,7 +92,8 @@ AppProject `cobranch` admits sources from cobranch's repository only, destinatio
 
 ## Security and failure modes
 
-- **Only admins reach it.** The protected entry point signs every request in, and Middleware `admins` answers 403 to anyone outside group `admins`. Cobranch has no sign-in of its own yet, so this gate is its only one.
+- **Only admins reach it.** The protected entry point signs every request in, and Middleware `admins` answers 403 to anyone outside group `admins`. Cobranch's own sign-in, through Keycloak client `cobranch`, comes after that gate: the same people, signed in twice.
+- **The Keycloak client's secret.** Secret `cobranch-keycloak` holds it, synced from Secret Manager; the chart hands it to the Auth server alone. Bumping `cobranch` in infra's `local.secret_versions` rotates it: External Secrets syncs the new value within its refresh interval, and Reloader (`reloader.stakater.com/auto` on the Auth server's pods) restarts the Auth server with it, so sign-in fails only between the two, at most an hour.
 - **A merge reaches the cluster unreviewed by this repository.** The project admits only namespace `cobranch` and the chart's kinds, with no cluster-scoped object, no Secret and no route; the namespace enforces the restricted Pod Security Standard; the only cloud grant is `cobranch-server`'s, on its own bucket.
 - **Images late or missing.** A commit whose pipeline fails never gets its images, nor does one that a newer push overtakes while its build waits (pipeline `main` builds only `main`'s newest commit). Its migrate Job waits for image `cobranch`, the old pods keep serving, and the Job fails after 30 minutes. A retry then syncs `main`'s newest commit, whose Job has a new name; if there is none, the sync stays failed until the next commit. If only image `cobranch-console` is missing, the Job and the servers roll out and the sync fails at the Console's 10-minute progress deadline instead; the retries recover it once the image is pushed.
 - **The password.** Deleting Secret `cobranch-postgresql-password` makes a new one, which the database, initialized with the old one, refuses: delete the database's volume too, and its data with it.
@@ -102,3 +106,5 @@ AppProject `cobranch` admits sources from cobranch's repository only, destinatio
 3. cobranch: pipeline `main`, which publishes the images of `main`'s newest commit ([cobranch#7](https://github.com/arikkfir-org/cobranch/pull/7)). Until its first run, the demo's sync failed, waiting for images; the pull request's merge was itself a new commit on `main`, which Argo CD synced.
 4. cobranch: the Console rolls out with the servers, after the migrate Job ([cobranch#8](https://github.com/arikkfir-org/cobranch/pull/8)), so the Job, whose deadline this repository raises, waits for a commit's images.
 5. Open `https://cobranch.dev.kfirs.com`: the Console shows the REST API's version.
+6. `infra`: Keycloak client `cobranch` and its generated secret, `keycloak-cobranch-client-secret` ([infra#101](https://github.com/arikkfir-org/infra/pull/101)), applied by pipeline `apply` on merge; then cobranch: the Auth server and the chart's `urls.auth`, `auth` and `authServer` values ([cobranch#15](https://github.com/arikkfir-org/cobranch/pull/15)).
+7. This repository: ExternalSecret `cobranch-keycloak`, the demo's sign-in values and `/auth` route, and the previews' seeded sign-in ([delivery#99](https://github.com/arikkfir-org/delivery/pull/99)), after both. Sign in at `https://cobranch.dev.kfirs.com` through the hub.

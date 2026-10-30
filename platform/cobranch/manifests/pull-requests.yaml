@@ -72,11 +72,14 @@ spec:
                   repository: me-west1-docker.pkg.dev/arikkfir/cobranch-previews/cobranch
                 console:
                   repository: me-west1-docker.pkg.dev/arikkfir/cobranch-previews/cobranch-console
-              # One host, whose route (platform/cobranch/pull-request) strips each API's prefix.
+              # One host, whose route (platform/cobranch/pull-request) strips each API's prefix. urls.auth deploys the
+              # Auth server; with no provider (no identity provider takes a wildcard host, and a preview reads no secret),
+              # people sign in as the seeded users (owner, 2026-10-30).
               urls:
                 console: "https://{{ .values.env }}.cobranch.dev.kfirs.com"
                 rest: "https://{{ .values.env }}.cobranch.dev.kfirs.com/api"
                 graphql: "https://{{ .values.env }}.cobranch.dev.kfirs.com/graphql"
+                auth: "https://{{ .values.env }}.cobranch.dev.kfirs.com/auth"
               # No cloud role: a directory of each server's own, gone with its pod.
               blob:
                 url: file:///var/lib/cobranch/blobs
@@ -86,6 +89,15 @@ spec:
               seed:
                 enabled: true
               # A preview has no availability to keep. Every pod on pool ci, which policy cobranch-node-pool holds.
+              authServer:
+                replicas: 1
+                nodeSelector:
+                  kfirs.com/pool: ci
+                tolerations:
+                  - key: kfirs.com/pool
+                    operator: Equal
+                    value: ci
+                    effect: NoSchedule
               restServer:
                 replicas: 1
                 nodeSelector:

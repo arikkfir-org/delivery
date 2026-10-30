@@ -1,10 +1,9 @@
 # In a Cobranch preview an HTTPRoute names only its own host, pr-<number>.cobranch.dev.kfirs.com, and attaches only
 # to traefik/cobranch-pull-requests, which every preview shares (pull-requests-gateway.yaml); never traefik/protected,
-# which takes routes for any *.kfirs.com host from every namespace. Every rule asks Middleware admins first, then
-# removes Cookie, then may only rewrite the URL: the hub's sign-in admits every hub user, Fin's test users included, and
-# Traefik runs filters in order, so a redirect or mirror before admins would answer them; browsers send the hub's
-# session cookie (domain .kfirs.com) here too, which a pull request's code never gets. Matched by the namespace's name.
-# Wave -1: in force before any preview.
+# which takes routes for any *.kfirs.com host from every namespace. Every rule asks Middleware admins first, then may
+# only rewrite the URL: the hub's sign-in admits every hub user, Fin's test users included, and Traefik runs filters in
+# order, so a redirect or mirror before admins would answer them. Cookies pass through, Cobranch's own session cookie
+# and the hub's alike (owner, 2026-10-30). Matched by the namespace's name. Wave -1: in force before any preview.
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:
@@ -48,17 +47,13 @@ spec:
           && has(p.namespace) && p.namespace == 'traefik' && p.name == 'cobranch-pull-requests')
       message: An HTTPRoute in a Cobranch preview attaches to Gateway traefik/cobranch-pull-requests only.
     - expression: >-
-        has(object.spec.rules) && object.spec.rules.all(r, has(r.filters) && size(r.filters) >= 2
+        has(object.spec.rules) && object.spec.rules.all(r, has(r.filters) && size(r.filters) >= 1
           && r.filters[0].type == 'ExtensionRef' && has(r.filters[0].extensionRef)
           && r.filters[0].extensionRef.group == 'traefik.io' && r.filters[0].extensionRef.kind == 'Middleware'
           && r.filters[0].extensionRef.name == 'admins'
-          && r.filters[1].type == 'RequestHeaderModifier' && has(r.filters[1].requestHeaderModifier)
-          && has(r.filters[1].requestHeaderModifier.remove)
-          && r.filters[1].requestHeaderModifier.remove.exists(name, name.lowerAscii() == 'cookie')
-          && (size(r.filters) == 2 || (size(r.filters) == 3 && r.filters[2].type == 'URLRewrite')))
+          && (size(r.filters) == 1 || (size(r.filters) == 2 && r.filters[1].type == 'URLRewrite')))
       message: >-
-        Every rule of an HTTPRoute in a Cobranch preview asks Middleware admins first, then removes the Cookie header, then
-        may only rewrite the URL.
+        Every rule of an HTTPRoute in a Cobranch preview asks Middleware admins first, then may only rewrite the URL.
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding

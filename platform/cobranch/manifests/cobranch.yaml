@@ -39,10 +39,37 @@ spec:
           console: https://cobranch.dev.kfirs.com
           rest: https://cobranch.dev.kfirs.com/api
           graphql: https://cobranch.dev.kfirs.com/graphql
+          auth: https://cobranch.dev.kfirs.com/auth
+        # Sign-in through the hub's Keycloak, realm hub, as client cobranch (infra's root keycloak): the hub's own
+        # Google sign-in, for the people the realm declares. The client's secret comes from keycloak-secret.yaml. The
+        # owner is the installation's administrator.
+        auth:
+          providers:
+            - id: hub
+              name: Kfirs hub
+              issuer: https://id.kfirs.com/realms/hub
+              clientId: cobranch
+              clientSecret:
+                secretName: cobranch-keycloak
+                key: client-secret
+          admins:
+            - arikkfir@gmail.com
         # infra's bucket, which only the servers' ServiceAccount, cobranch-server, reaches through Workload Identity.
         blob:
           url: gs://arikkfir-cobranch
         # Every pod on the system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
+        authServer:
+          # Reloader restarts the Auth server when Secret cobranch-keycloak changes, so a rotated client secret takes
+          # effect without a hand.
+          podAnnotations:
+            reloader.stakater.com/auto: "true"
+          nodeSelector:
+            kfirs.com/pool: system
+          tolerations:
+            - key: components.gke.io/gke-managed-components
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
         restServer:
           nodeSelector:
             kfirs.com/pool: system
