@@ -1,5 +1,5 @@
 # A DevHub of every open pull request that devhub's members open, whatever its base branch: namespace
-# devhub-pr-<number>, at https://pr-<number>.devhub-previews.dev.kfirs.com, the APIs under /api and /graphql, through
+# devhub-pr-<number>, at https://pr-<number>.devhub.dev.kfirs.com, the APIs under /api and /graphql, through
 # the shared Gateway traefik/devhub-pull-requests (pull-requests-gateway.yaml), running the pull request's head commit,
 # seeded with demo data (docs/delivery/designs/devhub-previews.md). The generator lists devhub's pull requests through
 # Argo CD's GitHub App (Secret github-app, platform/argocd) every minute; when a pull request closes or merges, its
@@ -74,9 +74,9 @@ spec:
                   repository: me-west1-docker.pkg.dev/arikkfir/devhub-previews/devhub-console
               # One host, whose route (platform/devhub/pull-request) strips each API's prefix.
               urls:
-                console: "https://{{ .values.env }}.devhub-previews.dev.kfirs.com"
-                rest: "https://{{ .values.env }}.devhub-previews.dev.kfirs.com/api"
-                graphql: "https://{{ .values.env }}.devhub-previews.dev.kfirs.com/graphql"
+                console: "https://{{ .values.env }}.devhub.dev.kfirs.com"
+                rest: "https://{{ .values.env }}.devhub.dev.kfirs.com/api"
+                graphql: "https://{{ .values.env }}.devhub.dev.kfirs.com/graphql"
               # No cloud role: a directory of each server's own, gone with its pod.
               blob:
                 url: file:///var/lib/devhub/blobs
@@ -150,7 +150,7 @@ spec:
                   - op: replace
                     path: /spec/hostnames
                     value:
-                      - "{{ .values.env }}.devhub-previews.dev.kfirs.com"
+                      - "{{ .values.env }}.devhub.dev.kfirs.com"
       syncPolicy:
         automated:
           prune: true

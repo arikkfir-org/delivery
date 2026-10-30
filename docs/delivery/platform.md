@@ -86,7 +86,7 @@ cert-manager issues them from Let's Encrypt through ClusterIssuer `letsencrypt`,
 | `protected/websecure`, `public/public-websecure` | `*.kfirs.com`, which also matches deeper names | `wildcard-kfirs-com` (`*.kfirs.com`, `*.dev.kfirs.com`, `admin.id.kfirs.com`) / `traefik/wildcard-kfirs-com-tls`, also Traefik's default certificate |
 | `public/octomaton-dev` (9443) | `octomaton.dev` | `octomaton-dev` / `traefik/octomaton-dev-tls` |
 | `fin-pull-requests/app` (8443) | `*.app.dev.fin.kfirs.com` | `fin-pull-requests` / `traefik/fin-pull-requests-tls` |
-| `devhub-pull-requests/previews` (8443) | `*.devhub-previews.dev.kfirs.com` | `devhub-pull-requests` / `traefik/devhub-pull-requests-tls` |
+| `devhub-pull-requests/previews` (8443) | `*.devhub.dev.kfirs.com` | `devhub-pull-requests` / `traefik/devhub-pull-requests-tls` |
 
 Listener `octomaton-dev` admits routes only from namespaces `octomaton` (the webhook) and `go-import` (the Go import
 page), and only while they carry `kfirs.com/public-ingress: "true"`.
@@ -105,7 +105,7 @@ Each route's Middlewares are in its own namespace.
 | `docs.dev.kfirs.com` | protected | `docs/docs:80` | All | `admins` |
 | `tests.dev.kfirs.com` | protected | `tests/tests:80` | All | `admins` |
 | `devhub.dev.kfirs.com` | protected | `devhub/devhub-rest-server:80`; `devhub/devhub-graphql-server:80`; `devhub/devhub-console:80` | `/api` and `/graphql`, each prefix rewritten to `/`; everything else | `admins` |
-| `pr-<number>.devhub-previews.dev.kfirs.com` | `devhub-pull-requests` | `devhub-pr-<number>/devhub-rest-server:80`; `…/devhub-graphql-server:80`; `…/devhub-console:80` | As the demo's | `admins`, then Cookie removed |
+| `pr-<number>.devhub.dev.kfirs.com` | `devhub-pull-requests` | `devhub-pr-<number>/devhub-rest-server:80`; `…/devhub-graphql-server:80`; `…/devhub-console:80` | As the demo's | `admins`, then Cookie removed |
 | `admin.id.kfirs.com` | protected | `keycloak/keycloak-service:8080` | Exact `/` (Keycloak redirects it to the console), `/admin`, `/realms/master`, `/resources` | `admins` |
 | `auth.kfirs.com` | public | `auth/oauth2-proxy:80` | `/oauth2` | None |
 | `id.kfirs.com` | public | `keycloak/keycloak-service:8080` | `/realms/hub`, `/resources`; POSTs under `/realms/hub/login-actions`; `/realms/master` | None; `sign-in-attempts`; `oidc`, `admins` |
@@ -127,7 +127,7 @@ certificate serves every pull request, so none issues its own against Let's Encr
 in `traefik` its private key is out of every pull request's reach.
 
 DevHub's previews have the same shape in `platform/devhub/manifests`: Certificate and Gateway `traefik/devhub-pull-requests`
-for `*.devhub-previews.dev.kfirs.com`, listener `previews`, taking routes only from namespaces labelled
+for `*.devhub.dev.kfirs.com`, listener `previews`, taking routes only from namespaces labelled
 `kfirs.com/devhub-pull-request: "true"`, each held by policy `devhub-http-routes` to its own host
 ([DevHub's previews](designs/devhub-previews.md)).
 

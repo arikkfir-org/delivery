@@ -1,7 +1,7 @@
 # What the hub decides around one DevHub pull request's preview, beside the chart from its head commit
 # (docs/delivery/designs/devhub-previews.md). ApplicationSet devhub-pull-requests (platform/devhub/manifests) renders it
 # for each pull request with kustomize's namespace set to devhub-pr-<number>, which renames the Namespace too, and patches
-# the route's host to pr-<number>.devhub-previews.dev.kfirs.com. As written, it is pull request 0's.
+# the route's host to pr-<number>.devhub.dev.kfirs.com. As written, it is pull request 0's.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: devhub-pr-0

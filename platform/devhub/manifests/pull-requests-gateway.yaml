@@ -1,7 +1,7 @@
 # Every DevHub preview shares this Gateway and its one certificate, so a preview issues none: a certificate each would run
 # into Let's Encrypt's 50 a week for kfirs.com, which the hub's own certificates share. A wildcard covers one label, so a
-# preview's host is pr-<number>.devhub-previews.dev.kfirs.com, off the demo's devhub.dev.kfirs.com, and infra's record
-# *.devhub-previews.dev sends them all to the protected gateway's address. The listener is on Traefik's protected entry
+# preview's host is pr-<number>.devhub.dev.kfirs.com, beside the demo's devhub.dev.kfirs.com, and infra's record
+# *.devhub.dev sends them all to the protected gateway's address. The listener is on Traefik's protected entry
 # point (8443), behind the hub's sign-in, and takes routes only from namespaces labelled kfirs.com/devhub-pull-request,
 # which devhub-http-routes holds to their own host. In traefik, out of every preview's reach, no pull request's code can
 # read the certificate's private key. Wave 0 issues the certificate before the Gateway (wave 1) references its Secret.
@@ -13,7 +13,7 @@ metadata:
 spec:
   secretName: devhub-pull-requests-tls
   dnsNames:
-    - "*.devhub-previews.dev.kfirs.com"
+    - "*.devhub.dev.kfirs.com"
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
@@ -32,7 +32,7 @@ spec:
     - name: previews
       protocol: HTTPS
       port: 8443
-      hostname: "*.devhub-previews.dev.kfirs.com"
+      hostname: "*.devhub.dev.kfirs.com"
       tls:
         mode: Terminate
         certificateRefs:

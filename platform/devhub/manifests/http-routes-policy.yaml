@@ -1,4 +1,4 @@
-# In a DevHub preview an HTTPRoute names only its own host, pr-<number>.devhub-previews.dev.kfirs.com, and attaches only
+# In a DevHub preview an HTTPRoute names only its own host, pr-<number>.devhub.dev.kfirs.com, and attaches only
 # to traefik/devhub-pull-requests, which every preview shares (pull-requests-gateway.yaml); never traefik/protected,
 # which takes routes for any *.kfirs.com host from every namespace. Every rule asks Middleware admins first, then
 # removes Cookie, then may only rewrite the URL: the hub's sign-in admits every hub user, Fin's test users included, and
@@ -33,9 +33,9 @@ spec:
       expression: >-
         request.operation == 'CREATE' || !has(oldObject.metadata.deletionTimestamp) || object.spec != oldObject.spec
   variables:
-    # devhub-pr-<number> serves pr-<number>.devhub-previews.dev.kfirs.com.
+    # devhub-pr-<number> serves pr-<number>.devhub.dev.kfirs.com.
     - name: host
-      expression: "request.namespace.substring(7) + '.devhub-previews.dev.kfirs.com'"
+      expression: "request.namespace.substring(7) + '.devhub.dev.kfirs.com'"
   validations:
     - expression: >-
         has(object.spec.hostnames) && size(object.spec.hostnames) > 0

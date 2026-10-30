@@ -1,4 +1,4 @@
-# A preview on one host, pr-<number>.devhub-previews.dev.kfirs.com, on the Gateway every preview shares, behind the
+# A preview on one host, pr-<number>.devhub.dev.kfirs.com, on the Gateway every preview shares, behind the
 # hub's sign-in and Middleware admins, as the demo is. Each workload serves as if it were alone (the Console and GraphQL
 # at /, REST under /v1/), so each API's prefix is stripped, as the chart's urls say. Every rule asks admins first, which
 # reads the hub's session cookie, then removes Cookie: browsers send that cookie (domain .kfirs.com) here too, and a
@@ -16,7 +16,7 @@ spec:
       namespace: traefik
       name: devhub-pull-requests
   hostnames:
-    - pr-0.devhub-previews.dev.kfirs.com
+    - pr-0.devhub.dev.kfirs.com
   rules:
     - matches:
         - path:
