@@ -1,9 +1,9 @@
-# A DevHub of every open pull request of devhub labelled preview, whatever its base branch: namespace
+# A DevHub of every open pull request that devhub's members open, whatever its base branch: namespace
 # devhub-pr-<number>, at https://pr-<number>.devhub-previews.dev.kfirs.com, the APIs under /api and /graphql, through
 # the shared Gateway traefik/devhub-pull-requests (pull-requests-gateway.yaml), running the pull request's head commit,
 # seeded with demo data (docs/delivery/designs/devhub-previews.md). The generator lists devhub's pull requests through
-# Argo CD's GitHub App (Secret github-app, platform/argocd) every minute; when a pull request closes, merges or loses
-# the label, its Application goes and the resources finalizer deletes the preview, namespace and database included. It
+# Argo CD's GitHub App (Secret github-app, platform/argocd) every minute; when a pull request closes or merges, its
+# Application goes and the resources finalizer deletes the preview, namespace and database included. It
 # names the preview from the pull request's number and the commit from its head SHA, never from a title; the template
 # uses those alone. Two sources: the chart from the head commit, and what the hub decides around it from delivery's
 # main (platform/devhub/pull-request), which holds the Namespace, so no CreateNamespace.
@@ -22,16 +22,23 @@ spec:
           owner: arikkfir-org
           repo: devhub
           appSecretName: github-app
-          # devhub is public, and the generator lists forks' pull requests too, whose head commits this repoURL serves:
-          # a fork's chart would run what it likes on pool ci. Only people with triage access to devhub can label.
-          labels:
-            - preview
         requeueAfterSeconds: 60
         values:
           env: "pr-{{ .number }}"
           revision: "{{ .head_sha }}"
           # The images' tag, as devhub's pipeline preview writes it: the commit's first seven characters.
           tag: "{{ trunc 7 .head_sha }}"
+      # devhub is public: GitHub lists forks' pull requests among devhub's and serves their head commits from devhub,
+      # and the generator drops the repository a pull request comes from, so a fork's chart would run what it likes on
+      # pool ci. Only pull requests that devhub's members open get a preview: its owner, whose sessions open them as
+      # the owner too, and Dependabot, which opens them from devhub's own branches. A new collaborator is added here.
+      selector:
+        matchExpressions:
+          - key: author
+            operator: In
+            values:
+              - arikkfir
+              - dependabot[bot]
   template:
     metadata:
       name: "devhub-{{ .values.env }}"
