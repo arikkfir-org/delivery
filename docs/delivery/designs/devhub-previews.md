@@ -1,6 +1,6 @@
 # DevHub's previews
 
-**Decision**: every open pull request of [arikkfir-org/devhub](https://github.com/arikkfir-org/devhub) gets a DevHub of its own, a preview: namespace `devhub-pr-<number>`, at `https://pr-<number>.devhub-previews.dev.kfirs.com`, behind the hub's sign-in and Middleware `admins`, as the [demo](devhub.md) is. Argo CD installs DevHub's chart from the pull request's head commit, with that commit's images and its demo data (`seed.enabled`), on node pool `ci`; closing or merging the pull request deletes it, database and all. A pull request's code decides what runs in its namespace, so an AppProject admits only the kinds a preview needs and admission policies hold what each may say. Linear: [ENG-208](https://linear.app/arikkfir/issue/ENG-208). DevHub's side, the seeds and the preview pipeline, is the [Helm chart design](https://claude.ai/artifact/LyMHXgSoNQNgHtHNfEjvA8#previews)'s.
+**Decision**: every open pull request of [arikkfir-org/devhub](https://github.com/arikkfir-org/devhub) labelled `preview` gets a DevHub of its own, a preview: namespace `devhub-pr-<number>`, at `https://pr-<number>.devhub-previews.dev.kfirs.com`, behind the hub's sign-in and Middleware `admins`, as the [demo](devhub.md) is. Argo CD installs DevHub's chart from the pull request's head commit, with that commit's images and its demo data (`seed.enabled`), on node pool `ci`; closing or merging the pull request, or removing the label, deletes it, database and all. A pull request's code decides what runs in its namespace, so an AppProject admits only the kinds a preview needs and admission policies hold what each may say. Linear: [ENG-208](https://linear.app/arikkfir/issue/ENG-208). DevHub's side, the seeds and the preview pipeline, is the [Helm chart design](https://claude.ai/artifact/LyMHXgSoNQNgHtHNfEjvA8#previews)'s.
 
 ## Why
 
@@ -43,10 +43,10 @@ sequenceDiagram
   participant AS as ApplicationSet devhub-pull-requests
   participant A as Application devhub-pr-n
   participant K as namespace devhub-pr-n
-  Dev->>GH: push to a branch with an open pull request
+  Dev->>GH: push to a branch whose pull request is labelled preview
   GH->>P: pull_request synchronize (Octomaton)
   P->>P: build both images, push :sha7 to devhub-previews
-  AS->>GH: list open pull requests (every minute, Argo CD's GitHub App)
+  AS->>GH: list open pull requests labelled preview (every minute, Argo CD's GitHub App)
   AS->>A: head SHA changed: new revision and tag
   A->>K: wave -1: Namespace, quota, password, Middleware
   A->>K: wave 0: PostgreSQL
@@ -61,13 +61,13 @@ A sync can start before pipeline `preview` has pushed the commit's images: the m
 
 ```mermaid
 stateDiagram-v2
-  [*] --> Open: pull request opened
+  [*] --> Open: pull request labelled preview
   Open --> Open: push: new head, new images, sync
-  Open --> Gone: closed or merged
+  Open --> Gone: closed, merged or unlabelled
   Gone --> [*]: resources finalizer deletes everything, namespace, volume and database included
 ```
 
-The generator stops listing a closed pull request, the ApplicationSet deletes its Application, and the resources finalizer deletes what it made, the Namespace with it. A reopened pull request starts again from an empty database.
+The generator stops listing a closed or unlabelled pull request, the ApplicationSet deletes its Application, and the resources finalizer deletes what it made, the Namespace with it. A reopened or relabelled pull request starts again from an empty database.
 
 ### What holds a preview
 
@@ -83,7 +83,7 @@ flowchart TB
   hub --> Proj
   Proj --> Pol{"Admission policies, matched by namespace name"}
   Pol --> P1["devhub-namespaces: restricted, labelled<br/>kfirs.com/devhub-pull-request only"]
-  Pol --> P2["devhub-http-routes: own host, own Gateway,<br/>admins then Cookie removed"]
+  Pol --> P2["devhub-http-routes: own host, own Gateway,<br/>admins first, then Cookie removed"]
   Pol --> P3["devhub-middlewares: the admins ForwardAuth only"]
   Pol --> P4["devhub-external-secrets: generators only"]
   Pol --> P5["devhub-cluster-ip-services"]
@@ -96,7 +96,7 @@ flowchart TB
 | No cloud role | No grant in `infra` names a `devhub-pr-*` namespace, and no Workload Identity pool trusts one. The bucket is a `file://` directory on each server's emptyDir |
 | No Secret but its own | AppProject admits no Secret; the database's password comes from a Password generator; ClusterSecretStore `gcp-secret-manager` refuses namespaces labelled `kfirs.com/devhub-pull-request`, and policy `devhub-external-secrets` admits only generators |
 | No reach beyond its host | Services are ClusterIP; routes attach only to `traefik/devhub-pull-requests`, with the namespace's own host; NetworkPolicy `devhub` admits only Traefik to the servers and the Console, the chart's own only the servers and the Job to PostgreSQL |
-| No hub session | Every rule asks Middleware `admins`, which reads the hub's session cookie, then removes `Cookie`: browsers send that cookie (domain `.kfirs.com`) to previews too |
+| No hub session | Every rule asks Middleware `admins` first, which reads the hub's session cookie, then removes `Cookie`, then may only rewrite the URL: browsers send that cookie (domain `.kfirs.com`) to previews too, and Traefik runs filters in order, so a redirect or mirror before `admins` would answer any hub user |
 | No room beyond its share | ResourceQuota `devhub`: 2 CPUs and 4Gi requested, 8Gi of memory limits, 10 pods, one 2Gi volume |
 | No other pool | Policy `devhub-node-pool`: pods tolerate only `kfirs.com/pool=ci` and name no node; budgets let every pod go, so a preview never keeps a CI node up |
 
@@ -109,12 +109,13 @@ flowchart TB
 | Host `pr-<number>.devhub-previews.dev.kfirs.com` | Off the demo's `devhub.dev`: nothing DevHub scopes to the demo's domain reaches a pull request's code | `pr-<number>.devhub.dev.kfirs.com` |
 | Label `kfirs.com/devhub-pull-request` | Fin's `kfirs.com/pull-request` also admits a namespace to NATS, which takes no credentials, and to Fin's Gateway | Reusing Fin's label |
 | The route, Middleware, quota and password from delivery, as a second source | A pull request's code then decides no host, Gateway or gate; the chart stays the product, with nothing of the hub in it | The chart's own HTTPRoute (`httpRoute.enabled`) |
+| Pull requests labelled `preview` | `devhub` is public: Argo CD lists forks' pull requests too, and fetches their head commits from `devhub`, whose chart could run anything on pool `ci`. Only people with triage access to `devhub` label, and sessions label the pull requests they open | Every open pull request; matching devhub's branch list, which costs a GitHub call per pull request and previews a fork named like a devhub branch |
 | Pull requests only, no merge queue entries | A preview is for a reviewer; DevHub's CI tests the chart on kind for every merge group | Fin's per-entry environments, which its end-to-end suite needs |
 
 ## Security and failure modes
 
-- A preview runs a pull request's code on pool `ci`, beside other repositories' CI runs, as devhub's CI already does there; only the organization's members push branches, and Octomaton ignores forks.
-- A pull request opened before devhub's `seed.enabled` value existed fails to render: the chart's values schema refuses unknown keys. Rebasing it on `main` fixes it.
+- A preview runs a pull request's code on pool `ci`, beside other repositories' CI runs, as devhub's CI already does there. Only a pull request labelled `preview` gets one, and only people with triage access to `devhub` label: a fork's pull request runs nothing until someone who read it labels it. Octomaton ignores forks, so a fork's preview would have no images either.
+- A pull request whose chart predates devhub's `seed.enabled` value fails to render once labelled: the chart's values schema refuses unknown keys. Rebase it on `main` before labelling it.
 - Removing `Cookie` removes every cookie: once DevHub signs people in itself ([ENG-197](https://linear.app/arikkfir/issue/ENG-197)), its own session cookie needs another way through, and this design changes with it.
 - A commit whose migrate Job fails keeps failing on every retry (the Job is named by a hash of its spec); the next push recovers.
 - Argo CD's GitHub App lists the pull requests: the owner installs it on `devhub` as well as `fin`. Without it the ApplicationSet lists nothing and no preview appears.
@@ -123,4 +124,4 @@ flowchart TB
 
 1. `infra`: repository `devhub-previews`, its grants and the record `*.devhub-previews.dev`, applied on merge.
 2. `delivery`: this design, ServiceAccount `ci-devhub-preview`, the secret store's condition, the Gateway and Certificate, AppProject, policies and ApplicationSet. The owner adds `devhub` to Argo CD's GitHub App installation.
-3. `devhub`: `db/seeds/`, `seed.enabled` and pipeline `preview`. Its own pull request is the first preview.
+3. `devhub`: `db/seeds/`, `seed.enabled` and pipeline `preview`. Its own pull request, labelled `preview` once `delivery`'s change is in, is the first preview; no other pull request has the label, so none renders before its chart has `seed`.

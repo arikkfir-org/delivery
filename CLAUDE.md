@@ -38,9 +38,10 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   reach NATS. NATS takes no credentials, so NetworkPolicy `nats/nats` admits only namespace `nats` and Fin's
   namespaces; a new client's namespace goes there first.
 - DevHub's previews (`platform/devhub/manifests`, `docs/delivery/designs/devhub-previews.md`) install devhub's chart
-  from each pull request's head commit into `devhub-pr-<number>`, beside `platform/devhub/pull-request` from `main`.
-  Admit a new kind to AppProject `devhub-pull-requests` only with an admission policy that holds what it may say, as
-  the `devhub-*` policies do. Their namespaces carry `kfirs.com/devhub-pull-request`, never Fin's
+  from the head commit of each pull request labelled `preview` into `devhub-pr-<number>`, beside
+  `platform/devhub/pull-request` from `main`. Keep the label filter: devhub is public, and the generator lists forks'
+  pull requests too. Admit a new kind to AppProject `devhub-pull-requests` only with an admission policy that holds
+  what it may say, as the `devhub-*` policies do. Their namespaces carry `kfirs.com/devhub-pull-request`, never Fin's
   `kfirs.com/pull-request` (NATS, Fin's Gateway); their pods run on pool `ci`; no grant in `infra` names them.
 - Octomaton's `deploy/` and `deploy/logs/` come from a version's tag only (a commit of its `main`); `deploy/` holds its
   own Namespace and RBAC.

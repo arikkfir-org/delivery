@@ -1,12 +1,12 @@
-# A DevHub of every open pull request of devhub, whatever its base branch: namespace devhub-pr-<number>, at
-# https://pr-<number>.devhub-previews.dev.kfirs.com, the APIs under /api and /graphql, through the shared Gateway
-# traefik/devhub-pull-requests (pull-requests-gateway.yaml), running the pull request's head commit, seeded with demo
-# data (docs/delivery/designs/devhub-previews.md). The generator lists devhub's pull requests through Argo CD's GitHub
-# App (Secret github-app, platform/argocd) every minute; when a pull request closes or merges, its Application goes and
-# the resources finalizer deletes the preview, namespace and database included. It names the preview from the pull
-# request's number and the commit from its head SHA, never from a title; the template uses those alone. Two sources: the
-# chart from the head commit, and what the hub decides around it from delivery's main (platform/devhub/pull-request),
-# which holds the Namespace, so no CreateNamespace.
+# A DevHub of every open pull request of devhub labelled preview, whatever its base branch: namespace
+# devhub-pr-<number>, at https://pr-<number>.devhub-previews.dev.kfirs.com, the APIs under /api and /graphql, through
+# the shared Gateway traefik/devhub-pull-requests (pull-requests-gateway.yaml), running the pull request's head commit,
+# seeded with demo data (docs/delivery/designs/devhub-previews.md). The generator lists devhub's pull requests through
+# Argo CD's GitHub App (Secret github-app, platform/argocd) every minute; when a pull request closes, merges or loses
+# the label, its Application goes and the resources finalizer deletes the preview, namespace and database included. It
+# names the preview from the pull request's number and the commit from its head SHA, never from a title; the template
+# uses those alone. Two sources: the chart from the head commit, and what the hub decides around it from delivery's
+# main (platform/devhub/pull-request), which holds the Namespace, so no CreateNamespace.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -22,6 +22,10 @@ spec:
           owner: arikkfir-org
           repo: devhub
           appSecretName: github-app
+          # devhub is public, and the generator lists forks' pull requests too, whose head commits this repoURL serves:
+          # a fork's chart would run what it likes on pool ci. Only people with triage access to devhub can label.
+          labels:
+            - preview
         requeueAfterSeconds: 60
         values:
           env: "pr-{{ .number }}"

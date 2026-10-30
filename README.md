@@ -61,7 +61,7 @@ Each file there is an Application in namespace `argocd`, project `default`:
   `devhub` installs `chart/devhub` of `arikkfir-org/devhub` from its `main` into namespace `devhub`, with the images of
   the synced commit, which devhub's pipeline `main` publishes, and the values this repository decides. Its namespace,
   AppProject `devhub`, the database's generated password, the route behind Middleware `admins` and the NetworkPolicy
-  live beside it in `platform/devhub/manifests`. It also previews every open pull request of devhub
+  live beside it in `platform/devhub/manifests`. It also previews every open pull request of devhub labelled `preview`
   ([DevHub's previews](docs/delivery/designs/devhub-previews.md)): ApplicationSet `devhub-pull-requests` installs the
   chart from each head commit into `devhub-pr-<number>`, beside `platform/devhub/pull-request`, under AppProject
   `devhub-pull-requests` and admission policies `devhub-*`.
