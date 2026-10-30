@@ -105,7 +105,8 @@ Each route's Middlewares are in its own namespace.
 | `docs.dev.kfirs.com` | protected | `docs/docs:80` | All | `admins` |
 | `tests.dev.kfirs.com` | protected | `tests/tests:80` | All | `admins` |
 | `devhub.dev.kfirs.com` | protected | `devhub/devhub-rest-server:80`; `devhub/devhub-graphql-server:80`; `devhub/devhub-console:80` | `/api` and `/graphql`, each prefix rewritten to `/`; everything else | `admins` |
-| `pr-<number>.devhub.dev.kfirs.com` | `devhub-pull-requests` | `devhub-pr-<number>/devhub-rest-server:80`; `…/devhub-graphql-server:80`; `…/devhub-console:80` | As the demo's | `admins`, then Cookie removed |
+| `pr-<number>.devhub.dev.kfirs.com` | `devhub-pull-requests` | `devhub-pr-<number>/devhub-console:80` | All | `admins`, then Cookie removed |
+| `api-pr-<number>.devhub.dev.kfirs.com` | `devhub-pull-requests` | `devhub-pr-<number>/devhub-graphql-server:80`; `…/devhub-rest-server:80` | `/graphql`, its prefix rewritten to `/`; everything else | `admins`, then Cookie removed |
 | `admin.id.kfirs.com` | protected | `keycloak/keycloak-service:8080` | Exact `/` (Keycloak redirects it to the console), `/admin`, `/realms/master`, `/resources` | `admins` |
 | `auth.kfirs.com` | public | `auth/oauth2-proxy:80` | `/oauth2` | None |
 | `id.kfirs.com` | public | `keycloak/keycloak-service:8080` | `/realms/hub`, `/resources`; POSTs under `/realms/hub/login-actions`; `/realms/master` | None; `sign-in-attempts`; `oidc`, `admins` |
@@ -128,7 +129,7 @@ in `traefik` its private key is out of every pull request's reach.
 
 DevHub's previews have the same shape in `platform/devhub/manifests`: Certificate and Gateway `traefik/devhub-pull-requests`
 for `*.devhub.dev.kfirs.com`, listener `previews`, taking routes only from namespaces labelled
-`kfirs.com/devhub-pull-request: "true"`, each held by policy `devhub-http-routes` to its own host
+`kfirs.com/devhub-pull-request: "true"`, each held by policy `devhub-http-routes` to its own two hosts
 ([DevHub's previews](designs/devhub-previews.md)).
 
 DNS records and the two IPs are `infra`'s: [DNS](../infra/terraform/gcp.md#dns),

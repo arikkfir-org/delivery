@@ -1,6 +1,7 @@
-# In a DevHub preview an HTTPRoute names only its own host, pr-<number>.devhub.dev.kfirs.com, and attaches only
-# to traefik/devhub-pull-requests, which every preview shares (pull-requests-gateway.yaml); never traefik/protected,
-# which takes routes for any *.kfirs.com host from every namespace. Every rule asks Middleware admins first, then
+# In a DevHub preview an HTTPRoute names only its own hosts, pr-<number>.devhub.dev.kfirs.com (the Console) and
+# api-pr-<number>.devhub.dev.kfirs.com (its APIs), and attaches only to traefik/devhub-pull-requests, which every
+# preview shares (pull-requests-gateway.yaml); never traefik/protected, which takes routes for any *.kfirs.com host from
+# every namespace. Every rule asks Middleware admins first, then
 # removes Cookie, then may only rewrite the URL: the hub's sign-in admits every hub user, Fin's test users included, and
 # Traefik runs filters in order, so a redirect or mirror before admins would answer them; browsers send the hub's
 # session cookie (domain .kfirs.com) here too, which a pull request's code never gets. Matched by the namespace's name.
@@ -33,14 +34,17 @@ spec:
       expression: >-
         request.operation == 'CREATE' || !has(oldObject.metadata.deletionTimestamp) || object.spec != oldObject.spec
   variables:
-    # devhub-pr-<number> serves pr-<number>.devhub.dev.kfirs.com.
-    - name: host
-      expression: "request.namespace.substring(7) + '.devhub.dev.kfirs.com'"
+    # devhub-pr-<number> serves pr-<number>.devhub.dev.kfirs.com and api-pr-<number>.devhub.dev.kfirs.com.
+    - name: hosts
+      expression: >-
+        [request.namespace.substring(7) + '.devhub.dev.kfirs.com',
+         'api-' + request.namespace.substring(7) + '.devhub.dev.kfirs.com']
   validations:
     - expression: >-
         has(object.spec.hostnames) && size(object.spec.hostnames) > 0
-        && object.spec.hostnames.all(h, h == variables.host)
-      messageExpression: "'An HTTPRoute in ' + request.namespace + ' names one host, ' + variables.host"
+        && object.spec.hostnames.all(h, h in variables.hosts)
+      messageExpression: >-
+        'An HTTPRoute in ' + request.namespace + ' names only ' + variables.hosts[0] + ' or ' + variables.hosts[1]
     - expression: >-
         has(object.spec.parentRefs) && size(object.spec.parentRefs) > 0
         && object.spec.parentRefs.all(p, (!has(p.group) || p.group == 'gateway.networking.k8s.io')

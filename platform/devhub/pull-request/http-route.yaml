@@ -1,12 +1,13 @@
-# A preview on one host, pr-<number>.devhub.dev.kfirs.com, on the Gateway every preview shares, behind the
-# hub's sign-in and Middleware admins, as the demo is. Each workload serves as if it were alone (the Console and GraphQL
-# at /, REST under /v1/), so each API's prefix is stripped, as the chart's urls say. Every rule asks admins first, which
-# reads the hub's session cookie, then removes Cookie: browsers send that cookie (domain .kfirs.com) here too, and a
-# pull request's code never gets it. Policy devhub-http-routes holds all of this.
+# A preview on two hosts, on the Gateway every preview shares, behind the hub's sign-in and Middleware admins, as the
+# demo is: the Console at pr-<number>.devhub.dev.kfirs.com, and its APIs at api-pr-<number>.devhub.dev.kfirs.com, REST
+# at the root (/v1/...) and GraphQL under /graphql, whose prefix is stripped, since each workload serves as if it were
+# alone. One label below devhub.dev, so the Gateway's one wildcard certificate covers both. Every rule asks admins
+# first, which reads the hub's session cookie, then removes Cookie: browsers send that cookie (domain .kfirs.com) here
+# too, and a pull request's code never gets it. Policy devhub-http-routes holds all of this.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: devhub
+  name: devhub-console
   labels:
     app.kubernetes.io/name: devhub
 spec:
@@ -18,11 +19,7 @@ spec:
   hostnames:
     - pr-0.devhub.dev.kfirs.com
   rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /api
-      filters:
+    - filters:
         - type: ExtensionRef
           extensionRef:
             group: traefik.io
@@ -32,14 +29,25 @@ spec:
           requestHeaderModifier:
             remove:
               - Cookie
-        - type: URLRewrite
-          urlRewrite:
-            path:
-              type: ReplacePrefixMatch
-              replacePrefixMatch: /
       backendRefs:
-        - name: devhub-rest-server
+        - name: devhub-console
           port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: devhub-api
+  labels:
+    app.kubernetes.io/name: devhub
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: traefik
+      name: devhub-pull-requests
+  hostnames:
+    - api-pr-0.devhub.dev.kfirs.com
+  rules:
     - matches:
         - path:
             type: PathPrefix
@@ -73,5 +81,5 @@ spec:
             remove:
               - Cookie
       backendRefs:
-        - name: devhub-console
+        - name: devhub-rest-server
           port: 80
