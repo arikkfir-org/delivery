@@ -70,3 +70,24 @@ spec:
                 values:
                   - octomaton
                   - go-import
+    # Cobranch's own domain: its Go import page, from go-import alone.
+    - name: cobranch-dev
+      protocol: HTTPS
+      port: 9443
+      hostname: cobranch.dev
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: cobranch-dev-tls
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              kfirs.com/public-ingress: "true"
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - go-import

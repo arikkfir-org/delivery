@@ -1,32 +1,28 @@
-# DevHub's demo, namespace devhub, at devhub.dev.kfirs.com. Its chart lives with its code, in chart/devhub of
-# arikkfir-org/devhub. Argo CD follows devhub's main and runs the images of the synced commit, which devhub's pipeline
-# main publishes for main's newest commit, tagged with its short SHA. Each sync migrates the database first (the chart's
-# migrate Job, ordered by its sync waves). No CreateNamespace: namespace.yaml holds it. DevHub is becoming Cobranch:
-# for the move only, a resources finalizer, so that removing this Application deletes the demo rather than leaving it
-# running unmanaged (it holds nothing to keep: no tables yet, no seed).
+# Cobranch's demo, namespace cobranch, at cobranch.dev.kfirs.com. Its chart lives with its code, in chart/cobranch of
+# arikkfir-org/cobranch. Argo CD follows cobranch's main and runs the images of the synced commit, which cobranch's
+# pipeline main publishes for main's newest commit, tagged with its short SHA. Each sync migrates the database first (the
+# chart's migrate Job, ordered by its sync waves). No CreateNamespace: namespace.yaml holds it.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: devhub
+  name: cobranch
   namespace: argocd
-  finalizers:
-    - resources-finalizer.argocd.argoproj.io
 spec:
-  project: devhub
+  project: cobranch
   destination:
     server: https://kubernetes.default.svc
-    namespace: devhub
+    namespace: cobranch
   source:
-    repoURL: https://github.com/arikkfir-org/devhub
+    repoURL: https://github.com/arikkfir-org/cobranch
     targetRevision: main
-    path: chart/devhub
+    path: chart/cobranch
     helm:
-      releaseName: devhub
+      releaseName: cobranch
       # helm test's pod is for a person or CI to run, not for every sync.
       skipTests: true
       # The synced commit's images. As strings: a short SHA can be all digits.
       parameters:
-        - name: images.devhub.tag
+        - name: images.cobranch.tag
           value: ${ARGOCD_APP_REVISION_SHORT}
           forceString: true
         - name: images.console.tag
@@ -34,18 +30,18 @@ spec:
           forceString: true
       valuesObject:
         images:
-          devhub:
-            repository: me-west1-docker.pkg.dev/arikkfir/devhub/devhub
+          cobranch:
+            repository: me-west1-docker.pkg.dev/arikkfir/cobranch/cobranch
           console:
-            repository: me-west1-docker.pkg.dev/arikkfir/devhub/devhub-console
+            repository: me-west1-docker.pkg.dev/arikkfir/cobranch/cobranch-console
         # One host behind the protected gateway's sign-in, whose routes (http-route.yaml) strip each API's prefix.
         urls:
-          console: https://devhub.dev.kfirs.com
-          rest: https://devhub.dev.kfirs.com/api
-          graphql: https://devhub.dev.kfirs.com/graphql
-        # infra's bucket, which only the servers' ServiceAccount, devhub-server, reaches through Workload Identity.
+          console: https://cobranch.dev.kfirs.com
+          rest: https://cobranch.dev.kfirs.com/api
+          graphql: https://cobranch.dev.kfirs.com/graphql
+        # infra's bucket, which only the servers' ServiceAccount, cobranch-server, reaches through Workload Identity.
         blob:
-          url: gs://arikkfir-devhub
+          url: gs://arikkfir-cobranch
         # Every pod on the system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
         restServer:
           nodeSelector:
@@ -86,7 +82,7 @@ spec:
         postgresql:
           # Generated once in the cluster (postgresql-password.yaml): the chart's own would change at every render.
           auth:
-            existingSecret: devhub-postgresql-password
+            existingSecret: cobranch-postgresql-password
           nodeSelector:
             kfirs.com/pool: system
           tolerations:

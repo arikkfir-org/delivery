@@ -3,15 +3,14 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: devhub
-  namespace: devhub
+  name: cobranch
   labels:
-    app.kubernetes.io/name: devhub
+    app.kubernetes.io/name: cobranch
 spec:
   podSelector:
     matchLabels:
-      app.kubernetes.io/name: devhub
-      app.kubernetes.io/instance: devhub
+      app.kubernetes.io/name: cobranch
+      app.kubernetes.io/instance: cobranch
     matchExpressions:
       - key: app.kubernetes.io/component
         operator: In

@@ -15,10 +15,10 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   silently.
 - Pin everything: chart `targetRevision`, image tags, remote manifest URLs. Never `latest`, never a floating branch.
   Applications `octomaton` and `octomaton-logs` (`platform/octomaton/manifests`) pin a version of
-  `arikkfir-org/octomaton`: its tag as `targetRevision` and as the images' tag, the same in both. The exceptions run
-  the image of the commit they sync: Fin's environments (`platform/fin/manifests`) follow `main` of
-  `arikkfir-org/fin` (production), each pull request's head commit (its own environment) and each merge queue entry's
-  merge group commit (its own); DevHub's demo (`platform/devhub/manifests`) follows `main` of `arikkfir-org/devhub`.
+  `arikkfir-org/octomaton`: its tag as `targetRevision` and as the images' tag, the same in both. The exceptions run the
+  image of the commit they sync: Fin's environments (`platform/fin/manifests`) follow `main` of `arikkfir-org/fin`
+  (production), each pull request's head commit (its own environment) and each merge queue entry's merge group commit
+  (its own); Cobranch's demo (`platform/cobranch/manifests`) follows `main` of `arikkfir-org/cobranch`.
 - Fin's `deploy/` comes from pull requests and holds its own Namespace, Gateway, routes, certificate, ExternalSecrets,
   NATS resources, autoscaling, ID-token Middleware, and the Role and RoleBinding that let its workloads read Job
   migrate; a pull request's deployment drops the Gateway and certificate, and
@@ -37,13 +37,13 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   `gcp-secret-manager` out of its reach, and lets the namespace
   reach NATS. NATS takes no credentials, so NetworkPolicy `nats/nats` admits only namespace `nats` and Fin's
   namespaces; a new client's namespace goes there first.
-- DevHub's previews (`platform/devhub/manifests`, `docs/delivery/designs/devhub-previews.md`) install devhub's chart
-  from the head commit of each pull request devhub's members open into `devhub-pr-<number>`, beside
-  `platform/devhub/pull-request` from `main`. Never a fork's: keep the selector on the author, since devhub is public
-  and the generator can't tell forks' pull requests from devhub's own. Admit a new kind to AppProject
-  `devhub-pull-requests` only with an admission policy that holds what it may say, as the `devhub-*` policies do. Their
-  namespaces carry `kfirs.com/devhub-pull-request`, never Fin's `kfirs.com/pull-request` (NATS, Fin's Gateway); their
-  pods run on pool `ci`; no grant in `infra` names them.
+- Cobranch's previews (`platform/cobranch/manifests`, `docs/delivery/designs/cobranch-previews.md`) install cobranch's
+  chart from the head commit of each pull request cobranch's members open into `cobranch-pr-<number>`, beside
+  `platform/cobranch/pull-request` from `main`. Never a fork's: keep the selector on the author, since cobranch is
+  public and the generator can't tell forks' pull requests from cobranch's own. Admit a new kind to AppProject
+  `cobranch-pull-requests` only with an admission policy that holds what it may say, as the `cobranch-*` policies do.
+  Their namespaces carry `kfirs.com/cobranch-pull-request`, never Fin's `kfirs.com/pull-request` (NATS, Fin's Gateway);
+  their pods run on pool `ci`; no grant in `infra` names them.
 - Octomaton's `deploy/` and `deploy/logs/` come from a version's tag only (a commit of its `main`); `deploy/` holds its
   own Namespace and RBAC.
   Overrides (the images' tag, the namespace's `kfirs.com/public-ingress` label, the node pool) go in the `kustomize`

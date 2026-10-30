@@ -1,0 +1,14 @@
+# What the hub decides around one Cobranch pull request's preview, beside the chart from its head commit
+# (docs/delivery/designs/cobranch-previews.md). ApplicationSet cobranch-pull-requests (platform/cobranch/manifests) renders it
+# for each pull request with kustomize's namespace set to cobranch-pr-<number>, which renames the Namespace too, and patches
+# the route's host to pr-<number>.cobranch.dev.kfirs.com. As written, it is pull request 0's.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: cobranch-pr-0
+resources:
+  - namespace.yaml
+  - resource-quota.yaml
+  - postgresql-password.yaml
+  - http-route.yaml
+  - middleware.yaml
+  - network-policy.yaml

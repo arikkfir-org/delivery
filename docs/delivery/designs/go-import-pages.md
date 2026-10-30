@@ -1,6 +1,6 @@
 # Go import pages
 
-**Decision**: one Caddy, Application `go-import`, answers Go's import requests for every hub domain that is a Go module path: `fin.kfirs.com` and `octomaton.dev`. A table in its configuration names each domain's repository and where people who open the domain in a browser go: today each domain's own repository, and for any other host the organization's page, `https://github.com/arikkfir-org`. Built in [delivery#50](https://github.com/arikkfir-org/delivery/pull/50), which replaced Octomaton's own Caddy ([octomaton#27](https://github.com/arikkfir-org/octomaton/pull/27)).
+**Decision**: one Caddy, Application `go-import`, answers Go's import requests for every hub domain that is a Go module path: `fin.kfirs.com`, `octomaton.dev` and `cobranch.dev`. A table in its configuration names each domain's repository and where people who open the domain in a browser go: today each domain's own repository, and for any other host the organization's page, `https://github.com/arikkfir-org`. Built in [delivery#50](https://github.com/arikkfir-org/delivery/pull/50), which replaced Octomaton's own Caddy ([octomaton#27](https://github.com/arikkfir-org/octomaton/pull/27)).
 
 ## Why
 
@@ -13,9 +13,9 @@ flowchart LR
   GO["go command,<br/>Go proxy"] -->|"GET /path?go-get=1"| GW
   BR["Browser"] -->|"GET /path"| GW
   GH["GitHub App"] -->|"POST /github/hooks"| GW
-  GW["Traefik gateway public<br/>listeners public-websecure, octomaton-dev"]
+  GW["Traefik gateway public<br/>listeners public-websecure, octomaton-dev, cobranch-dev"]
   GW -->|"octomaton.dev, Exact /github/hooks"| OC["octomaton/octomaton"]
-  GW -->|"fin.kfirs.com, octomaton.dev: everything else"| GI["go-import/go-import<br/>Caddy"]
+  GW -->|"fin.kfirs.com, cobranch.dev, octomaton.dev: everything else"| GI["go-import/go-import<br/>Caddy"]
 ```
 
 | Request | Answer |
@@ -37,6 +37,7 @@ Caddy's `map` turns the request's host into the domain's repository and redirect
 | Service | `go-import`, port 80 to 8080 |
 | NetworkPolicy | `go-import`: only namespace `traefik`, on 8080 |
 | Listener `octomaton-dev` | Admits routes only from namespaces `octomaton` and `go-import` |
+| Listener `cobranch-dev` | Admits routes only from namespace `go-import`; Cobranch's domain serves nothing else yet (zone, record and cert-manager's grant: infra's `terraform/gcp`) |
 
 ## Decisions
 

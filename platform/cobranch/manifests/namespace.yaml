@@ -1,9 +1,9 @@
-# DevHub's demo. Its pods meet the restricted Pod Security Standard, as the chart writes them. Wave -1: before the
+# Cobranch's demo. Its pods meet the restricted Pod Security Standard, as the chart writes them. Wave -1: before the
 # password and the Application that deploy into it.
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: devhub
+  name: cobranch
   labels:
     pod-security.kubernetes.io/enforce: restricted
   annotations:

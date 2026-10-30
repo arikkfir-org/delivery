@@ -9,5 +9,4 @@ resources:
   - tenants/tooling
   - tenants/docs
   - tenants/fin
-  - tenants/devhub
   - tenants/cobranch

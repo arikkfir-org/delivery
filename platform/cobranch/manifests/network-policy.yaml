@@ -1,0 +1,28 @@
+# Only Traefik reaches the Console and the servers (the route's backends). The chart's own policy admits only the
+# servers and the migrate Job to PostgreSQL.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cobranch
+  namespace: cobranch
+  labels:
+    app.kubernetes.io/name: cobranch
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: cobranch
+      app.kubernetes.io/instance: cobranch
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [console, rest-server, graphql-server]
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+      ports:
+        - protocol: TCP
+          port: 8080

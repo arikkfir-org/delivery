@@ -57,14 +57,17 @@ Each file there is an Application in namespace `argocd`, project `default`:
   labelled `kfirs.com/pull-request: "true"`. Pull requests share Gateway `traefik/fin-pull-requests` and its
   one wildcard certificate, so a pull request issues no certificate. Argo CD reads `fin`, an internal repository, and
   lists its pull requests with its own GitHub App (Secret `argocd/github-app`).
-- `devhub-environment` deploys DevHub's demo ([hosting DevHub's demo](docs/delivery/designs/devhub.md)): Application
-  `devhub` installs `chart/devhub` of `arikkfir-org/devhub` from its `main` into namespace `devhub`, with the images of
-  the synced commit, which devhub's pipeline `main` publishes, and the values this repository decides. Its namespace,
-  AppProject `devhub`, the database's generated password, the route behind Middleware `admins` and the NetworkPolicy
-  live beside it in `platform/devhub/manifests`. It also previews every open pull request devhub's members open
-  ([DevHub's previews](docs/delivery/designs/devhub-previews.md)): ApplicationSet `devhub-pull-requests` installs the
-  chart from each head commit into `devhub-pr-<number>`, beside `platform/devhub/pull-request`, under AppProject
-  `devhub-pull-requests` and admission policies `devhub-*`.
+- `cobranch-environment` deploys Cobranch's demo ([hosting Cobranch's demo](docs/delivery/designs/cobranch.md)):
+  Application `cobranch` installs `chart/cobranch` of `arikkfir-org/cobranch` from its `main` into namespace `cobranch`,
+  with the images of the synced commit, which cobranch's pipeline `main` publishes, and the values this repository
+  decides. Its namespace, AppProject `cobranch`, the database's generated password, the route behind Middleware `admins`
+  and the NetworkPolicy live beside it in `platform/cobranch/manifests`. It also previews every open pull request
+  cobranch's members open ([Cobranch's previews](docs/delivery/designs/cobranch-previews.md)): ApplicationSet
+  `cobranch-pull-requests` installs the chart from each head commit into `cobranch-pr-<number>`, beside
+  `platform/cobranch/pull-request`, under AppProject `cobranch-pull-requests` and admission policies `cobranch-*`.
+- `devhub-environment` holds what is left of DevHub's, which [ENG-221](https://linear.app/arikkfir/issue/ENG-221)
+  renamed Cobranch: AppProjects `devhub` and `devhub-pull-requests` and admission policies `devhub-*`, which Argo CD
+  needs while it deletes the old demo and previews. A later pull request removes it.
 - Every Application syncs automatically with prune and self-heal, retries with backoff (`refresh: true`, so a retry
   picks up a newer commit; ten times, but twice for Fin's pull requests, whose syncs can wait 20 minutes a try for
   images that never come), and creates its namespace, except those whose `deploy/` holds it (Octomaton's and Fin's)
@@ -83,16 +86,16 @@ Each file there is an Application in namespace `argocd`, project `default`:
 | 1 | `gateway-api`, `cert-manager`, `external-secrets` |
 | 2 | `argocd` |
 | 3 | `traefik`, `tekton-operator`, `keda`, `reloader`, `nats`, `keycloak-operator` |
-| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton-environment`, `docs`, `tests`, `ci-tenants`, `keycloak`, `fin-environments`, `go-import`, `devhub-environment` |
+| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton-environment`, `docs`, `tests`, `ci-tenants`, `keycloak`, `fin-environments`, `go-import`, `cobranch-environment`, `devhub-environment` |
 
 Within an Application, waves order dependent resources as well: ClusterIssuers and the ClusterSecretStore wait for their
-operators' webhooks; in `traefik` the Certificates (the wildcard and `octomaton-dev`) are issued before the Gateways
-that reference their Secrets, and so is `fin-pull-requests`'s in `fin-environments`.
+operators' webhooks; in `traefik` the Certificates (the wildcard, `octomaton-dev` and `cobranch-dev`) are issued before
+the Gateways that reference their Secrets, and so is `fin-pull-requests`'s in `fin-environments`.
 
 Secrets never live in Git: each one is an `ExternalSecret` reading Secret Manager through the `ClusterSecretStore`
 `gcp-secret-manager`. A credential only the cluster uses is generated instead, by an ESO `Password` generator with
 `refreshPolicy: CreatedOnce` (Grafana's database password). Every UI is served on the `protected` gateway, behind the
-oauth2-proxy interceptor ([design](docs/delivery/designs/phase-3-ingress-and-auth.md)); only `auth.kfirs.com/oauth2`, `octomaton.dev` (Octomaton's webhook, and its Go import page from `go-import`),
+oauth2-proxy interceptor ([design](docs/delivery/designs/phase-3-ingress-and-auth.md)); only `auth.kfirs.com/oauth2`, `octomaton.dev` (Octomaton's webhook, and its Go import page from `go-import`), `cobranch.dev` (Cobranch's Go import page, `go-import`),
 `legal.kfirs.com` (the docs site's privacy policy and terms of service, exact paths only), `id.kfirs.com` (Keycloak's
 realm `hub`, and realm `master` behind the interceptor) and `fin.kfirs.com` (Fin's Go import page, `go-import`, [design](docs/delivery/designs/go-import-pages.md)) use the
 `public` gateway. Fin's host names need certificates of their own, so production's environment has a Gateway of its
@@ -111,7 +114,7 @@ gone from `octomaton-logs`, which reads Cloud Logging.
 Removing a file from `apps/` deletes the Application but not its resources (no cascading finalizer). Delete the
 resources deliberately, or cascade-delete the Application before removing its file. The one exception, for DevHub's
 rename to Cobranch only, is `devhub-environment`, whose finalizer deletes the old demo and previews with it
-([DevHub](docs/delivery/designs/devhub.md)).
+([Cobranch](docs/delivery/designs/cobranch.md)).
 
 ## Add a component
 

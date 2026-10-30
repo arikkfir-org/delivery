@@ -35,3 +35,20 @@ spec:
     group: cert-manager.io
     kind: ClusterIssuer
     name: letsencrypt
+---
+# cobranch.dev (zone cobranch-dev), Cobranch's Go import page, has a certificate of its own for the same reason.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cobranch-dev
+  namespace: traefik
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  secretName: cobranch-dev-tls
+  dnsNames:
+    - cobranch.dev
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: letsencrypt
