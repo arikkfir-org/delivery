@@ -1,0 +1,13 @@
+# A preview's namespace, which goes with its pull request. Its pods meet the restricted Pod Security Standard, as the
+# chart writes them. kfirs.com/cobranch-pull-request keeps ClusterSecretStore gcp-secret-manager out of its reach and
+# admits its route to Gateway traefik/cobranch-pull-requests; policy cobranch-namespaces holds both labels. Wave -1: before
+# everything that goes in it.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cobranch-pr
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    kfirs.com/cobranch-pull-request: "true"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"

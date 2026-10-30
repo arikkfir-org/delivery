@@ -1,0 +1,60 @@
+# A Cobranch preview's namespace, cobranch-pr-<number>, comes from delivery (platform/cobranch/pull-request), but its pull
+# request's chart could render one too, so its labels are held whoever writes them: pods meet the restricted Pod
+# Security Standard, and its only kfirs.com/ label is kfirs.com/cobranch-pull-request "true", which keeps
+# ClusterSecretStore gcp-secret-manager out of its reach. Never kfirs.com/pull-request, which would admit it to Fin's
+# NATS and Gateway, nor kfirs.com/public-ingress. Wave -1: in force before any preview.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: cobranch-namespaces
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - namespaces
+  matchConditions:
+    - name: preview
+      expression: "object.metadata.name.startsWith('cobranch-pr-')"
+    # Deleting a namespace, the garbage collector drops its finalizer with an update that leaves the labels as they
+    # were; that update passes, so a namespace made before this policy last tightened still goes. Every other update is
+    # checked.
+    - name: changed
+      expression: >-
+        request.operation == 'CREATE' || !has(oldObject.metadata.deletionTimestamp)
+        || (has(object.metadata.labels) ? object.metadata.labels : {})
+          != (has(oldObject.metadata.labels) ? oldObject.metadata.labels : {})
+  validations:
+    - expression: >-
+        has(object.metadata.labels)
+        && 'pod-security.kubernetes.io/enforce' in object.metadata.labels
+        && object.metadata.labels['pod-security.kubernetes.io/enforce'] == 'restricted'
+        && (!('pod-security.kubernetes.io/enforce-version' in object.metadata.labels)
+          || object.metadata.labels['pod-security.kubernetes.io/enforce-version'] == 'latest')
+      message: A Cobranch preview's namespace enforces the latest restricted Pod Security Standard.
+    - expression: >-
+        has(object.metadata.labels)
+        && object.metadata.labels.all(key, !key.startsWith('kfirs.com/') || key == 'kfirs.com/cobranch-pull-request')
+        && 'kfirs.com/cobranch-pull-request' in object.metadata.labels
+        && object.metadata.labels['kfirs.com/cobranch-pull-request'] == 'true'
+      message: A Cobranch preview's namespace is labelled kfirs.com/cobranch-pull-request "true", and no other kfirs.com/ label.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: cobranch-namespaces
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: cobranch-namespaces
+  validationActions:
+    - Deny

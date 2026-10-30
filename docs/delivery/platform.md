@@ -13,7 +13,7 @@ Replicas, budgets and rollouts: [disruption budgets](designs/disruption-budgets.
 | --- | --- | --- | --- | --- |
 | cluster-scoped | Gateway API CRDs, standard channel (`gateway-api`) | `kubernetes-sigs/gateway-api` release manifest `standard-install.yaml` | `v1.6.2` | 1 |
 | `cert-manager` | cert-manager (`cert-manager`), with ClusterIssuers `letsencrypt` and `letsencrypt-staging` ([certificates](#certificates)) | Chart `cert-manager`, `https://charts.jetstack.io` | `v1.21.2` | 1 |
-| `external-secrets` | External Secrets Operator (`external-secrets`), with ClusterSecretStore `gcp-secret-manager`: Secret Manager of project `arikkfir`, for every namespace labelled neither `kfirs.com/pull-request` nor `kfirs.com/devhub-pull-request` | Chart `external-secrets`, `https://charts.external-secrets.io` | `2.13.0` | 1 |
+| `external-secrets` | External Secrets Operator (`external-secrets`), with ClusterSecretStore `gcp-secret-manager`: Secret Manager of project `arikkfir`, for every namespace labelled neither `kfirs.com/pull-request` nor `kfirs.com/cobranch-pull-request` (nor DevHub's old `kfirs.com/devhub-pull-request`, until its last preview is gone) | Chart `external-secrets`, `https://charts.external-secrets.io` | `2.13.0` | 1 |
 | `argocd` | Argo CD (`argocd`), self-managed after Terraform's bootstrap ([infra's argocd root](../infra/terraform/argocd.md)) | Chart `argo-cd`, `https://argoproj.github.io/argo-helm` | `10.10.5` (Argo CD v3.5.5) | 2 |
 | `traefik` | Traefik (`traefik`): GatewayClass `traefik`, Gateways `protected` and `public`, two replicas ([ingress](#ingress)) | Chart `traefik`, `https://traefik.github.io/charts` | `42.0.0` (Traefik v3.7.15, pinned in its values: the chart's is v3.7.14) | 3 |
 | `tekton-operator` | Tekton Operator (`tekton-operator`), which installs no default TektonConfig (`AUTOINSTALL_COMPONENTS: "false"`) | `tektoncd/operator` release manifest, from `infra.tekton.dev` | `v0.81.1` | 3 |
@@ -34,8 +34,8 @@ Replicas, budgets and rollouts: [disruption budgets](designs/disruption-budgets.
 | `ci-<repository>` | CI tenants (`ci-tenants`) ([CI tenants](#ci-tenants)) | `platform/ci-tenants/manifests` | n/a | 4 |
 | `keycloak` | Keycloak (`keycloak`): resource `keycloak`, two instances, Service `keycloak-service` on 8080 ([design](designs/keycloak.md)) | `quay.io/keycloak/keycloak`, in `platform/keycloak/manifests` | `26.8.1` | 4 |
 | `keycloak` | PostgreSQL for Keycloak: StatefulSet `postgres` ([design](designs/keycloak.md#in-the-cluster)) | `docker.io/library/postgres`, in `platform/keycloak/manifests` | `18.6-trixie` | 4 |
-| `devhub` | DevHub's demo (`devhub-environment`): Namespace `devhub`, AppProject `devhub`, Application `devhub` (the chart's Console, REST and GraphQL servers, migrate Job and PostgreSQL), ExternalSecret `devhub-postgresql-password`, HTTPRoute `devhub`, Middleware `admins`, NetworkPolicy `devhub` ([hosting DevHub's demo](designs/devhub.md)) | `chart/devhub` of `arikkfir-org/devhub` at `main`; the host objects in `platform/devhub/manifests` | The synced commit's images | 4 |
-| `devhub-pr-<number>` | DevHub's pull requests' previews (`devhub-environment`): ApplicationSet `devhub-pull-requests`, AppProject `devhub-pull-requests`, admission policies `devhub-*`, and Gateway `traefik/devhub-pull-requests` ([DevHub's previews](designs/devhub-previews.md)) | `chart/devhub` of `arikkfir-org/devhub` at the head commit of each pull request its members open; the host objects in `platform/devhub/pull-request` | The head commit's images | 4 |
+| `cobranch` | Cobranch's demo (`cobranch-environment`): Namespace `cobranch`, AppProject `cobranch`, Application `cobranch` (the chart's Console, REST and GraphQL servers, migrate Job and PostgreSQL), ExternalSecret `cobranch-postgresql-password`, HTTPRoute `cobranch`, Middleware `admins`, NetworkPolicy `cobranch` ([hosting Cobranch's demo](designs/cobranch.md)) | `chart/cobranch` of `arikkfir-org/cobranch` at `main`; the host objects in `platform/cobranch/manifests` | The synced commit's images | 4 |
+| `cobranch-pr-<number>` | Cobranch's pull requests' previews (`cobranch-environment`): ApplicationSet `cobranch-pull-requests`, AppProject `cobranch-pull-requests`, admission policies `cobranch-*`, and Gateway `traefik/cobranch-pull-requests` ([Cobranch's previews](designs/cobranch-previews.md)) | `chart/cobranch` of `arikkfir-org/cobranch` at the head commit of each pull request its members open; the host objects in `platform/cobranch/pull-request` | The head commit's images | 4 |
 | `fin`, `fin-pr-<number>`, `fin-pr-<number>-merge` | Fin (`fin-environments`): Application `fin` (production), ApplicationSet `fin-pull-requests`, Application `fin-identities`, AppProjects `fin` and `fin-pull-requests`, admission policies, and Gateway `traefik/fin-pull-requests` ([environments](../fin/designs/environments.md)) | `deploy/` of `arikkfir-org/fin`: `main`, each pull request's head commit and each merge queue entry's commit | The deployed commit's images | 4 |
 
 ## NATS
@@ -86,7 +86,7 @@ cert-manager issues them from Let's Encrypt through ClusterIssuer `letsencrypt`,
 | `protected/websecure`, `public/public-websecure` | `*.kfirs.com`, which also matches deeper names | `wildcard-kfirs-com` (`*.kfirs.com`, `*.dev.kfirs.com`, `admin.id.kfirs.com`) / `traefik/wildcard-kfirs-com-tls`, also Traefik's default certificate |
 | `public/octomaton-dev` (9443) | `octomaton.dev` | `octomaton-dev` / `traefik/octomaton-dev-tls` |
 | `fin-pull-requests/app` (8443) | `*.app.dev.fin.kfirs.com` | `fin-pull-requests` / `traefik/fin-pull-requests-tls` |
-| `devhub-pull-requests/previews` (8443) | `*.devhub.dev.kfirs.com` | `devhub-pull-requests` / `traefik/devhub-pull-requests-tls` |
+| `cobranch-pull-requests/previews` (8443) | `*.cobranch.dev.kfirs.com` | `cobranch-pull-requests` / `traefik/cobranch-pull-requests-tls` |
 
 Listener `octomaton-dev` admits routes only from namespaces `octomaton` (the webhook) and `go-import` (the Go import
 page), and only while they carry `kfirs.com/public-ingress: "true"`.
@@ -104,8 +104,8 @@ Each route's Middlewares are in its own namespace.
 | `nui.dev.kfirs.com` | protected | `nats/nui:31311` | All | `admins`, `strip-cookies` |
 | `docs.dev.kfirs.com` | protected | `docs/docs:80` | All | `admins` |
 | `tests.dev.kfirs.com` | protected | `tests/tests:80` | All | `admins` |
-| `devhub.dev.kfirs.com` | protected | `devhub/devhub-rest-server:80`; `devhub/devhub-graphql-server:80`; `devhub/devhub-console:80` | `/api` and `/graphql`, each prefix rewritten to `/`; everything else | `admins` |
-| `pr-<number>.devhub.dev.kfirs.com` | `devhub-pull-requests` | `devhub-pr-<number>/devhub-rest-server:80`; `…/devhub-graphql-server:80`; `…/devhub-console:80` | As the demo's | `admins`, then Cookie removed |
+| `cobranch.dev.kfirs.com` | protected | `cobranch/cobranch-rest-server:80`; `cobranch/cobranch-graphql-server:80`; `cobranch/cobranch-console:80` | `/api` and `/graphql`, each prefix rewritten to `/`; everything else | `admins` |
+| `pr-<number>.cobranch.dev.kfirs.com` | `cobranch-pull-requests` | `cobranch-pr-<number>/cobranch-rest-server:80`; `…/cobranch-graphql-server:80`; `…/cobranch-console:80` | As the demo's | `admins`, then Cookie removed |
 | `admin.id.kfirs.com` | protected | `keycloak/keycloak-service:8080` | Exact `/` (Keycloak redirects it to the console), `/admin`, `/realms/master`, `/resources` | `admins` |
 | `auth.kfirs.com` | public | `auth/oauth2-proxy:80` | `/oauth2` | None |
 | `id.kfirs.com` | public | `keycloak/keycloak-service:8080` | `/realms/hub`, `/resources`; POSTs under `/realms/hub/login-actions`; `/realms/master` | None; `sign-in-attempts`; `oidc`, `admins` |
@@ -126,10 +126,10 @@ namespace to its own host, `pr-<number>.app.dev.fin.kfirs.com` or `pr-<number>-m
 certificate serves every pull request, so none issues its own against Let's Encrypt's 50 a week for `kfirs.com`, and
 in `traefik` its private key is out of every pull request's reach.
 
-DevHub's previews have the same shape in `platform/devhub/manifests`: Certificate and Gateway `traefik/devhub-pull-requests`
-for `*.devhub.dev.kfirs.com`, listener `previews`, taking routes only from namespaces labelled
-`kfirs.com/devhub-pull-request: "true"`, each held by policy `devhub-http-routes` to its own host
-([DevHub's previews](designs/devhub-previews.md)).
+Cobranch's previews have the same shape in `platform/cobranch/manifests`: Certificate and Gateway `traefik/cobranch-pull-requests`
+for `*.cobranch.dev.kfirs.com`, listener `previews`, taking routes only from namespaces labelled
+`kfirs.com/cobranch-pull-request: "true"`, each held by policy `cobranch-http-routes` to its own host
+([Cobranch's previews](designs/cobranch-previews.md)).
 
 DNS records and the two IPs are `infra`'s: [DNS](../infra/terraform/gcp.md#dns),
 [network](../infra/terraform/gcp.md#network).
@@ -137,9 +137,8 @@ DNS records and the two IPs are `infra`'s: [DNS](../infra/terraform/gcp.md#dns),
 ## CI tenants
 
 Application `ci-tenants` creates namespace `ci-<repository>` for every repository but `.github`, which has no CI:
-`ci-infra`, `ci-delivery`, `ci-octomaton`, `ci-tooling`, `ci-docs`, `ci-fin`, `ci-devhub` and `ci-cobranch`. Octomaton
-runs each repository's pipelines in its tenant, which it names after the repository: DevHub is becoming Cobranch, and
-`ci-cobranch` is ready before its repository is renamed; `ci-devhub` goes once it is.
+`ci-infra`, `ci-delivery`, `ci-octomaton`, `ci-tooling`, `ci-docs`, `ci-fin` and `ci-cobranch`. Octomaton
+runs each repository's pipelines in its tenant, which it names after the repository.
 
 Every tenant gets the base (`platform/ci-tenants/manifests/base`):
 
@@ -168,10 +167,8 @@ token:
 | `ci-infra` | `ci-infra-apply` | `main` | `apply`: applies merges to `main` |
 | `ci-octomaton` | `ci-octomaton-release` | branch `main`, tags `v*` | `main`: pushes Octomaton's images of every commit on `main`; `tag`: adds a version's tag to them ([versioned releases](../octomaton/designs/releases.md)) |
 | `ci-octomaton` | `ci-octomaton-ci` | None | `ci`: restores `main`'s or its pull request's Go caches, saves its pull request's |
-| `ci-devhub` | `ci-devhub-release` | branch `main`, tags `v*` | `main`: pushes DevHub's images of `main`'s newest commit ([hosting DevHub's demo](designs/devhub.md)); `tag`: adds a version's tag to them and publishes the chart at that version ([the DevHub repository](../devhub/designs/repository.md)) |
-| `ci-devhub` | `ci-devhub-preview` | None | `preview`: pushes each pull request's head commit's images to `devhub-previews`, which only previews pull ([DevHub's previews](designs/devhub-previews.md)) |
-| `ci-cobranch` | `ci-cobranch-release` | branch `main`, tags `v*` | The same as `ci-devhub-release`, for repository `cobranch` |
-| `ci-cobranch` | `ci-cobranch-preview` | None | The same as `ci-devhub-preview`, for repository `cobranch-previews` |
+| `ci-cobranch` | `ci-cobranch-release` | branch `main`, tags `v*` | `main`: pushes Cobranch's images of `main`'s newest commit ([hosting Cobranch's demo](designs/cobranch.md)); `tag`: adds a version's tag to them and publishes the chart at that version ([the Cobranch repository](../cobranch/designs/repository.md)) |
+| `ci-cobranch` | `ci-cobranch-preview` | None | `preview`: pushes each pull request's head commit's images to `cobranch-previews`, which only previews pull ([Cobranch's previews](designs/cobranch-previews.md)) |
 | `ci-tooling` | `ci-tooling-publish` | `main` | `publish`: writes bucket `arikkfir-claude`; `reviewer-image`: pushes the reviewer image |
 | `ci-fin` | `ci-fin-release` | `main` | `release`: production's images; saves the CI cache |
 | `ci-fin` | `ci-fin-preview` | None | `preview`: pull requests' images |
@@ -188,7 +185,7 @@ Hub-wide labels share the prefix `kfirs.com/`.
 | --- | --- | --- | --- |
 | `kfirs.com/public-ingress: "true"` | Namespace | May attach routes to Gateway `public`, which has no sign-in | The Applications' `managedNamespaceMetadata` (`auth`, `docs`, `keycloak`, `go-import`) and Application `octomaton`'s `kustomize` options (`octomaton`). Policy `fin-namespaces` refuses it on Fin's namespaces |
 | `kfirs.com/pull-request: "true"` | Namespace | A Fin pull request's or merge queue entry's environment: `gcp-secret-manager` serves it nothing, it reaches NATS on 4222, and its routes may attach to `traefik/fin-pull-requests` | ApplicationSet `fin-pull-requests`; policy `fin-namespaces` requires it on `fin-pr-*` |
-| `kfirs.com/devhub-pull-request: "true"` | Namespace | A DevHub pull request's preview: `gcp-secret-manager` serves it nothing, and its routes may attach to `traefik/devhub-pull-requests`. Not `kfirs.com/pull-request`, which would admit it to NATS and Fin's Gateway | `platform/devhub/pull-request`; policy `devhub-namespaces` requires it on `devhub-pr-*`, and refuses every other `kfirs.com/` label there |
+| `kfirs.com/cobranch-pull-request: "true"` | Namespace | A Cobranch pull request's preview: `gcp-secret-manager` serves it nothing, and its routes may attach to `traefik/cobranch-pull-requests`. Not `kfirs.com/pull-request`, which would admit it to NATS and Fin's Gateway | `platform/cobranch/pull-request`; policy `cobranch-namespaces` requires it on `cobranch-pr-*`, and refuses every other `kfirs.com/` label there |
 | `kfirs.com/pool: <pool>` | Node | Node pool `system`, `ci` or `fin`, which pods select; `ci` and `fin` are also tainted `kfirs.com/pool=<pool>:NoSchedule` | `infra` ([node pools](../infra/terraform/gcp.md#node-pools)); pods select it ([node pools](designs/node-pools.md)) |
 | `kfirs.com/sandbox: "true"` | Pod | A pull request reviewer's or check `Linear`'s pod, which NetworkPolicy `sandbox` holds | `tooling`'s reviewer and `linear` PipelineRuns |
 

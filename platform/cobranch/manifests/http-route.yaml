@@ -1,20 +1,20 @@
-# DevHub's demo on one host, behind the protected gateway's sign-in and Middleware admins. Each workload serves as if it
+# Cobranch's demo on one host, behind the protected gateway's sign-in and Middleware admins. Each workload serves as if it
 # were alone (the Console and GraphQL at /, REST under /v1/), so each API's prefix is stripped, as the chart's urls say:
 # /api/v1/version reaches the REST server as /v1/version. One host keeps the Console's calls same-origin, so the
 # sign-in's cookie goes with them.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: devhub
-  namespace: devhub
+  name: cobranch
+  namespace: cobranch
   labels:
-    app.kubernetes.io/name: devhub
+    app.kubernetes.io/name: cobranch
 spec:
   parentRefs:
     - name: protected
       namespace: traefik
   hostnames:
-    - devhub.dev.kfirs.com
+    - cobranch.dev.kfirs.com
   rules:
     - matches:
         - path:
@@ -32,7 +32,7 @@ spec:
               type: ReplacePrefixMatch
               replacePrefixMatch: /
       backendRefs:
-        - name: devhub-rest-server
+        - name: cobranch-rest-server
           port: 80
     - matches:
         - path:
@@ -50,7 +50,7 @@ spec:
               type: ReplacePrefixMatch
               replacePrefixMatch: /
       backendRefs:
-        - name: devhub-graphql-server
+        - name: cobranch-graphql-server
           port: 80
     - filters:
         - type: ExtensionRef
@@ -59,5 +59,5 @@ spec:
             kind: Middleware
             name: admins
       backendRefs:
-        - name: devhub-console
+        - name: cobranch-console
           port: 80

@@ -1,0 +1,46 @@
+# Every Cobranch preview shares this Gateway and its one certificate, so a preview issues none: a certificate each would run
+# into Let's Encrypt's 50 a week for kfirs.com, which the hub's own certificates share. A wildcard covers one label, so a
+# preview's host is pr-<number>.cobranch.dev.kfirs.com, beside the demo's cobranch.dev.kfirs.com, and infra's record
+# *.cobranch.dev sends them all to the protected gateway's address. The listener is on Traefik's protected entry
+# point (8443), behind the hub's sign-in, and takes routes only from namespaces labelled kfirs.com/cobranch-pull-request,
+# which cobranch-http-routes holds to their own host. In traefik, out of every preview's reach, no pull request's code can
+# read the certificate's private key. Wave 0 issues the certificate before the Gateway (wave 1) references its Secret.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cobranch-pull-requests
+  namespace: traefik
+spec:
+  secretName: cobranch-pull-requests-tls
+  dnsNames:
+    - "*.cobranch.dev.kfirs.com"
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: letsencrypt
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: cobranch-pull-requests
+  namespace: traefik
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  gatewayClassName: traefik
+  listeners:
+    - name: previews
+      protocol: HTTPS
+      port: 8443
+      hostname: "*.cobranch.dev.kfirs.com"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: cobranch-pull-requests-tls
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              kfirs.com/cobranch-pull-request: "true"

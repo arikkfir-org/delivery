@@ -1,0 +1,32 @@
+# Cobranch's demo environment (platform/cobranch): its namespace and project, Application cobranch, which installs
+# cobranch's chart from its main, its pull requests' previews, and what the hub decides around them. Wave 4: it needs
+# External Secrets and Traefik's Gateway API.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cobranch-environment
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  source:
+    repoURL: https://github.com/arikkfir-org/delivery
+    targetRevision: main
+    path: platform/cobranch/manifests
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 10
+      refresh: true
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+    syncOptions:
+      - SkipDryRunOnMissingResource=true

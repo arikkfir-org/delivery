@@ -1,16 +1,16 @@
-# A DevHub of every open pull request that devhub's members open, whatever its base branch: namespace
-# devhub-pr-<number>, at https://pr-<number>.devhub.dev.kfirs.com, the APIs under /api and /graphql, through
-# the shared Gateway traefik/devhub-pull-requests (pull-requests-gateway.yaml), running the pull request's head commit,
-# seeded with demo data (docs/delivery/designs/devhub-previews.md). The generator lists devhub's pull requests through
+# A Cobranch of every open pull request that cobranch's members open, whatever its base branch: namespace
+# cobranch-pr-<number>, at https://pr-<number>.cobranch.dev.kfirs.com, the APIs under /api and /graphql, through
+# the shared Gateway traefik/cobranch-pull-requests (pull-requests-gateway.yaml), running the pull request's head commit,
+# seeded with demo data (docs/delivery/designs/cobranch-previews.md). The generator lists cobranch's pull requests through
 # Argo CD's GitHub App (Secret github-app, platform/argocd) every minute; when a pull request closes or merges, its
 # Application goes and the resources finalizer deletes the preview, namespace and database included. It
 # names the preview from the pull request's number and the commit from its head SHA, never from a title; the template
 # uses those alone. Two sources: the chart from the head commit, and what the hub decides around it from delivery's
-# main (platform/devhub/pull-request), which holds the Namespace, so no CreateNamespace.
+# main (platform/cobranch/pull-request), which holds the Namespace, so no CreateNamespace.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
-  name: devhub-pull-requests
+  name: cobranch-pull-requests
   namespace: argocd
 spec:
   goTemplate: true
@@ -20,18 +20,18 @@ spec:
     - pullRequest:
         github:
           owner: arikkfir-org
-          repo: devhub
+          repo: cobranch
           appSecretName: github-app
         requeueAfterSeconds: 60
         values:
           env: "pr-{{ .number }}"
           revision: "{{ .head_sha }}"
-          # The images' tag, as devhub's pipeline preview writes it: the commit's first seven characters.
+          # The images' tag, as cobranch's pipeline preview writes it: the commit's first seven characters.
           tag: "{{ trunc 7 .head_sha }}"
-      # devhub is public: GitHub lists forks' pull requests among devhub's and serves their head commits from devhub,
+      # cobranch is public: GitHub lists forks' pull requests among cobranch's and serves their head commits from cobranch,
       # and the generator drops the repository a pull request comes from, so a fork's chart would run what it likes on
-      # pool ci. Only pull requests that devhub's members open get a preview: its owner, whose sessions open them as
-      # the owner too, and Dependabot, which opens them from devhub's own branches. A new collaborator is added here.
+      # pool ci. Only pull requests that cobranch's members open get a preview: its owner, whose sessions open them as
+      # the owner too, and Dependabot, which opens them from cobranch's own branches. A new collaborator is added here.
       selector:
         matchExpressions:
           - key: author
@@ -41,51 +41,51 @@ spec:
               - dependabot[bot]
   template:
     metadata:
-      name: "devhub-{{ .values.env }}"
+      name: "cobranch-{{ .values.env }}"
       finalizers:
         - resources-finalizer.argocd.argoproj.io
     spec:
-      project: devhub-pull-requests
+      project: cobranch-pull-requests
       destination:
         server: https://kubernetes.default.svc
-        namespace: "devhub-{{ .values.env }}"
+        namespace: "cobranch-{{ .values.env }}"
       sources:
-        - repoURL: https://github.com/arikkfir-org/devhub
+        - repoURL: https://github.com/arikkfir-org/cobranch
           targetRevision: "{{ .values.revision }}"
-          path: chart/devhub
+          path: chart/cobranch
           helm:
-            releaseName: devhub
+            releaseName: cobranch
             # helm test's pod is for a person or CI to run, not for every sync.
             skipTests: true
             # As strings: a short SHA can be all digits.
             parameters:
-              - name: images.devhub.tag
+              - name: images.cobranch.tag
                 value: "{{ .values.tag }}"
                 forceString: true
               - name: images.console.tag
                 value: "{{ .values.tag }}"
                 forceString: true
             valuesObject:
-              # devhub's pipeline preview pushes every pushed head commit's images there; only previews pull from it.
+              # cobranch's pipeline preview pushes every pushed head commit's images there; only previews pull from it.
               images:
-                devhub:
-                  repository: me-west1-docker.pkg.dev/arikkfir/devhub-previews/devhub
+                cobranch:
+                  repository: me-west1-docker.pkg.dev/arikkfir/cobranch-previews/cobranch
                 console:
-                  repository: me-west1-docker.pkg.dev/arikkfir/devhub-previews/devhub-console
-              # One host, whose route (platform/devhub/pull-request) strips each API's prefix.
+                  repository: me-west1-docker.pkg.dev/arikkfir/cobranch-previews/cobranch-console
+              # One host, whose route (platform/cobranch/pull-request) strips each API's prefix.
               urls:
-                console: "https://{{ .values.env }}.devhub.dev.kfirs.com"
-                rest: "https://{{ .values.env }}.devhub.dev.kfirs.com/api"
-                graphql: "https://{{ .values.env }}.devhub.dev.kfirs.com/graphql"
+                console: "https://{{ .values.env }}.cobranch.dev.kfirs.com"
+                rest: "https://{{ .values.env }}.cobranch.dev.kfirs.com/api"
+                graphql: "https://{{ .values.env }}.cobranch.dev.kfirs.com/graphql"
               # No cloud role: a directory of each server's own, gone with its pod.
               blob:
-                url: file:///var/lib/devhub/blobs
+                url: file:///var/lib/cobranch/blobs
                 volume:
                   emptyDir: {}
-              # The demo data a reviewer starts from (devhub's db/seeds/).
+              # The demo data a reviewer starts from (cobranch's db/seeds/).
               seed:
                 enabled: true
-              # A preview has no availability to keep. Every pod on pool ci, which policy devhub-node-pool holds.
+              # A preview has no availability to keep. Every pod on pool ci, which policy cobranch-node-pool holds.
               restServer:
                 replicas: 1
                 nodeSelector:
@@ -125,9 +125,9 @@ spec:
                     value: ci
                     effect: NoSchedule
               postgresql:
-                # Generated in the namespace (platform/devhub/pull-request): the chart's own would change at every render.
+                # Generated in the namespace (platform/cobranch/pull-request): the chart's own would change at every render.
                 auth:
-                  existingSecret: devhub-postgresql-password
+                  existingSecret: cobranch-postgresql-password
                 storage:
                   size: 1Gi
                 nodeSelector:
@@ -139,18 +139,18 @@ spec:
                     effect: NoSchedule
         - repoURL: https://github.com/arikkfir-org/delivery
           targetRevision: main
-          path: platform/devhub/pull-request
+          path: platform/cobranch/pull-request
           kustomize:
-            namespace: "devhub-{{ .values.env }}"
+            namespace: "cobranch-{{ .values.env }}"
             patches:
               - target:
                   kind: HTTPRoute
-                  name: devhub
+                  name: cobranch
                 patch: |-
                   - op: replace
                     path: /spec/hostnames
                     value:
-                      - "{{ .values.env }}.devhub.dev.kfirs.com"
+                      - "{{ .values.env }}.cobranch.dev.kfirs.com"
       syncPolicy:
         automated:
           prune: true
