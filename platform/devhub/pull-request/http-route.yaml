@@ -1,0 +1,77 @@
+# A preview on one host, pr-<number>.devhub.dev.kfirs.com, on the Gateway every preview shares, behind the
+# hub's sign-in and Middleware admins, as the demo is. Each workload serves as if it were alone (the Console and GraphQL
+# at /, REST under /v1/), so each API's prefix is stripped, as the chart's urls say. Every rule asks admins first, which
+# reads the hub's session cookie, then removes Cookie: browsers send that cookie (domain .kfirs.com) here too, and a
+# pull request's code never gets it. Policy devhub-http-routes holds all of this.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: devhub
+  labels:
+    app.kubernetes.io/name: devhub
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: traefik
+      name: devhub-pull-requests
+  hostnames:
+    - pr-0.devhub.dev.kfirs.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /api
+      filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: admins
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove:
+              - Cookie
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: devhub-rest-server
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /graphql
+      filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: admins
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove:
+              - Cookie
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: devhub-graphql-server
+          port: 80
+    - filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: admins
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove:
+              - Cookie
+      backendRefs:
+        - name: devhub-console
+          port: 80

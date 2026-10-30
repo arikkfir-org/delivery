@@ -4,3 +4,4 @@ namespace: ci-devhub
 resources:
   - ../../base
   - release.yaml
+  - preview.yaml

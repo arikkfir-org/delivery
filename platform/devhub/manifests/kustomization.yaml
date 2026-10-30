@@ -1,6 +1,8 @@
-# DevHub's demo environment: its namespace and project, the Application that installs devhub's chart from its main,
+# DevHub on the hub. Its demo: its namespace and project, the Application that installs devhub's chart from its main,
 # and what the hub decides around it (docs/delivery/designs/devhub.md): the database's password, the route behind the
-# hub's sign-in and group admins, and who reaches the pods.
+# hub's sign-in and group admins, and who reaches the pods. Its pull requests' previews: their shared Gateway, project,
+# admission policies and ApplicationSet (docs/delivery/designs/devhub-previews.md); what each preview holds beside the
+# chart is platform/devhub/pull-request.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
@@ -11,3 +13,13 @@ resources:
   - http-route.yaml
   - middleware.yaml
   - network-policy.yaml
+  - pull-requests-project.yaml
+  - namespaces-policy.yaml
+  - services-policy.yaml
+  - http-routes-policy.yaml
+  - middlewares-policy.yaml
+  - external-secrets-policy.yaml
+  - disruption-budgets-policy.yaml
+  - node-pool-policy.yaml
+  - pull-requests-gateway.yaml
+  - pull-requests.yaml
