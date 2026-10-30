@@ -1,0 +1,8 @@
+# Identity of cobranch's preview pipeline (see https://docs.dev.kfirs.com/infra/terraform/gcp.md, "IAM"): terraform/gcp
+# lets it push to repository cobranch-previews through Workload Identity, and nowhere else. Any branch may use it: what
+# it pushes runs only in Cobranch's pull requests' previews.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ci-cobranch-preview
+automountServiceAccountToken: false

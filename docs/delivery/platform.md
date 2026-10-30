@@ -137,8 +137,9 @@ DNS records and the two IPs are `infra`'s: [DNS](../infra/terraform/gcp.md#dns),
 ## CI tenants
 
 Application `ci-tenants` creates namespace `ci-<repository>` for every repository but `.github`, which has no CI:
-`ci-infra`, `ci-delivery`, `ci-octomaton`, `ci-tooling`, `ci-docs`, `ci-fin` and `ci-devhub`. Octomaton runs each
-repository's pipelines in its tenant.
+`ci-infra`, `ci-delivery`, `ci-octomaton`, `ci-tooling`, `ci-docs`, `ci-fin`, `ci-devhub` and `ci-cobranch`. Octomaton
+runs each repository's pipelines in its tenant, which it names after the repository: DevHub is becoming Cobranch, and
+`ci-cobranch` is ready before its repository is renamed; `ci-devhub` goes once it is.
 
 Every tenant gets the base (`platform/ci-tenants/manifests/base`):
 
@@ -169,6 +170,8 @@ token:
 | `ci-octomaton` | `ci-octomaton-ci` | None | `ci`: restores `main`'s or its pull request's Go caches, saves its pull request's |
 | `ci-devhub` | `ci-devhub-release` | branch `main`, tags `v*` | `main`: pushes DevHub's images of `main`'s newest commit ([hosting DevHub's demo](designs/devhub.md)); `tag`: adds a version's tag to them and publishes the chart at that version ([the DevHub repository](../devhub/designs/repository.md)) |
 | `ci-devhub` | `ci-devhub-preview` | None | `preview`: pushes each pull request's head commit's images to `devhub-previews`, which only previews pull ([DevHub's previews](designs/devhub-previews.md)) |
+| `ci-cobranch` | `ci-cobranch-release` | branch `main`, tags `v*` | The same as `ci-devhub-release`, for repository `cobranch` |
+| `ci-cobranch` | `ci-cobranch-preview` | None | The same as `ci-devhub-preview`, for repository `cobranch-previews` |
 | `ci-tooling` | `ci-tooling-publish` | `main` | `publish`: writes bucket `arikkfir-claude`; `reviewer-image`: pushes the reviewer image |
 | `ci-fin` | `ci-fin-release` | `main` | `release`: production's images; saves the CI cache |
 | `ci-fin` | `ci-fin-preview` | None | `preview`: pull requests' images |
