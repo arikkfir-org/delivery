@@ -59,6 +59,10 @@ spec:
           url: gs://arikkfir-cobranch
         # Every pod on the system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
         authServer:
+          # Reloader restarts the Auth server when Secret cobranch-keycloak changes, so a rotated client secret takes
+          # effect without a hand.
+          podAnnotations:
+            reloader.stakater.com/auto: "true"
           nodeSelector:
             kfirs.com/pool: system
           tolerations:
