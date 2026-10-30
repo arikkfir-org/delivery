@@ -1,10 +1,12 @@
-# Identity of devhub's main pipeline (see https://docs.dev.kfirs.com/infra/terraform/gcp.md, "IAM"): terraform/gcp lets
-# it push to the devhub repository through Workload Identity. Octomaton refuses any run that names it unless the run's
-# branch is main.
+# Identity of devhub's main and tag pipelines (see https://docs.dev.kfirs.com/infra/terraform/gcp.md, "IAM"):
+# terraform/gcp lets it push to the devhub repository through Workload Identity. Octomaton refuses any run that names it
+# unless the run's branch is main or its tag is a version (v1.2.3, created by publishing a GitHub release:
+# https://docs.dev.kfirs.com/devhub/designs/repository.md).
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: ci-devhub-release
   annotations:
     octomaton.dev/branches: main
+    octomaton.dev/tags: v*
 automountServiceAccountToken: false
