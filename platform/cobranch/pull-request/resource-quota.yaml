@@ -12,7 +12,7 @@ spec:
     requests.cpu: "2"
     requests.memory: 4Gi
     limits.memory: 8Gi
-    pods: "10"
+    pods: "16"
     persistentvolumeclaims: "1"
     requests.storage: 2Gi
     services.loadbalancers: "0"

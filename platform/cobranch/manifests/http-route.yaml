@@ -1,6 +1,6 @@
 # Cobranch's demo on one host, behind the protected gateway's sign-in and Middleware admins. Each workload serves as if it
-# were alone (the Console and GraphQL at /, REST under /v1/, the Auth server at /), so each API's prefix is stripped, as
-# the chart's urls say: /api/v1/version reaches the REST server as /v1/version. One host keeps the Console's calls
+# were alone (the Console, the Back-office and GraphQL at /, REST and Admin under /v1/, the Auth server at /), so each
+# workload's prefix is stripped, as the chart's urls say: /api/v1/version reaches the REST server as /v1/version. One host keeps the Console's calls
 # same-origin, so the sign-in's cookie goes with them, and lets Cobranch's own session cookie take the __Host- prefix.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -69,6 +69,42 @@ spec:
               replacePrefixMatch: /
       backendRefs:
         - name: cobranch-auth-server
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /admin
+      filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: admins
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: cobranch-admin-server
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /back-office
+      filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: admins
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: cobranch-back-office
           port: 80
     - filters:
         - type: ExtensionRef
