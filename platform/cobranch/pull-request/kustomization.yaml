@@ -9,6 +9,7 @@ resources:
   - namespace.yaml
   - resource-quota.yaml
   - postgresql-password.yaml
+  - secrets-key.yaml
   - http-route.yaml
   - middleware.yaml
   - network-policy.yaml

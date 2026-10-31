@@ -138,6 +138,10 @@ spec:
               operator: Equal
               value: "true"
               effect: NoSchedule
+        # Generated once in the cluster (secrets-key.yaml): the chart's own would change at every render.
+        secretsKey:
+          existingSecret: cobranch-secrets-key
+          secretKey: password
         postgresql:
           # Generated once in the cluster (postgresql-password.yaml): the chart's own would change at every render.
           auth:
