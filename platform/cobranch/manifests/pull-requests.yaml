@@ -173,6 +173,10 @@ spec:
                     operator: Equal
                     value: ci
                     effect: NoSchedule
+              # Generated in the namespace (platform/cobranch/pull-request): the chart's own would change at every render.
+              secretsKey:
+                existingSecret: cobranch-secrets-key
+                secretKey: password
               postgresql:
                 # Generated in the namespace (platform/cobranch/pull-request): the chart's own would change at every render.
                 auth:
