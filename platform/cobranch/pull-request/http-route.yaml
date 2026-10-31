@@ -1,7 +1,7 @@
 # A preview on one host, pr-<number>.cobranch.dev.kfirs.com, on the Gateway every preview shares, behind the
-# hub's sign-in and Middleware admins, as the demo is. Each workload serves as if it were alone (the Console and GraphQL
-# at /, REST under /v1/, the Auth server at /), so each API's prefix is stripped, as the chart's urls say. Every rule
-# asks admins first, which reads the hub's session cookie: the hub's sign-in admits every hub user, Fin's test users
+# hub's sign-in and Middleware admins, as the demo is. Each workload serves as if it were alone (the Console, the
+# Back-office and GraphQL at /, REST and Admin under /v1/, the Auth server at /), so each workload's prefix is stripped,
+# as the chart's urls say. Every rule asks admins first, which reads the hub's session cookie: the hub's sign-in admits every hub user, Fin's test users
 # included, and Traefik runs filters in order, so a redirect or mirror before admins would answer them. Cookies pass
 # through: Cobranch's own session cookie is one, and so is the hub's (domain .kfirs.com), which a pull request's code
 # can read (owner, 2026-10-30; only the owner's and Dependabot's pull requests get a preview). Policy
@@ -74,6 +74,42 @@ spec:
               replacePrefixMatch: /
       backendRefs:
         - name: cobranch-auth-server
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /admin
+      filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: admins
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: cobranch-admin-server
+          port: 80
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /back-office
+      filters:
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: admins
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: cobranch-back-office
           port: 80
     - filters:
         - type: ExtensionRef

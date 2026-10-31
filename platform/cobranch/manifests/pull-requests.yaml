@@ -65,6 +65,9 @@ spec:
               - name: images.console.tag
                 value: "{{ .values.tag }}"
                 forceString: true
+              - name: images.backOffice.tag
+                value: "{{ .values.tag }}"
+                forceString: true
             valuesObject:
               # cobranch's pipeline preview pushes every pushed head commit's images there; only previews pull from it.
               images:
@@ -72,7 +75,9 @@ spec:
                   repository: me-west1-docker.pkg.dev/arikkfir/cobranch-previews/cobranch
                 console:
                   repository: me-west1-docker.pkg.dev/arikkfir/cobranch-previews/cobranch-console
-              # One host, whose route (platform/cobranch/pull-request) strips each API's prefix. urls.auth deploys the
+                backOffice:
+                  repository: me-west1-docker.pkg.dev/arikkfir/cobranch-previews/cobranch-back-office
+              # One host, whose route (platform/cobranch/pull-request) strips each workload's prefix. urls.auth deploys the
               # Auth server; with no provider (no identity provider takes a wildcard host, and a preview reads no secret),
               # people sign in as the seeded users (owner, 2026-10-30).
               urls:
@@ -80,6 +85,12 @@ spec:
                 rest: "https://{{ .values.env }}.cobranch.dev.kfirs.com/api"
                 graphql: "https://{{ .values.env }}.cobranch.dev.kfirs.com/graphql"
                 auth: "https://{{ .values.env }}.cobranch.dev.kfirs.com/auth"
+                admin: "https://{{ .values.env }}.cobranch.dev.kfirs.com/admin"
+                backOffice: "https://{{ .values.env }}.cobranch.dev.kfirs.com/back-office"
+              # The seeded demo administrator, Ada Admin: signing in as her opens the Back-office.
+              auth:
+                admins:
+                  - ada@cobranch.example
               # No cloud role: a directory of each server's own, gone with its pod.
               blob:
                 url: file:///var/lib/cobranch/blobs
@@ -116,7 +127,25 @@ spec:
                     operator: Equal
                     value: ci
                     effect: NoSchedule
+              adminServer:
+                replicas: 1
+                nodeSelector:
+                  kfirs.com/pool: ci
+                tolerations:
+                  - key: kfirs.com/pool
+                    operator: Equal
+                    value: ci
+                    effect: NoSchedule
               console:
+                replicas: 1
+                nodeSelector:
+                  kfirs.com/pool: ci
+                tolerations:
+                  - key: kfirs.com/pool
+                    operator: Equal
+                    value: ci
+                    effect: NoSchedule
+              backOffice:
                 replicas: 1
                 nodeSelector:
                   kfirs.com/pool: ci

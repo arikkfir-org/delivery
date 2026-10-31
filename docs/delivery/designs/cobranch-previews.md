@@ -12,7 +12,7 @@ A reviewer of a Cobranch pull request had to build both images and install the c
 flowchart LR
   subgraph cobranchrepo["arikkfir-org/cobranch, a pull request"]
     Chart["chart/cobranch at the head commit"]
-    Preview["pipeline preview: cobranch and cobranch-console,<br/>tagged with the commit's short SHA"]
+    Preview["pipeline preview: cobranch, cobranch-console and<br/>cobranch-back-office, tagged with the commit's short SHA"]
   end
   subgraph delivery["delivery"]
     Set["ApplicationSet cobranch-pull-requests<br/>(platform/cobranch/manifests)"]
@@ -24,7 +24,7 @@ flowchart LR
   Set -- "an Application per pull request" --> App["Application cobranch-pr-&lt;number&gt;"]
   App -- "source 1: Helm values" --> Chart
   App -- "source 2: kustomize" --> Extras
-  App --> NS["namespace cobranch-pr-&lt;number&gt; on pool ci:<br/>Console, servers, migrate Job and seeds,<br/>maintenance CronJob, PostgreSQL"]
+  App --> NS["namespace cobranch-pr-&lt;number&gt; on pool ci:<br/>Console, Back-office, servers, migrate Job and seeds,<br/>maintenance CronJob, PostgreSQL"]
   Reg -- "pulled by the nodes" --> NS
   Project -. "admits and holds" .-> NS
   GW --> NS
@@ -45,13 +45,13 @@ sequenceDiagram
   participant K as namespace cobranch-pr-n
   Dev->>GH: push to a branch with an open pull request
   GH->>P: pull_request synchronize (Octomaton)
-  P->>P: build both images, push :sha7 to cobranch-previews
+  P->>P: build the images, push :sha7 to cobranch-previews
   AS->>GH: list open pull requests, keep those members opened (every minute, Argo CD's GitHub App)
   AS->>A: head SHA changed: new revision and tag
   A->>K: wave -1: Namespace, quota, password, Middleware
   A->>K: wave 0: PostgreSQL
   A->>K: wave 1: migrate Job (waits for its image): schema, then seeds
-  A->>K: wave 2: servers and Console, ready once the schema is theirs
+  A->>K: wave 2: servers, Console and Back-office, ready once the schema is theirs
   Dev->>K: https://pr-n.cobranch.dev.kfirs.com (sign-in, admins)
 ```
 
@@ -96,10 +96,10 @@ flowchart TB
 | --- | --- |
 | No cloud role | No grant in `infra` names a `cobranch-pr-*` namespace, and no Workload Identity pool trusts one. The bucket is a `file://` directory on each server's emptyDir |
 | No Secret but its own | AppProject admits no Secret; the database's password comes from a Password generator; ClusterSecretStore `gcp-secret-manager` refuses namespaces labelled `kfirs.com/cobranch-pull-request`, and policy `cobranch-external-secrets` admits only generators |
-| No reach beyond its host | Services are ClusterIP; routes attach only to `traefik/cobranch-pull-requests`, with the namespace's own host; NetworkPolicy `cobranch` admits only Traefik to the servers and the Console, the chart's own only the servers and the Job to PostgreSQL |
+| No reach beyond its host | Services are ClusterIP; routes attach only to `traefik/cobranch-pull-requests`, with the namespace's own host; NetworkPolicy `cobranch` admits only Traefik to the servers, the Console and the Back-office, the chart's own only the servers and the Job to PostgreSQL |
 | Admins only | Every rule asks Middleware `admins` first, which reads the hub's session cookie, then may only rewrite the URL: Traefik runs filters in order, so a redirect or mirror before `admins` would answer any hub user. Cookies pass through to the pods, Cobranch's own session cookie and the hub's (domain `.kfirs.com`) alike: a pull request's code can read the hub's, which is why only the owner's and Dependabot's pull requests get a preview (owner, 2026-10-30) |
-| Sign-in without a provider | `urls.auth` deploys the chart's Auth server at `/auth`, with no identity provider: neither Keycloak nor Google takes a wildcard host in a redirect URI, and a preview reads no secret. People sign in as the seeded users (`seed.enabled`), which the sign-in page offers ([ENG-197](https://linear.app/arikkfir/issue/ENG-197)); the [demo](cobranch.md) signs in through Keycloak |
-| No room beyond its share | ResourceQuota `cobranch`: 2 CPUs and 4Gi requested, 8Gi of memory limits, 10 pods, one 2Gi volume |
+| Sign-in without a provider | `urls.auth` deploys the chart's Auth server at `/auth`, with no identity provider: neither Keycloak nor Google takes a wildcard host in a redirect URI, and a preview reads no secret. People sign in as the seeded users (`seed.enabled`), which the sign-in page offers ([ENG-197](https://linear.app/arikkfir/issue/ENG-197)); the [demo](cobranch.md) signs in through Keycloak. `auth.admins` lists the seeded administrator, Ada Admin (`ada@cobranch.example`), so signing in as her opens the Back-office at `/back-office` ([ENG-219](https://linear.app/arikkfir/issue/ENG-219)) |
+| No room beyond its share | ResourceQuota `cobranch`: 2 CPUs and 4Gi requested, 8Gi of memory limits, 16 pods (each Deployment surges one more while it rolls out), one 2Gi volume |
 | No other pool | Policy `cobranch-node-pool`: pods tolerate only `kfirs.com/pool=ci` and name no node; budgets let every pod go, so a preview never keeps a CI node up |
 | No runaway schedule | Policy `cobranch-cron-jobs`: a CronJob (the chart's maintenance) runs one job at a time, each ending within an hour, so a tightened schedule can't pile pods onto the pool |
 
@@ -119,7 +119,7 @@ flowchart TB
 ## Security and failure modes
 
 - A preview runs a pull request's code on pool `ci`, beside other repositories' CI runs, as cobranch's CI already does there. Only a pull request that `cobranch`'s owner or Dependabot opens gets one: a fork's pull request runs nothing here, as Octomaton runs nothing for it in CI. A collaborator who isn't in the ApplicationSet's list gets no previews until added.
-- A pull request whose chart predates cobranch's `seed.enabled` value, its `maintenance` values or `urls.auth` and `authServer`, fails to render: the chart's values schema refuses unknown keys. Rebasing it on `main` fixes it; until then its Application shows the error and runs nothing.
+- A pull request whose chart predates cobranch's `seed.enabled` value, its `maintenance` values, `urls.auth` and `authServer`, or `urls.admin`, `urls.backOffice`, `images.backOffice`, `adminServer` and `backOffice`, fails to render: the chart's values schema refuses unknown keys. Rebasing it on `main` fixes it; until then its Application shows the error and runs nothing.
 - A preview's pods receive the hub's session cookie, so a pull request's code could act as its visitor on the hub's tools until the session ends: the ApplicationSet previews only pull requests the owner or Dependabot opens. Previews share the demo's domain, and a preview can set a cookie for `cobranch.dev.kfirs.com` that the demo receives, so the demo's session cookie takes the `__Host-` prefix, which no preview can set.
 - A commit whose migrate Job fails keeps failing on every retry (the Job is named by a hash of its spec); the next push recovers.
 - Argo CD's GitHub App lists the pull requests: the owner installs it on `cobranch` as well as `fin`. Without it the ApplicationSet lists nothing and no preview appears.

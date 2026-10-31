@@ -1,5 +1,5 @@
-# Only Traefik reaches the Console and the servers (the route's backends). The chart's own policy admits only the
-# servers and the migrate Job to PostgreSQL.
+# Only Traefik reaches the Console, the Back-office and the servers (the route's backends). The chart's own policy
+# admits only the servers and the migrate Job to PostgreSQL.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -15,7 +15,7 @@ spec:
     matchExpressions:
       - key: app.kubernetes.io/component
         operator: In
-        values: [console, rest-server, graphql-server, auth-server]
+        values: [console, back-office, rest-server, graphql-server, auth-server, admin-server]
   policyTypes:
     - Ingress
   ingress:
