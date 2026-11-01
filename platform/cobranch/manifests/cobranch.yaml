@@ -65,9 +65,11 @@ spec:
                 key: client-secret
           admins:
             - arikkfir@gmail.com
-        # infra's bucket, which only the servers' ServiceAccount, cobranch-server, reaches through Workload Identity.
+        # Git objects in the database, Cobranch's default, moving from infra's bucket, which only the servers'
+        # ServiceAccount, cobranch-server, reaches through Workload Identity: maintenance copies its packs over every hour.
+        # Once a run logs "Moved every object", moveFrom goes; the bucket goes with the demo (ENG-232).
         blob:
-          url: gs://arikkfir-cobranch
+          moveFrom: gs://arikkfir-cobranch
         # Every pod on the system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
         authServer:
           # Reloader restarts the Auth server when Secret cobranch-keycloak changes, so a rotated client secret takes
@@ -162,6 +164,10 @@ spec:
           existingSecret: cobranch-secrets-key
           secretKey: password
         postgresql:
+          # Pinned here rather than taken from the chart: a new major can't start on the old one's data.
+          image:
+            repository: docker.io/library/postgres
+            tag: 18.6-alpine
           # Generated once in the cluster (postgresql-password.yaml): the chart's own would change at every render.
           auth:
             existingSecret: cobranch-postgresql-password
