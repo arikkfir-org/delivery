@@ -1,0 +1,20 @@
+# cobranch.dev on the public gateway's listener cobranch-dev, which admits this namespace alone: the site for browsers,
+# and the Go import page for the go command, which fetches it anonymously.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cobranch-site
+  namespace: cobranch-site
+  labels:
+    app.kubernetes.io/name: cobranch-site
+spec:
+  parentRefs:
+    - name: public
+      namespace: traefik
+      sectionName: cobranch-dev
+  hostnames:
+    - cobranch.dev
+  rules:
+    - backendRefs:
+        - name: cobranch-site
+          port: 80

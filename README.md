@@ -70,7 +70,7 @@ Each file there is an Application in namespace `argocd`, project `default`:
   images that never come), and creates its namespace, except those whose `deploy/` holds it (Octomaton's and Fin's)
   and `octomaton-logs`, which syncs a wave after `octomaton`, whose `deploy/` holds the namespace it shares.
   Namespace labels come from `managedNamespaceMetadata`
-  (for example `kfirs.com/public-ingress: "true"` on `auth`, `docs`, `keycloak` and `go-import`). `ServerSideApply=true` is set where CRDs
+  (for example `kfirs.com/public-ingress: "true"` on `auth`, `docs`, `keycloak`, `go-import` and `cobranch-site`). `ServerSideApply=true` is set where CRDs
   are too large for client-side apply; `SkipDryRunOnMissingResource=true` where resources use CRDs of another component.
   Such an Application diffs by structured merge, which can't add CRD defaults, so one that also holds resources whose
   atomic lists get defaults (`argocd`, for its HTTPRoute) diffs server-side:
@@ -83,7 +83,7 @@ Each file there is an Application in namespace `argocd`, project `default`:
 | 1 | `gateway-api`, `cert-manager`, `external-secrets` |
 | 2 | `argocd` |
 | 3 | `traefik`, `tekton-operator`, `keda`, `reloader`, `nats`, `keycloak-operator` |
-| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton-environment`, `docs`, `tests`, `ci-tenants`, `keycloak`, `fin-environments`, `go-import`, `cobranch-environment` |
+| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton-environment`, `docs`, `tests`, `ci-tenants`, `keycloak`, `fin-environments`, `go-import`, `cobranch-site`, `cobranch-environment` |
 
 Within an Application, waves order dependent resources as well: ClusterIssuers and the ClusterSecretStore wait for their
 operators' webhooks; in `traefik` the Certificates (the wildcard, `octomaton-dev` and `cobranch-dev`) are issued before
@@ -92,7 +92,7 @@ the Gateways that reference their Secrets, and so is `fin-pull-requests`'s in `f
 Secrets never live in Git: each one is an `ExternalSecret` reading Secret Manager through the `ClusterSecretStore`
 `gcp-secret-manager`. A credential only the cluster uses is generated instead, by an ESO `Password` generator with
 `refreshPolicy: CreatedOnce` (Grafana's database password). Every UI is served on the `protected` gateway, behind the
-oauth2-proxy interceptor ([design](docs/delivery/designs/phase-3-ingress-and-auth.md)); only `auth.kfirs.com/oauth2`, `octomaton.dev` (Octomaton's webhook, and its Go import page from `go-import`), `cobranch.dev` (Cobranch's Go import page, `go-import`),
+oauth2-proxy interceptor ([design](docs/delivery/designs/phase-3-ingress-and-auth.md)); only `auth.kfirs.com/oauth2`, `octomaton.dev` (Octomaton's webhook, and its Go import page from `go-import`), `cobranch.dev` (Cobranch's site and Go import page, `cobranch-site`),
 `legal.kfirs.com` (the docs site's privacy policy and terms of service, exact paths only), `id.kfirs.com` (Keycloak's
 realm `hub`, and realm `master` behind the interceptor) and `fin.kfirs.com` (Fin's Go import page, `go-import`, [design](docs/delivery/designs/go-import-pages.md)) use the
 `public` gateway. Fin's host names need certificates of their own, so production's environment has a Gateway of its

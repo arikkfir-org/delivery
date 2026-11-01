@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cobranch-site
+  namespace: cobranch-site
+  labels:
+    app.kubernetes.io/name: cobranch-site
+spec:
+  selector:
+    app.kubernetes.io/name: cobranch-site
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

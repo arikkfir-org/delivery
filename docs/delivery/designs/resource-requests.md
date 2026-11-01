@@ -89,7 +89,7 @@ These requested what they need from the start, and neither round measured them.
 | --- | --- | --- | --- |
 | Docs and tests sites, each replica: Caddy | 10m, 48Mi | 128Mi | `platform/docs/manifests/deployment.yaml`, `platform/tests/manifests/deployment.yaml` |
 | Docs and tests sites, each replica: GKE's Cloud Storage FUSE sidecar | 10m, 64Mi | 256Mi | the same, as `gke-gcsfuse/*` pod annotations |
-| `go-import`, each replica | 10m, 32Mi | 128Mi | `platform/go-import/manifests/deployment.yaml` |
+| `go-import` and `cobranch-site`, each replica | 10m, 32Mi | 128Mi | `platform/go-import/manifests/deployment.yaml`, `platform/cobranch-site/manifests/deployment.yaml` |
 | Grafana's and Keycloak's PostgreSQL (Grafana's init container too) | 50m, 128Mi | 512Mi | `platform/grafana/manifests/postgres.yaml`, `platform/keycloak/manifests/postgres.yaml` |
 | Cobranch's demo: the REST and GraphQL servers, each replica; the Auth server, each replica, and the Admin server; the Console, each replica, and the Back-office; the migrate Job; the maintenance CronJob's job, which compacts repositories' packs; PostgreSQL; the Git server, each replica; the push worker, each replica | 100m, 128Mi; 50m, 64Mi; 10m, 32Mi; 50m, 64Mi; 50m, 64Mi; 100m, 256Mi; 100m, 128Mi; 50m, 64Mi | 512Mi; 256Mi; 128Mi; 256Mi; 1Gi; 1Gi; 1Gi; 1Gi | Cobranch's chart's defaults ([hosting Cobranch's demo](cobranch.md)) |
 | Tekton's pipelines webhook | 100m CPU, the release's | the release's | unchanged (decisions) |

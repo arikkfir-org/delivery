@@ -1,6 +1,6 @@
 # Disruption budgets
 
-**Decision**: Every Deployment and StatefulSet of the hub's services has a PodDisruptionBudget of `maxUnavailable: 1`, and every Deployment rolls out by surging (`maxSurge: 1`, `maxUnavailable: 0`). The services others depend on run two replicas or more, spread over nodes when the pool has several: Traefik, oauth2-proxy, the docs and tests sites, `go-import`, Grafana, KEDA's three components, Keycloak, and NATS's three servers. Every other workload runs one replica, whose budget also sets `unhealthyPodEvictionPolicy: AlwaysAllow`, so a drain can always evict it. Grafana keeps its state in a PostgreSQL in its namespace, so that two replicas can run. Octomaton's `deploy/` holds its own budgets, by this design ([Octomaton's deployment](../../octomaton/designs/deployment.md)), and Fin's `deploy/` its own. Components and replicas: [the hub platform](../platform.md#components). Pull requests: two replicas, [delivery#12](https://github.com/arikkfir-org/delivery/pull/12) and [octomaton#11](https://github.com/arikkfir-org/octomaton/pull/11); Grafana on PostgreSQL, [infra#14](https://github.com/arikkfir-org/infra/pull/14) and [delivery#13](https://github.com/arikkfir-org/delivery/pull/13); every workload budgeted and surging, [delivery#53](https://github.com/arikkfir-org/delivery/pull/53) and [octomaton#29](https://github.com/arikkfir-org/octomaton/pull/29).
+**Decision**: Every Deployment and StatefulSet of the hub's services has a PodDisruptionBudget of `maxUnavailable: 1`, and every Deployment rolls out by surging (`maxSurge: 1`, `maxUnavailable: 0`). The services others depend on run two replicas or more, spread over nodes when the pool has several: Traefik, oauth2-proxy, the docs and tests sites, `go-import`, Cobranch's site, Grafana, KEDA's three components, Keycloak, and NATS's three servers. Every other workload runs one replica, whose budget also sets `unhealthyPodEvictionPolicy: AlwaysAllow`, so a drain can always evict it. Grafana keeps its state in a PostgreSQL in its namespace, so that two replicas can run. Octomaton's `deploy/` holds its own budgets, by this design ([Octomaton's deployment](../../octomaton/designs/deployment.md)), and Fin's `deploy/` its own. Components and replicas: [the hub platform](../platform.md#components). Pull requests: two replicas, [delivery#12](https://github.com/arikkfir-org/delivery/pull/12) and [octomaton#11](https://github.com/arikkfir-org/octomaton/pull/11); Grafana on PostgreSQL, [infra#14](https://github.com/arikkfir-org/infra/pull/14) and [delivery#13](https://github.com/arikkfir-org/delivery/pull/13); every workload budgeted and surging, [delivery#53](https://github.com/arikkfir-org/delivery/pull/53) and [octomaton#29](https://github.com/arikkfir-org/octomaton/pull/29).
 
 ## Why
 
@@ -58,6 +58,7 @@ sequenceDiagram
 | oauth2-proxy | 2 | Sessions live in cookies |
 | Docs and tests sites | 2 each | Each pod mounts its bucket read-only ([docs and tests servers](docs-and-tests-servers.md)) |
 | `go-import` | 2 | Static answers ([Go import pages](go-import-pages.md)) |
+| `cobranch-site` | 2 | Static files ([Cobranch's site](cobranch-site.md)) |
 | Grafana | 2 | State in PostgreSQL, shared; alert state gossiped between the replicas, so each alert notifies once ([below](#grafana-on-postgresql)) |
 | KEDA's operator, metrics server and admission webhooks | 2 each | KEDA keeps one operator and one metrics server active and the other on standby; both webhook replicas serve |
 | Keycloak | 2 | Sessions live in its PostgreSQL ([Keycloak](keycloak.md)) |
@@ -80,7 +81,7 @@ A single replica's budget needs no pod healthy, so a ready pod may always go. An
 | External Secrets Operator | operator, webhook, cert controller | `strategy`, `webhook.strategy`, `certController.strategy` | `platform/external-secrets/manifests`: the chart's budgets take no eviction policy |
 | oauth2-proxy, Grafana, KEDA | two replicas each | `strategy`, `deploymentStrategy`, `upgradeStrategy` | the charts' |
 | Traefik | two replicas | the chart's default, `maxSurge: 1`, `maxUnavailable: 0` | the chart's |
-| docs, tests, `go-import` | two replicas each | the Deployment | `platform/<component>/manifests` |
+| docs, tests, `go-import`, `cobranch-site` | two replicas each | the Deployment | `platform/<component>/manifests` |
 | NATS | servers (StatefulSet), nats-box | `natsBox.deployment.merge` | the chart's for the servers; `platform/nats/manifests` for nats-box |
 | NACK | controller | none in the chart; the default surges its one replica | `platform/nack/manifests` |
 | NUI | StatefulSet | n/a | `platform/nui/manifests` |

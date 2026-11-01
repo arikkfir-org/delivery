@@ -1,0 +1,38 @@
+# Cobranch's site at cobranch.dev (platform/cobranch-site): a static "Coming soon" page and the domain's Go import page.
+# Wave 4: its route needs Traefik's Gateway API.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cobranch-site
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cobranch-site
+  source:
+    repoURL: https://github.com/arikkfir-org/delivery
+    targetRevision: main
+    path: platform/cobranch-site/manifests
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    # Public on purpose: cobranch.dev is Cobranch's public face, with no sign-in. The listener admits no other
+    # labelled namespace to it.
+    managedNamespaceMetadata:
+      labels:
+        kfirs.com/public-ingress: "true"
+        pod-security.kubernetes.io/enforce: restricted
+    retry:
+      limit: 10
+      refresh: true
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+    syncOptions:
+      - CreateNamespace=true
+      - SkipDryRunOnMissingResource=true

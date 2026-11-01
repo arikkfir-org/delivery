@@ -20,7 +20,7 @@ themselves; Fin's [environments](../../fin/designs/environments.md) keep product
 flowchart TB
   subgraph system["pool system: taint components.gke.io/gke-managed-components, 1 to 3 on-demand nodes"]
     GKE["GKE: kube-dns, metrics-server, konnectivity, …"]
-    Hub["The hub's services: Argo CD, oauth2-proxy, cert-manager, docs, tests, ESO, go-import, Grafana,<br/>KEDA, Keycloak, NATS, Octomaton and octomaton-logs, Reloader, Tekton, Traefik,<br/>Cobranch's demo"]
+    Hub["The hub's services: Argo CD, oauth2-proxy, cert-manager, docs, tests, ESO, go-import, Cobranch's site, Grafana,<br/>KEDA, Keycloak, NATS, Octomaton and octomaton-logs, Reloader, Tekton, Traefik,<br/>Cobranch's demo"]
   end
   subgraph ci["pool ci: taint kfirs.com/pool=ci, 0 to 10 Spot nodes"]
     Runs["TaskRun pods (Tekton's default pod template)"]
@@ -47,7 +47,7 @@ every taint, and the hub runs none of its own.
 | External Secrets Operator | `global.nodeSelector` and `global.tolerations`, which the operator, webhook and cert controller take |
 | NATS | `podTemplate.merge.spec` (the servers) and `natsBox.podTemplate.merge.spec` |
 | Reloader | `reloader.deployment.nodeSelector` and `tolerations` |
-| docs, tests, go-import, Grafana's and Keycloak's PostgreSQL | their pod templates (`platform/<component>/manifests`) |
+| docs, tests, go-import, cobranch-site, Grafana's and Keycloak's PostgreSQL | their pod templates (`platform/<component>/manifests`) |
 | Keycloak | the resource's `scheduling`: a required node affinity (the operator takes no node selector) and the toleration |
 | Keycloak's operator, Tekton's operator and its webhook | kustomize patches on the release manifests' Deployments |
 | Pipelines, Triggers, the Dashboard, the proxy webhook, the pruner | TektonConfig `spec.config`, which the operator sets on every Deployment and StatefulSet it makes, replacing theirs, and on the pruner's CronJob |
