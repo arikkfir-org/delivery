@@ -1,0 +1,23 @@
+# The demo's Git server at git.cobranch.dev.kfirs.com, on Gateway traefik/cobranch-git (git-gateway.yaml): public, with
+# no Middleware, since Git clients can't pass the hub's sign-in. The Git server answers 401 to a request without a
+# personal token and 404 to one whose token can't read the repository. It serves at /, as the chart's urls.git says.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cobranch-git
+  namespace: cobranch
+  labels:
+    app.kubernetes.io/name: cobranch
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: traefik
+      name: cobranch-git
+      sectionName: demo
+  hostnames:
+    - git.cobranch.dev.kfirs.com
+  rules:
+    - backendRefs:
+        - name: cobranch-git-server
+          port: 80

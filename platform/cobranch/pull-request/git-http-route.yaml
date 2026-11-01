@@ -1,0 +1,24 @@
+# A preview's Git server at pr-<number>.git.cobranch.dev.kfirs.com, on Gateway traefik/cobranch-git, listener previews:
+# public, with no Middleware, since Git clients can't pass the hub's sign-in. The Git server is the pull request's own
+# code, so anyone can reach what it serves there (owner, 2026-11-01; only the owner's and Dependabot's pull requests get
+# a preview). Policy cobranch-http-routes holds a route on that Gateway to its own host and to Service
+# cobranch-git-server, port 80, unfiltered; ApplicationSet cobranch-pull-requests patches the host.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: cobranch-git
+  labels:
+    app.kubernetes.io/name: cobranch
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      namespace: traefik
+      name: cobranch-git
+      sectionName: previews
+  hostnames:
+    - pr-0.git.cobranch.dev.kfirs.com
+  rules:
+    - backendRefs:
+        - name: cobranch-git-server
+          port: 80

@@ -2,7 +2,8 @@
 # there changes the cluster; this holds it to namespace cobranch and the kinds the chart renders there: the servers', the
 # Console's and PostgreSQL's workloads, Services, budgets and the database's NetworkPolicy, the servers' ServiceAccount
 # the migrate Job and the maintenance CronJob. No cluster-scoped kinds (namespace.yaml holds the Namespace), no Secrets (the database's password
-# and the secrets key are postgresql-password.yaml's and secrets-key.yaml's), no routes (http-route.yaml). Wave -1: before the Application that names it.
+# and the secrets key are postgresql-password.yaml's and secrets-key.yaml's), no routes (http-route.yaml, git-http-route.yaml).
+# Wave -1: before the Application that names it.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
