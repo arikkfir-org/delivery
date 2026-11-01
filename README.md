@@ -70,7 +70,7 @@ Each file there is an Application in namespace `argocd`, project `default`:
   images that never come), and creates its namespace, except those whose `deploy/` holds it (Octomaton's and Fin's)
   and `octomaton-logs`, which syncs a wave after `octomaton`, whose `deploy/` holds the namespace it shares.
   Namespace labels come from `managedNamespaceMetadata`
-  (for example `kfirs.com/public-ingress: "true"` on `auth`, `docs`, `keycloak` and `go-import`). `ServerSideApply=true` is set where CRDs
+  (for example `kfirs.com/public-ingress: "true"` on `auth`, `docs`, `keycloak`, `go-import` and `cobranch-site`). `ServerSideApply=true` is set where CRDs
   are too large for client-side apply; `SkipDryRunOnMissingResource=true` where resources use CRDs of another component.
   Such an Application diffs by structured merge, which can't add CRD defaults, so one that also holds resources whose
   atomic lists get defaults (`argocd`, for its HTTPRoute) diffs server-side:
@@ -83,7 +83,7 @@ Each file there is an Application in namespace `argocd`, project `default`:
 | 1 | `gateway-api`, `cert-manager`, `external-secrets` |
 | 2 | `argocd` |
 | 3 | `traefik`, `tekton-operator`, `keda`, `reloader`, `nats`, `keycloak-operator` |
-| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton-environment`, `docs`, `tests`, `ci-tenants`, `keycloak`, `fin-environments`, `go-import`, `cobranch-environment` |
+| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton-environment`, `docs`, `tests`, `ci-tenants`, `keycloak`, `fin-environments`, `go-import`, `cobranch-site`, `cobranch-environment` |
 
 Within an Application, waves order dependent resources as well: ClusterIssuers and the ClusterSecretStore wait for their
 operators' webhooks; in `traefik` the Certificates (the wildcard, `octomaton-dev` and `cobranch-dev`) are issued before

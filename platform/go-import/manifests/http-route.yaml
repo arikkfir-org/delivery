@@ -1,7 +1,8 @@
 # On the public gateway, without the hub's sign-in: the go command fetches import pages anonymously. They tell only
 # where a repository is; reading a private one (fin) still takes access to it. Each host name attaches to the listener
-# whose hostname covers it: *.kfirs.com's public-websecure, and octomaton.dev's and cobranch.dev's own. On octomaton.dev,
-# Octomaton's route keeps the exact path /github/hooks, which takes precedence over this prefix.
+# whose hostname covers it: *.kfirs.com's public-websecure, and octomaton.dev's own. On octomaton.dev,
+# Octomaton's route keeps the exact path /github/hooks, which takes precedence over this prefix. cobranch.dev's page is
+# Cobranch's site's (platform/cobranch-site).
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -17,13 +18,9 @@ spec:
     - name: public
       namespace: traefik
       sectionName: octomaton-dev
-    - name: public
-      namespace: traefik
-      sectionName: cobranch-dev
   hostnames:
     - fin.kfirs.com
     - octomaton.dev
-    - cobranch.dev
   rules:
     - backendRefs:
         - name: go-import

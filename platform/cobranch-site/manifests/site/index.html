@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cobranch: code, review, CI and delivery in one platform</title>
+  <meta name="description" content="Cobranch is an open-source, all-in-one development platform with AI at its core: Git hosting, branches with review and chat, CI, delivery, issues and one API. Install it on any Kubernetes cluster with one Helm chart. Coming soon.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#131517" media="(prefers-color-scheme: dark)">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://cobranch.dev/">
+  <meta property="og:title" content="Cobranch: code, review, CI and delivery in one platform">
+  <meta property="og:description" content="An open-source, all-in-one development platform with AI at its core. Coming soon.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    /* Cobranch's design tokens (docs/cobranch/designs/design-system/tokens.css of arikkfir-org/cobranch), the ones
+       this page uses. */
+    :root {
+      --gray-0: #ffffff; --gray-50: #f8f9fa; --gray-100: #f1f3f5; --gray-150: #eceef0; --gray-200: #e4e7ea;
+      --gray-300: #d3d8dc; --gray-400: #b4bcc2; --gray-500: #8a939b; --gray-600: #6b737b; --gray-700: #4a5158;
+      --gray-800: #2e3338; --gray-850: #23272b; --gray-900: #1a1d20; --gray-950: #131517; --gray-1000: #0c0d0f;
+
+      --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+      --color-bg-canvas: var(--gray-0);
+      --color-bg-surface: var(--gray-0);
+      --color-bg-sunken: var(--gray-50);
+      --color-bg-hover: var(--gray-100);
+      --color-fg-default: var(--gray-900);
+      --color-fg-muted: var(--gray-600);
+      --color-fg-subtle: var(--gray-500);
+      --color-fg-link: #2557d6;
+      --color-border-default: var(--gray-200);
+      --color-border-subtle: var(--gray-150);
+      --color-border-focus: #3b6ef0;
+      --color-action-primary-bg: var(--gray-900);
+      --color-action-primary-bg-hover: var(--gray-700);
+      --color-action-primary-fg: var(--gray-0);
+      --color-action-secondary-bg-hover: var(--gray-100);
+      --color-action-secondary-border: var(--gray-300);
+
+      /* Status: an icon, a word and a tone. Violet means AI, and nothing else uses it. */
+      --color-success-fg: #0e854c; --color-success-bg: #ecfdf3;
+      --color-info-fg: #2557d6; --color-info-bg: #eef4ff;
+      --color-ai-fg: #7c3aed; --color-ai-bg: #f5f3ff; --color-ai-border: #ddd6fe;
+
+      --shadow-float: 0 1px 2px rgb(0 0 0 / 6%), 0 12px 32px -8px rgb(0 0 0 / 12%);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-bg-canvas: var(--gray-950);
+        --color-bg-surface: var(--gray-900);
+        --color-bg-sunken: var(--gray-1000);
+        --color-bg-hover: var(--gray-850);
+        --color-fg-default: var(--gray-50);
+        --color-fg-muted: var(--gray-400);
+        --color-fg-subtle: var(--gray-500);
+        --color-fg-link: #5a8df7;
+        --color-border-default: var(--gray-800);
+        --color-border-subtle: var(--gray-850);
+        --color-action-primary-bg: var(--gray-50);
+        --color-action-primary-bg-hover: var(--gray-300);
+        --color-action-primary-fg: var(--gray-950);
+        --color-action-secondary-bg-hover: var(--gray-850);
+        --color-action-secondary-border: var(--gray-700);
+        --color-success-fg: #34c27a; --color-success-bg: #062a1b;
+        --color-info-fg: #5a8df7; --color-info-bg: #0f1d40;
+        --color-ai-fg: #a78bfa; --color-ai-bg: #2e1065; --color-ai-border: #4c1d95;
+        --shadow-float: 0 1px 2px rgb(0 0 0 / 50%), 0 12px 32px -8px rgb(0 0 0 / 60%);
+      }
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      background: var(--color-bg-canvas);
+      color: var(--color-fg-default);
+      font: 400 16px/1.6 var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--color-fg-link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    a:focus-visible { outline: 2px solid var(--color-border-focus); outline-offset: 2px; border-radius: 4px; }
+    code, .mono { font-family: var(--font-mono); font-size: 0.875em; }
+    svg.icon { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 2;
+      stroke-linecap: round; stroke-linejoin: round; }
+    .sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+    svg.gh { width: 16px; height: 16px; flex: none; fill: currentColor; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+    /* Top bar */
+    header.bar { border-bottom: 1px solid var(--color-border-subtle); }
+    header.bar .wrap { display: flex; align-items: center; justify-content: space-between; height: 56px; }
+    .brand { font-weight: 600; font-size: 18px; letter-spacing: -0.3px; color: var(--color-fg-default); }
+    .brand:hover { text-decoration: none; }
+    .bar nav { display: flex; gap: 20px; font-size: 14px; }
+    .bar nav a { color: var(--color-fg-muted); display: inline-flex; align-items: center; gap: 6px; }
+    .bar nav a:hover { color: var(--color-fg-default); text-decoration: none; }
+
+    /* Hero */
+    .hero { padding: 72px 0 80px; }
+    .hero .wrap { display: grid; gap: 56px; align-items: center; }
+    @media (min-width: 960px) { .hero .wrap { grid-template-columns: 1.05fr 1fr; } }
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
+      font-size: 13px; font-weight: 500; border: 1px solid var(--color-border-default); color: var(--color-fg-muted); }
+    .badge .dot { width: 6px; height: 6px; border-radius: 999px; background: var(--color-success-fg); }
+    h1 { font-size: clamp(36px, 5.2vw, 56px); line-height: 1.08; letter-spacing: -1.6px; font-weight: 700;
+      margin: 20px 0 20px; text-wrap: balance; }
+    .lede { font-size: 19px; line-height: 1.6; color: var(--color-fg-muted); margin: 0 0 32px; max-width: 34em; }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+    .button { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 18px; border-radius: 6px;
+      font-size: 15px; font-weight: 500; border: 1px solid transparent; }
+    .button:hover { text-decoration: none; }
+    .button.primary { background: var(--color-action-primary-bg); color: var(--color-action-primary-fg); }
+    .button.primary:hover { background: var(--color-action-primary-bg-hover); }
+    .button.secondary { color: var(--color-fg-default); border-color: var(--color-action-secondary-border); }
+    .button.secondary:hover { background: var(--color-action-secondary-bg-hover); }
+    .button svg.gh { width: 18px; height: 18px; fill: currentColor; }
+
+    /* A branch, as the Console will show it */
+    .glimpse { background: var(--color-bg-surface); border: 1px solid var(--color-border-default); border-radius: 12px;
+      box-shadow: var(--shadow-float); overflow: hidden; font-size: 14px; }
+    .glimpse .head { display: flex; align-items: center; gap: 10px; padding: 16px 18px;
+      border-bottom: 1px solid var(--color-border-subtle); flex-wrap: wrap; }
+    .glimpse .ref { font-family: var(--font-mono); font-size: 13px; padding: 2px 8px; border-radius: 6px;
+      background: var(--color-bg-sunken); border: 1px solid var(--color-border-subtle); }
+    .glimpse .arrow { color: var(--color-fg-subtle); }
+    .glimpse .head .status { margin-left: auto; }
+    .status { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px;
+      font-size: 12.5px; font-weight: 500; }
+    .status svg.icon { width: 14px; height: 14px; }
+    .status.success { color: var(--color-success-fg); background: var(--color-success-bg); }
+    .status.ai { color: var(--color-ai-fg); background: var(--color-ai-bg); }
+    .status.info { color: var(--color-info-fg); background: var(--color-info-bg); }
+    .glimpse ul { list-style: none; margin: 0; padding: 6px 0; border-bottom: 1px solid var(--color-border-subtle); }
+    .glimpse li { display: grid; grid-template-columns: 112px 1fr; gap: 12px; align-items: center; padding: 9px 18px; }
+    .glimpse li .what { color: var(--color-fg-muted); }
+    .chat { padding: 14px 18px; display: grid; gap: 14px; }
+    .msg { display: grid; grid-template-columns: 28px 1fr; gap: 10px; }
+    .avatar { width: 28px; height: 28px; display: grid; place-items: center; font-size: 11px; font-weight: 600; }
+    .avatar.person { border-radius: 999px; background: var(--color-bg-hover); color: var(--color-fg-default); }
+    .avatar.agent { border-radius: 7px; background: var(--color-ai-bg); color: var(--color-ai-fg);
+      border: 1px solid var(--color-ai-border); }
+    .avatar.agent svg.icon { width: 15px; height: 15px; }
+    .msg .who { font-weight: 600; font-size: 13px; }
+    .msg .who span { font-weight: 400; color: var(--color-fg-subtle); margin-left: 6px; }
+    .msg p { margin: 2px 0 0; color: var(--color-fg-default); }
+    .msg .pin { font-family: var(--font-mono); font-size: 12px; color: var(--color-fg-muted); background: var(--color-bg-sunken);
+      border-radius: 4px; padding: 1px 6px; }
+    .glimpse .envname { color: var(--color-fg-subtle); margin-left: 6px; }
+    .glimpse .foot { display: flex; justify-content: flex-end; gap: 10px; padding: 0 18px 16px; }
+    .glimpse .foot .button { height: 32px; padding: 0 14px; font-size: 14px; }
+
+    /* Sections */
+    section { padding: 80px 0; border-top: 1px solid var(--color-border-subtle); }
+    .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 0.6px; text-transform: uppercase;
+      color: var(--color-fg-subtle); margin: 0 0 10px; }
+    h2 { font-size: clamp(28px, 3.4vw, 36px); line-height: 1.15; letter-spacing: -0.8px; font-weight: 700;
+      margin: 0 0 14px; text-wrap: balance; }
+    .intro { color: var(--color-fg-muted); font-size: 17px; max-width: 40em; margin: 0 0 40px; }
+    .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+    .card { border: 1px solid var(--color-border-default); border-radius: 12px; padding: 22px; background: var(--color-bg-surface); }
+    .card .glyph { width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center;
+      background: var(--color-bg-sunken); border: 1px solid var(--color-border-subtle); margin-bottom: 14px; }
+    .card .glyph.ai { color: var(--color-ai-fg); background: var(--color-ai-bg); border-color: var(--color-ai-border); }
+    .card h3 { font-size: 16px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.2px; }
+    .card p { margin: 0; color: var(--color-fg-muted); font-size: 15px; line-height: 1.55; }
+
+    .principles { display: grid; gap: 0 48px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+    .principle { padding: 18px 0; border-top: 1px solid var(--color-border-subtle); }
+    .principle h3 { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+    .principle p { margin: 0; color: var(--color-fg-muted); font-size: 15px; }
+
+    .anywhere .wrap { display: grid; gap: 48px; align-items: start; }
+    @media (min-width: 960px) { .anywhere .wrap { grid-template-columns: 1fr 1fr; } }
+    .checks { list-style: none; padding: 0; margin: 0; display: grid; gap: 14px; }
+    .checks li { display: grid; grid-template-columns: 20px 1fr; gap: 12px; color: var(--color-fg-muted); }
+    .checks li svg.icon { color: var(--color-fg-default); margin-top: 3px; }
+    .checks strong { color: var(--color-fg-default); font-weight: 600; }
+    pre.values { margin: 0; padding: 20px 22px; border-radius: 12px; background: var(--color-bg-sunken);
+      border: 1px solid var(--color-border-default); font: 13.5px/1.7 var(--font-mono); overflow-x: auto;
+      color: var(--color-fg-default); }
+    pre.values .c { color: var(--color-fg-subtle); }
+    pre.values .k { color: var(--color-fg-muted); }
+
+    .closing { text-align: center; }
+    .closing .intro { margin: 0 auto 28px; }
+    .closing .actions { justify-content: center; }
+
+    footer { border-top: 1px solid var(--color-border-subtle); padding: 28px 0 40px; font-size: 14px;
+      color: var(--color-fg-subtle); }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+    footer a { color: var(--color-fg-muted); }
+  </style>
+</head>
+<body>
+  <!-- Icons: Lucide's shapes (ISC license), and GitHub's mark -->
+  <svg class="sprite" aria-hidden="true">
+    <symbol id="i-branch" viewBox="0 0 24 24"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></symbol>
+    <symbol id="i-merge" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></symbol>
+    <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+    <symbol id="i-workflow" viewBox="0 0 24 24"><rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/></symbol>
+    <symbol id="i-rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></symbol>
+    <symbol id="i-issue" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1"/></symbol>
+    <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5"/></symbol>
+    <symbol id="i-braces" viewBox="0 0 24 24"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+    <symbol id="i-env" viewBox="0 0 24 24"><rect width="20" height="8" x="2" y="2" rx="2"/><rect width="20" height="8" x="2" y="14" rx="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></symbol>
+    <symbol id="i-ok" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+    <symbol id="i-github" viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></symbol>
+  </svg>
+
+  <header class="bar">
+    <div class="wrap">
+      <a class="brand" href="/">Cobranch</a>
+      <nav aria-label="Elsewhere">
+        <a href="https://github.com/arikkfir-org/cobranch">
+          <svg class="gh" aria-hidden="true"><use href="#i-github"/></svg>
+          GitHub
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div class="wrap">
+        <div>
+          <span class="badge"><span class="dot" aria-hidden="true"></span>Coming soon</span>
+          <h1>Code, review, CI and delivery. One platform, with AI at its core.</h1>
+          <p class="lede">Cobranch hosts your repositories, runs your jobs, delivers every branch and holds the conversation around each change, so a team needs nothing else to ship software. Open source, and yours to run on any Kubernetes cluster with one Helm chart.</p>
+          <div class="actions">
+            <a class="button primary" href="https://github.com/arikkfir-org/cobranch">
+              <svg class="gh" aria-hidden="true"><use href="#i-github"/></svg>
+              Follow on GitHub
+            </a>
+            <a class="button secondary" href="https://github.com/arikkfir-org/cobranch/blob/main/docs/cobranch/designs/product.md">Read the design</a>
+          </div>
+        </div>
+
+        <div class="glimpse" role="img" aria-label="A branch in Cobranch: feature/sign-up into main, ready to merge, with an AI review, passing checks, its own environment and a chat between a person and an agent.">
+          <div class="head">
+            <svg class="icon" aria-hidden="true"><use href="#i-branch"/></svg>
+            <span class="ref">feature/sign-up</span>
+            <span class="arrow" aria-hidden="true">&rarr;</span>
+            <span class="ref">main</span>
+            <span class="status success"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Ready to merge</span>
+          </div>
+          <ul>
+            <li><span class="what">AI review</span><span><span class="status ai"><svg class="icon" aria-hidden="true"><use href="#i-sparkles"/></svg>Approved</span></span></li>
+            <li><span class="what">Checks</span><span><span class="status success"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>3 of 3 passed</span></span></li>
+            <li><span class="what">Environment</span><span><span class="status info"><svg class="icon" aria-hidden="true"><use href="#i-env"/></svg>Deployed</span> <span class="mono envname">sign-up</span></span></li>
+          </ul>
+          <div class="chat">
+            <div class="msg">
+              <span class="avatar agent" aria-hidden="true"><svg class="icon"><use href="#i-sparkles"/></svg></span>
+              <div><div class="who">Reviewer<span>agent</span></div><p>The invitation check on <span class="pin">orgs/invite.go:42</span> skips unverified emails. Fixed in the next commit.</p></div>
+            </div>
+            <div class="msg">
+              <span class="avatar person" aria-hidden="true">DL</span>
+              <div><div class="who">Dana Levi<span>you</span></div><p>Looks right. Merging once the environment settles.</p></div>
+            </div>
+          </div>
+          <div class="foot">
+            <span class="button secondary">Request changes</span>
+            <span class="button primary"><svg class="icon" aria-hidden="true"><use href="#i-merge"/></svg>Merge</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section>
+      <div class="wrap">
+        <p class="eyebrow">Built in</p>
+        <h2>Everything a team needs to ship, in one product</h2>
+        <p class="intro">One model, one permission system and one API, from the first push to production. No plug-ins to stitch together, no second tool to learn.</p>
+        <div class="grid">
+          <div class="card">
+            <div class="glyph"><svg class="icon" aria-hidden="true"><use href="#i-branch"/></svg></div>
+            <h3>Git hosting</h3>
+            <p>Clone, fetch and push over HTTPS or SSH. A push returns only once Cobranch has recorded it, so everyone sees it at once.</p>
+          </div>
+          <div class="card">
+            <div class="glyph"><svg class="icon" aria-hidden="true"><use href="#i-chat"/></svg></div>
+            <h3>Branches, not pull requests</h3>
+            <p>A branch is the request to merge, with a computed status, reviews and a threaded chat whose messages point at lines of code.</p>
+          </div>
+          <div class="card">
+            <div class="glyph ai"><svg class="icon" aria-hidden="true"><use href="#i-sparkles"/></svg></div>
+            <h3>AI review and agents</h3>
+            <p>AI reviews every push. Agents take tasks, from implementing an issue to researching a change, on the model you pick: Claude, Gemini, Grok, GPT or DeepSeek.</p>
+          </div>
+          <div class="card">
+            <div class="glyph"><svg class="icon" aria-hidden="true"><use href="#i-workflow"/></svg></div>
+            <h3>Jobs</h3>
+            <p>Jobs run on branch events, declared in <code>/cobranch.yaml</code> beside your code, each as a principal with only the permissions it asks for.</p>
+          </div>
+          <div class="card">
+            <div class="glyph"><svg class="icon" aria-hidden="true"><use href="#i-rocket"/></svg></div>
+            <h3>Delivery</h3>
+            <p>A built-in GitOps controller. Every branch becomes an environment, sent to the clusters its name maps to; <code>main</code> is one more.</p>
+          </div>
+          <div class="card">
+            <div class="glyph"><svg class="icon" aria-hidden="true"><use href="#i-issue"/></svg></div>
+            <h3>Issues</h3>
+            <p>Issues belong to an organization and link to the branches that work on them, so each shows the other. Agents take them as tasks.</p>
+          </div>
+          <div class="card">
+            <div class="glyph"><svg class="icon" aria-hidden="true"><use href="#i-key"/></svg></div>
+            <h3>Organizations and permissions</h3>
+            <p>Users, groups, agents, keys, apps and jobs are all principals, granted the same permissions. Sign in with any OpenID Connect provider.</p>
+          </div>
+          <div class="card">
+            <div class="glyph"><svg class="icon" aria-hidden="true"><use href="#i-braces"/></svg></div>
+            <h3>One API</h3>
+            <p>REST and GraphQL for everything the Console does, so your scripts and your agents work exactly as people do.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <p class="eyebrow">Opinionated</p>
+        <h2>One way to do each thing, made complete</h2>
+        <p class="intro">Cobranch picks a way and finishes it, instead of offering every option halfway.</p>
+        <div class="principles">
+          <div class="principle"><h3>Branches are the unit of work</h3><p>Status, chat, reviews and environment hang off the branch itself.</p></div>
+          <div class="principle"><h3>Merging is explicit</h3><p>A branch never merges itself; whoever moves the base is the one who merged.</p></div>
+          <div class="principle"><h3>Pushes are immediate</h3><p>What you pushed is what everyone sees, the moment your push returns.</p></div>
+          <div class="principle"><h3>Everything is a principal</h3><p>People and machines get the same permissions, and you can always tell which acted.</p></div>
+          <div class="principle"><h3>Organizations own everything</h3><p>Repositories, issues and agents belong to an organization, never to one person.</p></div>
+          <div class="principle"><h3>The default branch is the boundary</h3><p>Settings live as code, and take effect when they reach <code>main</code>.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="anywhere">
+      <div class="wrap">
+        <div>
+          <p class="eyebrow">Yours to run</p>
+          <h2>Kubernetes-native, cloud-agnostic</h2>
+          <p class="intro">Cobranch is one Helm chart. You bring the cluster, the domain and the identity provider; your code and your data stay with you.</p>
+          <ul class="checks">
+            <li><svg class="icon" aria-hidden="true"><use href="#i-ok"/></svg><span><strong>Any cluster.</strong> One chart installs and upgrades every workload, migrations included.</span></li>
+            <li><svg class="icon" aria-hidden="true"><use href="#i-ok"/></svg><span><strong>Any bucket.</strong> Amazon S3, Google Cloud Storage, Azure Blob Storage or a volume of your own.</span></li>
+            <li><svg class="icon" aria-hidden="true"><use href="#i-ok"/></svg><span><strong>Any sign-in.</strong> Any OpenID Connect provider, with sign-up open, by domain or by invitation.</span></li>
+            <li><svg class="icon" aria-hidden="true"><use href="#i-ok"/></svg><span><strong>Open source.</strong> MIT licensed, built in the open on GitHub.</span></li>
+          </ul>
+        </div>
+        <pre class="values" aria-label="An example of the chart's values"><span class="c"># values.yaml</span>
+<span class="k">urls:</span>
+  <span class="k">console:</span> https://cobranch.example.com
+  <span class="k">rest:</span> https://cobranch.example.com/api
+  <span class="k">auth:</span> https://cobranch.example.com/auth
+  <span class="k">git:</span> https://git.cobranch.example.com
+<span class="k">auth:</span>
+  <span class="k">providers:</span>
+    - <span class="k">id:</span> google
+      <span class="k">name:</span> Google
+      <span class="k">preset:</span> google
+      <span class="k">clientId:</span> 1234.apps.googleusercontent.com
+      <span class="k">clientSecret:</span>
+        <span class="k">secretName:</span> cobranch-google
+  <span class="k">signUp:</span> anyone
+<span class="k">blob:</span>
+  <span class="k">url:</span> s3://cobranch-objects?region=eu-west-1</pre>
+      </div>
+    </section>
+
+    <section class="closing">
+      <div class="wrap">
+        <h2>Coming soon</h2>
+        <p class="intro">Cobranch is being built in the open. Watch the repository to follow along, and to know when the first release lands.</p>
+        <div class="actions">
+          <a class="button primary" href="https://github.com/arikkfir-org/cobranch">Follow on GitHub</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>Cobranch is open source under the <a href="https://github.com/arikkfir-org/cobranch/blob/main/LICENSE">MIT license</a>.</span>
+      <span>A Kfirs project, created by Arik Kfir. &copy; 2026</span>
+    </div>
+  </footer>
+</body>
+</html>

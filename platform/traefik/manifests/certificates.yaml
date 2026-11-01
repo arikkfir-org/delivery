@@ -36,7 +36,7 @@ spec:
     kind: ClusterIssuer
     name: letsencrypt
 ---
-# cobranch.dev (zone cobranch-dev), Cobranch's Go import page, has a certificate of its own for the same reason.
+# cobranch.dev (zone cobranch-dev), Cobranch's site and Go import page, has a certificate of its own for the same reason.
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:

@@ -1,0 +1,26 @@
+# Cobranch's site at cobranch.dev: a static "Coming soon" page about the product (site/), and the domain's Go import
+# page (docs/delivery/designs/cobranch-site.md). Both ConfigMaps take a hash of their files in their names, so a change
+# to either rolls the Deployment out.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: cobranch-site
+resources:
+  - deployment.yaml
+  - pod-disruption-budget.yaml
+  - service.yaml
+  - http-route.yaml
+  - network-policy.yaml
+configMapGenerator:
+  - name: cobranch-site-config
+    files:
+      - Caddyfile
+    options:
+      labels:
+        app.kubernetes.io/name: cobranch-site
+  - name: cobranch-site-files
+    files:
+      - site/index.html
+      - site/favicon.svg
+    options:
+      labels:
+        app.kubernetes.io/name: cobranch-site
