@@ -1,5 +1,6 @@
-# What a preview may take from pool ci, whatever its pull request's chart asks for: about four times what one replica
-# of each workload, the migrate Job and PostgreSQL request. Every container has to state its requests and memory limit
+# What a preview may take from pool ci, whatever its pull request's chart asks for: the chart's replicas and resources,
+# as the demo runs them, while every Deployment surges one pod, the Jobs run and maintenance compacts, with room to
+# spare; and its database's volume, twice the chart's size. Every container has to state its requests and memory limit
 # to start, as the chart's do.
 apiVersion: v1
 kind: ResourceQuota
@@ -11,9 +12,9 @@ spec:
   hard:
     requests.cpu: "3"
     requests.memory: 4Gi
-    limits.memory: 10Gi
-    pods: "20"
+    limits.memory: 16Gi
+    pods: "30"
     persistentvolumeclaims: "1"
-    requests.storage: 2Gi
+    requests.storage: 16Gi
     services.loadbalancers: "0"
     services.nodeports: "0"

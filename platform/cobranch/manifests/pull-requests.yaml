@@ -6,7 +6,9 @@
 # Application goes and the resources finalizer deletes the preview, namespace and database included. It
 # names the preview from the pull request's number and the commit from its head SHA, never from a title; the template
 # uses those alone. Two sources: the chart from the head commit, and what the hub decides around it from delivery's
-# main (platform/cobranch/pull-request), which holds the Namespace, so no CreateNamespace.
+# main (platform/cobranch/pull-request), which holds the Namespace, so no CreateNamespace. A preview is configured as the
+# demo is (cobranch.yaml), but for what the design lists under "What differs from the demo", each with the owner's
+# reason: a value the demo gains comes here in the same pull request.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -93,7 +95,8 @@ spec:
               auth:
                 admins:
                   - ada@cobranch.example
-              # No cloud role: a directory of each server's own, gone with its pod.
+              # A directory of each server's own, gone with its pod, until ENG-237 keeps Git objects in PostgreSQL, as the
+              # demo will (owner, 2026-11-01: no bucket in any of our installations).
               blob:
                 url: file:///var/lib/cobranch/blobs
                 volume:
@@ -101,9 +104,9 @@ spec:
               # The demo data a reviewer starts from (cobranch's db/seeds/).
               seed:
                 enabled: true
-              # A preview has no availability to keep. Every pod on pool ci, which policy cobranch-node-pool holds.
+              # Replicas and resources are the chart's, as the demo's are. Every pod on pool ci, which policy
+              # cobranch-node-pool holds.
               authServer:
-                replicas: 1
                 nodeSelector:
                   kfirs.com/pool: ci
                 tolerations:
@@ -112,7 +115,6 @@ spec:
                     value: ci
                     effect: NoSchedule
               restServer:
-                replicas: 1
                 nodeSelector:
                   kfirs.com/pool: ci
                 tolerations:
@@ -121,7 +123,6 @@ spec:
                     value: ci
                     effect: NoSchedule
               graphqlServer:
-                replicas: 1
                 nodeSelector:
                   kfirs.com/pool: ci
                 tolerations:
@@ -130,7 +131,6 @@ spec:
                     value: ci
                     effect: NoSchedule
               adminServer:
-                replicas: 1
                 nodeSelector:
                   kfirs.com/pool: ci
                 tolerations:
@@ -139,7 +139,6 @@ spec:
                     value: ci
                     effect: NoSchedule
               console:
-                replicas: 1
                 nodeSelector:
                   kfirs.com/pool: ci
                 tolerations:
@@ -148,7 +147,6 @@ spec:
                     value: ci
                     effect: NoSchedule
               backOffice:
-                replicas: 1
                 nodeSelector:
                   kfirs.com/pool: ci
                 tolerations:
@@ -156,7 +154,8 @@ spec:
                     operator: Equal
                     value: ci
                     effect: NoSchedule
-              # One Git server, so the pushes' packs stay on its own blob directory, gone with its pod as the rest is.
+              # One Git server until ENG-237: the pushes' packs stay on its own blob directory, which a second one wouldn't
+              # see.
               gitServer:
                 replicas: 1
                 nodeSelector:
@@ -167,7 +166,6 @@ spec:
                     value: ci
                     effect: NoSchedule
               pushWorker:
-                replicas: 1
                 nodeSelector:
                   kfirs.com/pool: ci
                 tolerations:
@@ -202,8 +200,6 @@ spec:
                 # Generated in the namespace (platform/cobranch/pull-request): the chart's own would change at every render.
                 auth:
                   existingSecret: cobranch-postgresql-password
-                storage:
-                  size: 1Gi
                 nodeSelector:
                   kfirs.com/pool: ci
                 tolerations:
@@ -233,6 +229,13 @@ spec:
                     path: /spec/hostnames
                     value:
                       - "{{ .values.env }}.git.cobranch.dev.kfirs.com"
+      # A StatefulSet's volume claim templates can't change: a preview keeps the database volume it started with when a
+      # newer chart, or this file, sizes it otherwise, instead of failing every sync. A new preview gets the chart's.
+      ignoreDifferences:
+        - group: apps
+          kind: StatefulSet
+          jsonPointers:
+            - /spec/volumeClaimTemplates
       syncPolicy:
         automated:
           prune: true
@@ -247,3 +250,4 @@ spec:
             maxDuration: 5m
         syncOptions:
           - SkipDryRunOnMissingResource=true
+          - RespectIgnoreDifferences=true
