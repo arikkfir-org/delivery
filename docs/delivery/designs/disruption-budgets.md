@@ -64,7 +64,7 @@ sequenceDiagram
 | Keycloak | 2 | Sessions live in its PostgreSQL ([Keycloak](keycloak.md)) |
 | NATS | 3 | JetStream keeps a quorum with two of three servers |
 | Octomaton | 2 | Every replica serves webhooks; the Lease holder reports, schedules and cleans up |
-| Cobranch's demo and cobranch.app: the REST, GraphQL, Auth and Git servers, the push worker, the Console | 2 each | State in PostgreSQL and the bucket; each Git server's pack cache refills from the bucket ([hosting Cobranch's demo](cobranch.md), [cobranch.app](cobranch-app.md)) |
+| Cobranch's demo and cobranch.app: the REST, GraphQL, Auth and Git servers, the push worker, the Console | 2 each | State in PostgreSQL, and the demo's Git packs in its bucket; each Git server's pack cache refills from where the packs are, the demo's bucket or cobranch.app's PostgreSQL ([hosting Cobranch's demo](cobranch.md), [cobranch.app](cobranch-app.md)) |
 
 The replicas spread by host with `whenUnsatisfiable: ScheduleAnyway`. They land on different nodes when the system pool has several, and share one otherwise, instead of making the pool grow. A drain still keeps one replica serving with a single node: the evicted replica waits for room, which the autoscaler adds, and the budget holds the second until the first is ready. What each replica requests: [resource requests](resource-requests.md).
 

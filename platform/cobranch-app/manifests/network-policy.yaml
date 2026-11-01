@@ -1,5 +1,5 @@
 # Only Traefik reaches the Console, the Back-office and the servers (the routes' backends), the Git server included. The
-# chart's own policy admits only the servers and the migrate Job to PostgreSQL.
+# chart's own policy admits only the servers, the push worker, the migrate Job and maintenance to PostgreSQL.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
