@@ -7,7 +7,7 @@
 # listener previews from namespaces labelled kfirs.com/cobranch-pull-request, which policy cobranch-http-routes holds
 # to their own host and to Service cobranch-git-server. One certificate covers both names, so a preview issues none,
 # and in traefik no pull request's code can read its private key. Wave 0 issues the certificate before the Gateway
-# (wave 1) references its Secret.
+# (wave 1) references its Secret, and the demo's route (git-http-route.yaml, wave 2) attaches once the Gateway is there.
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
