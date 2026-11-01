@@ -1,6 +1,6 @@
 # Cobranch's previews
 
-**Decision**: every open pull request that a member of [arikkfir-org/cobranch](https://github.com/arikkfir-org/cobranch) opens gets a Cobranch of its own, a preview, and no fork's pull request does: namespace `cobranch-pr-<number>`, at `https://pr-<number>.cobranch.dev.kfirs.com`, behind the hub's sign-in and Middleware `admins`, as the [demo](cobranch.md) is. Argo CD installs Cobranch's chart from the pull request's head commit, with that commit's images and its demo data (`seed.enabled`), on node pool `ci`; closing or merging the pull request deletes it, database and all. A pull request's code decides what runs in its namespace, so an AppProject admits only the kinds a preview needs and admission policies hold what each may say. Linear: [ENG-208](https://linear.app/arikkfir/issue/ENG-208). Cobranch's side, the seeds and the preview pipeline, is the [Helm chart design](https://claude.ai/artifact/LyMHXgSoNQNgHtHNfEjvA8#previews)'s.
+**Decision**: every open pull request that a member of [arikkfir-org/cobranch](https://github.com/arikkfir-org/cobranch) opens gets a Cobranch of its own, a preview, and no fork's pull request does: namespace `cobranch-pr-<number>`, at `https://pr-<number>.cobranch.dev.kfirs.com`, behind the hub's sign-in and Middleware `admins`, as the [demo](cobranch.md) is, and its Git server at `https://pr-<number>.git.cobranch.dev.kfirs.com`, public as the demo's is. Argo CD installs Cobranch's chart from the pull request's head commit, with that commit's images and its demo data (`seed.enabled`), on node pool `ci`; closing or merging the pull request deletes it, database and all. A pull request's code decides what runs in its namespace, so an AppProject admits only the kinds a preview needs and admission policies hold what each may say. Linear: [ENG-208](https://linear.app/arikkfir/issue/ENG-208). Cobranch's side, the seeds and the preview pipeline, is the [Helm chart design](https://claude.ai/artifact/LyMHXgSoNQNgHtHNfEjvA8#previews)'s.
 
 ## Why
 
@@ -16,18 +16,20 @@ flowchart LR
   end
   subgraph delivery["delivery"]
     Set["ApplicationSet cobranch-pull-requests<br/>(platform/cobranch/manifests)"]
-    Extras["platform/cobranch/pull-request: Namespace, quota,<br/>password, secrets key, HTTPRoute, Middleware admins, NetworkPolicy"]
+    Extras["platform/cobranch/pull-request: Namespace, quota,<br/>password, secrets key, HTTPRoutes, Middleware admins, NetworkPolicy"]
     Project["AppProject cobranch-pull-requests<br/>and policies cobranch-*"]
     GW["Gateway and Certificate<br/>traefik/cobranch-pull-requests"]
+    GitGW["Gateway and Certificate<br/>traefik/cobranch-git, listener previews"]
   end
   Preview -- "pushes as ci-cobranch-preview" --> Reg[("Artifact Registry<br/>cobranch-previews")]
   Set -- "an Application per pull request" --> App["Application cobranch-pr-&lt;number&gt;"]
   App -- "source 1: Helm values" --> Chart
   App -- "source 2: kustomize" --> Extras
-  App --> NS["namespace cobranch-pr-&lt;number&gt; on pool ci:<br/>Console, Back-office, servers, migrate Job and seeds,<br/>maintenance CronJob, PostgreSQL"]
+  App --> NS["namespace cobranch-pr-&lt;number&gt; on pool ci:<br/>Console, Back-office, servers, Git server, push worker,<br/>migrate Job and seeds, maintenance CronJob, PostgreSQL"]
   Reg -- "pulled by the nodes" --> NS
   Project -. "admits and holds" .-> NS
   GW --> NS
+  GitGW -- "Git server only" --> NS
 ```
 
 What `infra` provides, repository `cobranch-previews`, `ci-cobranch-preview`'s grant on it and the record `*.cobranch.dev`, is documented in its pages: [Artifact Registry](../../infra/terraform/gcp.md#artifact-registry), [IAM](../../infra/terraform/gcp.md#iam) and [DNS](../../infra/terraform/gcp.md#dns).
@@ -53,6 +55,7 @@ sequenceDiagram
   A->>K: wave 1: migrate Job (waits for its image): schema, then seeds
   A->>K: wave 2: servers, Console and Back-office, ready once the schema is theirs
   Dev->>K: https://pr-n.cobranch.dev.kfirs.com (sign-in, admins)
+  Dev->>K: git clone https://pr-n.git.cobranch.dev.kfirs.com/... (a personal token, no sign-in)
 ```
 
 A sync can start before pipeline `preview` has pushed the commit's images: the migrate Job waits for its image within `migrate.activeDeadlineSeconds` (1800 seconds), and the servers and the Console wait for the Job. The seeds keep a version table of their own, so a preview upgraded in place runs only the new ones.
@@ -77,13 +80,13 @@ flowchart TB
     K1["Deployments, StatefulSet, Job, CronJob, Services,<br/>ServiceAccount, budgets, NetworkPolicy"]
   end
   subgraph hub["What delivery adds"]
-    K2["Namespace, ResourceQuota, Passwords and ExternalSecrets,<br/>HTTPRoute, Middleware admins, NetworkPolicy"]
+    K2["Namespace, ResourceQuota, Passwords and ExternalSecrets,<br/>HTTPRoutes, Middleware admins, NetworkPolicy"]
   end
   code --> Proj{"AppProject cobranch-pull-requests:<br/>those kinds, namespaces cobranch-pr-* only"}
   hub --> Proj
   Proj --> Pol{"Admission policies, matched by namespace name"}
   Pol --> P1["cobranch-namespaces: restricted, labelled<br/>kfirs.com/cobranch-pull-request only"]
-  Pol --> P2["cobranch-http-routes: own host, own Gateway,<br/>admins first, then a rewrite at most"]
+  Pol --> P2["cobranch-http-routes: own host, own Gateway,<br/>admins first, then a rewrite at most;<br/>on traefik/cobranch-git, own Git host,<br/>Service cobranch-git-server only"]
   Pol --> P3["cobranch-middlewares: the admins ForwardAuth only"]
   Pol --> P4["cobranch-external-secrets: generators only"]
   Pol --> P5["cobranch-cluster-ip-services"]
@@ -96,10 +99,10 @@ flowchart TB
 | --- | --- |
 | No cloud role | No grant in `infra` names a `cobranch-pr-*` namespace, and no Workload Identity pool trusts one. The bucket is a `file://` directory on each server's emptyDir |
 | No Secret but its own | AppProject admits no Secret; the database's password and the secrets key come from Password generators; ClusterSecretStore `gcp-secret-manager` refuses namespaces labelled `kfirs.com/cobranch-pull-request`, and policy `cobranch-external-secrets` admits only generators |
-| No reach beyond its host | Services are ClusterIP; routes attach only to `traefik/cobranch-pull-requests`, with the namespace's own host; NetworkPolicy `cobranch` admits only Traefik to the servers, the Console and the Back-office, the chart's own only the servers and the Job to PostgreSQL |
-| Admins only | Every rule asks Middleware `admins` first, which reads the hub's session cookie, then may only rewrite the URL: Traefik runs filters in order, so a redirect or mirror before `admins` would answer any hub user. Cookies pass through to the pods, Cobranch's own session cookie and the hub's (domain `.kfirs.com`) alike: a pull request's code can read the hub's, which is why only the owner's and Dependabot's pull requests get a preview (owner, 2026-10-30) |
+| No reach beyond its host | Services are ClusterIP. A route attaches either to `traefik/cobranch-pull-requests`, with the namespace's own host, its rules sending to the namespace's Services behind `admins`, or to listener `previews` of `traefik/cobranch-git`, with the namespace's own Git host, its rules sending only to Service `cobranch-git-server` on port 80, unfiltered; NetworkPolicy `cobranch` admits only Traefik to the servers, the Git server, the Console and the Back-office, the chart's own only the servers, the push worker and the Job to PostgreSQL |
+| Admins only | On `traefik/cobranch-pull-requests`, every rule asks Middleware `admins` first, which reads the hub's session cookie, then may only rewrite the URL: Traefik runs filters in order, so a redirect or mirror before `admins` would answer any hub user. Cookies pass through to the pods, Cobranch's own session cookie and the hub's (domain `.kfirs.com`) alike: a pull request's code can read the hub's, which is why only the owner's and Dependabot's pull requests get a preview (owner, 2026-10-30). The one exception is the Git route on `traefik/cobranch-git`, which Git clients reach without the hub's sign-in: it has no filter, and the Git server signs every request in with a personal token itself (owner, 2026-11-01) |
 | Sign-in without a provider | `urls.auth` deploys the chart's Auth server at `/auth`, with no identity provider: neither Keycloak nor Google takes a wildcard host in a redirect URI, and a preview reads no secret. People sign in as the seeded users (`seed.enabled`), which the sign-in page offers ([ENG-197](https://linear.app/arikkfir/issue/ENG-197)); the [demo](cobranch.md) signs in through Keycloak. `auth.admins` lists the seeded administrator, Ada Admin (`ada@cobranch.example`), so signing in as her opens the Back-office at `/back-office` ([ENG-219](https://linear.app/arikkfir/issue/ENG-219)) |
-| No room beyond its share | ResourceQuota `cobranch`: 2 CPUs and 4Gi requested, 8Gi of memory limits, 16 pods (each Deployment surges one more while it rolls out), one 2Gi volume |
+| No room beyond its share | ResourceQuota `cobranch`: 3 CPUs and 4Gi requested, 10Gi of memory limits, 20 pods (each Deployment surges one more while it rolls out), one 2Gi volume |
 | No other pool | Policy `cobranch-node-pool`: pods tolerate only `kfirs.com/pool=ci` and name no node; budgets let every pod go, so a preview never keeps a CI node up |
 | No runaway schedule | Policy `cobranch-cron-jobs`: a CronJob (the chart's maintenance) runs one job at a time, each ending within an hour, so a tightened schedule can't pile pods onto the pool |
 
@@ -114,12 +117,15 @@ flowchart TB
 | Label `kfirs.com/cobranch-pull-request` | Fin's `kfirs.com/pull-request` also admits a namespace to NATS, which takes no credentials, and to Fin's Gateway | Reusing Fin's label |
 | The route, Middleware, quota, password and secrets key from delivery, as a second source | A pull request's code then decides no host, Gateway or gate; the chart stays the product, with nothing of the hub in it | The chart's own HTTPRoute (`httpRoute.enabled`) |
 | Pull requests that `cobranch`'s members open: its owner, whose sessions open them as the owner, and Dependabot | `cobranch` is public: GitHub lists forks' pull requests among `cobranch`'s and serves their head commits from `cobranch`, and Argo CD's generator drops the repository a pull request comes from, so a fork's chart could run anything on pool `ci`. Its post-selector on the author keeps every member's pull request automatic and every stranger's out; a new collaborator is added to it (owner, 2026-10-30) | A label `preview` that members add by hand; matching `cobranch`'s branch list, which still previews a fork named like a `cobranch` branch at its commit |
+| A public Git host for every preview, Dependabot's included | A reviewer tries a pull request's Git changes with a real Git client, which can't pass the hub's sign-in. The Git server there is the pull request's own code, so anyone can reach what it serves, as the owner accepted (owner, 2026-11-01) | The owner's pull requests only; no Git in previews; listeners on `traefik/public`, which need `kfirs.com/public-ingress` on the namespace, which [policy `cobranch-namespaces`](#what-holds-a-preview) refuses |
+| One Git server and one push worker | A preview's bucket is a directory on each pod's emptyDir, so a second Git server wouldn't see the first one's packs | A bucket per preview, which needs a cloud role no preview has |
 | Pull requests only, no merge queue entries | A preview is for a reviewer; Cobranch's CI tests the chart on kind for every merge group | Fin's per-entry environments, which its end-to-end suite needs |
 
 ## Security and failure modes
 
 - A preview runs a pull request's code on pool `ci`, beside other repositories' CI runs, as cobranch's CI already does there. Only a pull request that `cobranch`'s owner or Dependabot opens gets one: a fork's pull request runs nothing here, as Octomaton runs nothing for it in CI. A collaborator who isn't in the ApplicationSet's list gets no previews until added.
-- A pull request whose chart predates cobranch's `seed.enabled` value, its `maintenance` values, `urls.auth` and `authServer`, `urls.admin`, `urls.backOffice`, `images.backOffice`, `adminServer` and `backOffice`, or `secretsKey`, fails to render: the chart's values schema refuses unknown keys. Rebasing it on `main` fixes it; until then its Application shows the error and runs nothing.
+- A preview's Git server faces the internet, and it runs the pull request's code, which could serve anything there: only the owner's and Dependabot's pull requests get a preview, and the route reaches no other workload. Its packs live on its pod's emptyDir, so a restart loses them while the database still lists the repositories' branches, and fetching those then fails: a preview is for trying a change, not for keeping repositories.
+- A pull request whose chart predates cobranch's `seed.enabled` value, its `maintenance` values, `urls.auth` and `authServer`, `urls.admin`, `urls.backOffice`, `images.backOffice`, `adminServer` and `backOffice`, `secretsKey`, or `urls.git`, `gitServer` and `pushWorker`, fails to render: the chart's values schema refuses unknown keys. Rebasing it on `main` fixes it; until then its Application shows the error and runs nothing.
 - A preview's pods receive the hub's session cookie, so a pull request's code could act as its visitor on the hub's tools until the session ends: the ApplicationSet previews only pull requests the owner or Dependabot opens. Previews share the demo's domain, and a preview can set a cookie for `cobranch.dev.kfirs.com` that the demo receives, so the demo's session cookie takes the `__Host-` prefix, which no preview can set.
 - A commit whose migrate Job fails keeps failing on every retry (the Job is named by a hash of its spec); the next push recovers.
 - Argo CD's GitHub App lists the pull requests: the owner installs it on `cobranch` as well as `fin`. Without it the ApplicationSet lists nothing and no preview appears.
@@ -129,3 +135,4 @@ flowchart TB
 1. `infra`: repository `cobranch-previews`, its grants and the record `*.cobranch.dev`, applied on merge.
 2. `delivery`: this design, ServiceAccount `ci-cobranch-preview`, the secret store's condition, the Gateway and Certificate, AppProject, policies and ApplicationSet. The owner adds `cobranch` to Argo CD's GitHub App installation.
 3. `cobranch`: `db/seeds/`, `seed.enabled` and pipeline `preview`. Its own pull request is the first preview that renders; the others open before it fail to render until rebased on it.
+4. `infra`: records `git.cobranch.dev` and `*.git.cobranch.dev` ([infra#103](https://github.com/arikkfir-org/infra/pull/103)); cobranch: the Git server and the push worker ([cobranch#29](https://github.com/arikkfir-org/cobranch/pull/29)); then `delivery`: Gateway `traefik/cobranch-git`, each preview's Git route and values, and the Git routes in policy `cobranch-http-routes` ([delivery#102](https://github.com/arikkfir-org/delivery/pull/102)). Pull requests opened before cobranch's Git server fail to render until rebased on it.

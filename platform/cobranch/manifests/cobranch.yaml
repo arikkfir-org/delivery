@@ -40,7 +40,9 @@ spec:
           backOffice:
             repository: me-west1-docker.pkg.dev/arikkfir/cobranch/cobranch-back-office
         # One host behind the protected gateway's sign-in, whose routes (http-route.yaml) strip each workload's prefix.
-        # urls.admin runs the Admin server and the Back-office, where the installation's administrators run it.
+        # urls.admin runs the Admin server and the Back-office, where the installation's administrators run it. urls.git
+        # runs the Git server and the push worker; the Git server's host is public (git-http-route.yaml), since Git
+        # clients can't pass the sign-in.
         urls:
           console: https://cobranch.dev.kfirs.com
           rest: https://cobranch.dev.kfirs.com/api
@@ -48,6 +50,7 @@ spec:
           auth: https://cobranch.dev.kfirs.com/auth
           admin: https://cobranch.dev.kfirs.com/admin
           backOffice: https://cobranch.dev.kfirs.com/back-office
+          git: https://git.cobranch.dev.kfirs.com
         # Sign-in through the hub's Keycloak, realm hub, as client cobranch (infra's root keycloak): the hub's own
         # Google sign-in, for the people the realm declares. The client's secret comes from keycloak-secret.yaml. The
         # owner is the installation's administrator.
@@ -111,6 +114,22 @@ spec:
               value: "true"
               effect: NoSchedule
         backOffice:
+          nodeSelector:
+            kfirs.com/pool: system
+          tolerations:
+            - key: components.gke.io/gke-managed-components
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+        gitServer:
+          nodeSelector:
+            kfirs.com/pool: system
+          tolerations:
+            - key: components.gke.io/gke-managed-components
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+        pushWorker:
           nodeSelector:
             kfirs.com/pool: system
           tolerations:

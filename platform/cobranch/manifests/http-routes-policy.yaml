@@ -3,7 +3,11 @@
 # which takes routes for any *.kfirs.com host from every namespace. Every rule asks Middleware admins first, then may
 # only rewrite the URL: the hub's sign-in admits every hub user, Fin's test users included, and Traefik runs filters in
 # order, so a redirect or mirror before admins would answer them. Cookies pass through, Cobranch's own session cookie
-# and the hub's alike (owner, 2026-10-30). Matched by the namespace's name. Wave -1: in force before any preview.
+# and the hub's alike (owner, 2026-10-30). The one exception is the Git server's route, on the public
+# traefik/cobranch-git (git-gateway.yaml), which Git clients reach without the sign-in (owner, 2026-11-01): it names only
+# pr-<number>.git.cobranch.dev.kfirs.com and sends only to Service cobranch-git-server, port 80, with no filter, so no
+# other workload of the preview faces the internet. Matched by the namespace's name. Wave -1: in force before any
+# preview.
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:
@@ -32,28 +36,54 @@ spec:
       expression: >-
         request.operation == 'CREATE' || !has(oldObject.metadata.deletionTimestamp) || object.spec != oldObject.spec
   variables:
-    # cobranch-pr-<number> serves pr-<number>.cobranch.dev.kfirs.com.
+    # cobranch-pr-<number> serves pr-<number>.cobranch.dev.kfirs.com, and its Git server pr-<number>.git.cobranch.dev.kfirs.com.
     - name: host
       expression: "request.namespace.substring(9) + '.cobranch.dev.kfirs.com'"
-  validations:
-    - expression: >-
-        has(object.spec.hostnames) && size(object.spec.hostnames) > 0
-        && object.spec.hostnames.all(h, h == variables.host)
-      messageExpression: "'An HTTPRoute in ' + request.namespace + ' names one host, ' + variables.host"
-    - expression: >-
-        has(object.spec.parentRefs) && size(object.spec.parentRefs) > 0
-        && object.spec.parentRefs.all(p, (!has(p.group) || p.group == 'gateway.networking.k8s.io')
+    - name: gitHost
+      expression: "request.namespace.substring(9) + '.git.cobranch.dev.kfirs.com'"
+    - name: parents
+      expression: "has(object.spec.parentRefs) ? object.spec.parentRefs : []"
+    - name: onPreviews
+      expression: >-
+        size(variables.parents) > 0 && variables.parents.all(p, (!has(p.group) || p.group == 'gateway.networking.k8s.io')
           && (!has(p.kind) || p.kind == 'Gateway')
           && has(p.namespace) && p.namespace == 'traefik' && p.name == 'cobranch-pull-requests')
-      message: An HTTPRoute in a Cobranch preview attaches to Gateway traefik/cobranch-pull-requests only.
+    - name: onGit
+      expression: >-
+        size(variables.parents) > 0 && variables.parents.all(p, (!has(p.group) || p.group == 'gateway.networking.k8s.io')
+          && (!has(p.kind) || p.kind == 'Gateway')
+          && has(p.namespace) && p.namespace == 'traefik' && p.name == 'cobranch-git'
+          && (!has(p.sectionName) || p.sectionName == 'previews'))
+  validations:
+    - expression: "variables.onPreviews || variables.onGit"
+      message: >-
+        An HTTPRoute in a Cobranch preview attaches to Gateway traefik/cobranch-pull-requests only, or to listener
+        previews of traefik/cobranch-git only.
     - expression: >-
-        has(object.spec.rules) && object.spec.rules.all(r, has(r.filters) && size(r.filters) >= 1
+        has(object.spec.hostnames) && size(object.spec.hostnames) > 0
+        && object.spec.hostnames.all(h, h == (variables.onGit ? variables.gitHost : variables.host))
+      messageExpression: >-
+        'An HTTPRoute in ' + request.namespace + ' names one host, ' + variables.host + ', or on traefik/cobranch-git '
+        + variables.gitHost
+    - expression: >-
+        variables.onGit || (has(object.spec.rules) && object.spec.rules.all(r, has(r.filters) && size(r.filters) >= 1
           && r.filters[0].type == 'ExtensionRef' && has(r.filters[0].extensionRef)
           && r.filters[0].extensionRef.group == 'traefik.io' && r.filters[0].extensionRef.kind == 'Middleware'
           && r.filters[0].extensionRef.name == 'admins'
-          && (size(r.filters) == 1 || (size(r.filters) == 2 && r.filters[1].type == 'URLRewrite')))
+          && (size(r.filters) == 1 || (size(r.filters) == 2 && r.filters[1].type == 'URLRewrite'))))
       message: >-
         Every rule of an HTTPRoute in a Cobranch preview asks Middleware admins first, then may only rewrite the URL.
+    - expression: >-
+        !variables.onGit || (has(object.spec.rules) && size(object.spec.rules) > 0 && object.spec.rules.all(r,
+          (!has(r.filters) || size(r.filters) == 0)
+          && has(r.backendRefs) && size(r.backendRefs) > 0 && r.backendRefs.all(b,
+            (!has(b.group) || b.group == '') && (!has(b.kind) || b.kind == 'Service')
+            && (!has(b.namespace) || b.namespace == request.namespace)
+            && b.name == 'cobranch-git-server' && has(b.port) && b.port == 80
+            && (!has(b.filters) || size(b.filters) == 0))))
+      message: >-
+        An HTTPRoute of a Cobranch preview on traefik/cobranch-git sends only to Service cobranch-git-server, port 80,
+        with no filter.
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding

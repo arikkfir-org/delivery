@@ -9,10 +9,10 @@ metadata:
     argocd.argoproj.io/sync-wave: "-1"
 spec:
   hard:
-    requests.cpu: "2"
+    requests.cpu: "3"
     requests.memory: 4Gi
-    limits.memory: 8Gi
-    pods: "16"
+    limits.memory: 10Gi
+    pods: "20"
     persistentvolumeclaims: "1"
     requests.storage: 2Gi
     services.loadbalancers: "0"
