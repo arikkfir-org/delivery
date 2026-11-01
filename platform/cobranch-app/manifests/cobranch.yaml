@@ -75,7 +75,7 @@ spec:
             - id: google
               name: Google
               preset: google
-              clientId: GOOGLE_CLIENT_ID
+              clientId: 8909046976-2pqrhv38ra7snh7g80t6f54uqdr995qp.apps.googleusercontent.com
               clientSecret:
                 secretName: cobranch-google
                 key: client-secret
