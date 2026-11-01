@@ -110,4 +110,4 @@ What `infra` provides, the records `cobranch.app` and `git.cobranch.app`, cert-m
 2. Cobranch: Git data in PostgreSQL by default, with `blob.url` optional ([ENG-237](https://linear.app/arikkfir/issue/ENG-237)), on Cobranch's `main`.
 3. The owner makes the Google client and adds its secret ([manual steps](../../infra/designs/cobranch-app.md#manual-steps)).
 4. This repository: `cobranch-app-environment` and its manifests, the ClusterIssuers' solver for `cobranch.app`, and the link from `cobranch.dev`. Open `https://cobranch.app`, sign up with Google, and push to a new repository at `https://git.cobranch.app`.
-5. This repository and `infra`: the demo goes, once the owner confirms: `cobranch-environment` keeps only the previews and the previews' Git listener, and `infra` removes the demo's records, Keycloak client and bucket.
+5. This repository and `infra`: the demo goes, once the owner confirms: `cobranch-environment` keeps only the previews and the previews' Git listener, and `infra` removes the demo's records and Keycloak client. The demo's bucket is [ENG-237](https://linear.app/arikkfir/issue/ENG-237)'s to retire.

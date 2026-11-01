@@ -1,9 +1,9 @@
 # cobranch.app, Cobranch's hosted service, in namespace cobranch-app. Its chart lives with its code, in chart/cobranch of
 # arikkfir-org/cobranch. Argo CD follows cobranch's main and runs the images of the synced commit, which cobranch's
 # pipeline main publishes for main's newest commit, tagged with its short SHA. Each sync upgrades it in place and
-# migrates the database first (the chart's migrate Job, ordered by its sync waves); the database's volume and the bucket
-# keep the data across every sync. No CreateNamespace: namespace.yaml holds it. Wave 1: after the Gateway its routes
-# attach to (gateway.yaml).
+# migrates the database first (the chart's migrate Job, ordered by its sync waves); the database's volume keeps
+# the data, Git repositories included, across every sync. No CreateNamespace: namespace.yaml holds it. Wave 1:
+# after the Gateway its routes attach to (gateway.yaml).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
