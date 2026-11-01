@@ -1,0 +1,11 @@
+# cobranch.app, Cobranch's hosted service. Its pods meet the restricted Pod Security Standard, as the chart writes them.
+# Wave -1: before the secrets and the Application that deploy into it. No kfirs.com/public-ingress: its routes attach
+# only to Gateway traefik/cobranch-app (gateway.yaml), which admits this namespace by name.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cobranch-app
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"

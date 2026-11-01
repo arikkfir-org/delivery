@@ -1,0 +1,53 @@
+# Only Traefik reaches the Console, the Back-office and the servers (the routes' backends), the Git server included. The
+# chart's own policy admits only the servers and the migrate Job to PostgreSQL; the nightly dump (backup.yaml) is
+# admitted beside them here.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cobranch
+  namespace: cobranch-app
+  labels:
+    app.kubernetes.io/name: cobranch
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: cobranch
+      app.kubernetes.io/instance: cobranch
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [console, back-office, rest-server, graphql-server, auth-server, admin-server, git-server]
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: traefik
+      ports:
+        - protocol: TCP
+          port: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cobranch-backup
+  namespace: cobranch-app
+  labels:
+    app.kubernetes.io/name: cobranch-backup
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: cobranch
+      app.kubernetes.io/instance: cobranch
+      app.kubernetes.io/component: postgresql
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: cobranch-backup
+      ports:
+        - protocol: TCP
+          port: 5432

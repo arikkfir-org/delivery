@@ -36,6 +36,7 @@ Replicas, budgets and rollouts: [disruption budgets](designs/disruption-budgets.
 | `keycloak` | Keycloak (`keycloak`): resource `keycloak`, two instances, Service `keycloak-service` on 8080 ([design](designs/keycloak.md)) | `quay.io/keycloak/keycloak`, in `platform/keycloak/manifests` | `26.8.1` | 4 |
 | `keycloak` | PostgreSQL for Keycloak: StatefulSet `postgres` ([design](designs/keycloak.md#in-the-cluster)) | `docker.io/library/postgres`, in `platform/keycloak/manifests` | `18.6-trixie` | 4 |
 | `cobranch` | Cobranch's demo (`cobranch-environment`): Namespace `cobranch`, AppProject `cobranch`, Application `cobranch` (the chart's Console, Back-office, REST, GraphQL, Auth, Admin and Git servers, push worker, migrate Job, maintenance CronJob and PostgreSQL), ExternalSecrets `cobranch-postgresql-password`, `cobranch-secrets-key` and `cobranch-keycloak`, HTTPRoutes `cobranch` and `cobranch-git`, Middleware `admins`, NetworkPolicy `cobranch`, and Gateway `traefik/cobranch-git`, which the previews share ([hosting Cobranch's demo](designs/cobranch.md)) | `chart/cobranch` of `arikkfir-org/cobranch` at `main`; the host objects in `platform/cobranch/manifests` | The synced commit's images | 4 |
+| `cobranch-app` | `cobranch.app`, Cobranch's hosted service (`cobranch-app-environment`): Namespace `cobranch-app`, AppProject `cobranch-app`, Application `cobranch-app` (the chart's Console, Back-office, REST, GraphQL, Auth, Admin and Git servers, push worker, migrate Job, maintenance CronJob, PostgreSQL and HTTPRoutes), ExternalSecrets `cobranch-postgresql-password`, `cobranch-secrets-key` and `cobranch-google`, NetworkPolicies `cobranch` and `cobranch-backup`, CronJob `cobranch-backup`, and Gateway `traefik/cobranch-app` ([hosting cobranch.app](designs/cobranch-app.md)) | `chart/cobranch` of `arikkfir-org/cobranch` at `main`; the host objects in `platform/cobranch-app/manifests` | The synced commit's images | 4 |
 | `cobranch-pr-<number>` | Cobranch's pull requests' previews (`cobranch-environment`): ApplicationSet `cobranch-pull-requests`, AppProject `cobranch-pull-requests`, admission policies `cobranch-*`, and Gateway `traefik/cobranch-pull-requests` ([Cobranch's previews](designs/cobranch-previews.md)) | `chart/cobranch` of `arikkfir-org/cobranch` at the head commit of each pull request its members open; the host objects in `platform/cobranch/pull-request` | The head commit's images | 4 |
 | `fin`, `fin-pr-<number>`, `fin-pr-<number>-merge` | Fin (`fin-environments`): Application `fin` (production), ApplicationSet `fin-pull-requests`, Application `fin-identities`, AppProjects `fin` and `fin-pull-requests`, admission policies, and Gateway `traefik/fin-pull-requests` ([environments](../fin/designs/environments.md)) | `deploy/` of `arikkfir-org/fin`: `main`, each pull request's head commit and each merge queue entry's commit | The deployed commit's images | 4 |
 
@@ -80,7 +81,8 @@ The middlewares and the sign-in: [phase 3](designs/phase-3-ingress-and-auth.md).
 ### Certificates
 
 cert-manager issues them from Let's Encrypt through ClusterIssuer `letsencrypt`, solving DNS-01 in Cloud DNS: zone
-`octomaton-dev` for `octomaton.dev`, zone `cobranch-dev` for `cobranch.dev`, zone `kfirs-com` for every other name.
+`octomaton-dev` for `octomaton.dev`, zone `cobranch-dev` for `cobranch.dev`, zone `cobranch-app` for `cobranch.app` and
+`git.cobranch.app`, zone `kfirs-com` for every other name.
 
 | Listener | Hostname | Certificate / Secret |
 | --- | --- | --- |
@@ -90,10 +92,11 @@ cert-manager issues them from Let's Encrypt through ClusterIssuer `letsencrypt`,
 | `fin-pull-requests/app` (8443) | `*.app.dev.fin.kfirs.com` | `fin-pull-requests` / `traefik/fin-pull-requests-tls` |
 | `cobranch-pull-requests/previews` (8443) | `*.cobranch.dev.kfirs.com` | `cobranch-pull-requests` / `traefik/cobranch-pull-requests-tls` |
 | `cobranch-git/demo`, `cobranch-git/previews` (9443) | `git.cobranch.dev.kfirs.com`, `*.git.cobranch.dev.kfirs.com` | `cobranch-git` (both names) / `traefik/cobranch-git-tls` |
+| `cobranch-app/app`, `cobranch-app/git` (9443) | `cobranch.app`, `git.cobranch.app` | `cobranch-app` (both names) / `traefik/cobranch-app-tls` |
 
 Listener `octomaton-dev` admits routes only from namespaces `octomaton` (the webhook) and `go-import` (the Go import
 page), and only while they carry `kfirs.com/public-ingress: "true"`. Listener `cobranch-dev` admits routes only from
-`cobranch-site`, on the same condition. Gateway `cobranch-git` is on the public entry point without that label: its listener `demo` admits routes only from namespace `cobranch`, and `previews` only from namespaces labelled `kfirs.com/cobranch-pull-request: "true"`, which policy `cobranch-http-routes` holds to Service `cobranch-git-server` ([hosting Cobranch's demo](designs/cobranch.md#git)).
+`cobranch-site`, on the same condition. Gateway `cobranch-git` is on the public entry point without that label: its listener `demo` admits routes only from namespace `cobranch`, and `previews` only from namespaces labelled `kfirs.com/cobranch-pull-request: "true"`, which policy `cobranch-http-routes` holds to Service `cobranch-git-server` ([hosting Cobranch's demo](designs/cobranch.md#git)). Gateway `cobranch-app` is on the public entry point too, without the label: both its listeners admit routes only from namespace `cobranch-app` ([hosting cobranch.app](designs/cobranch-app.md)).
 
 ### Hosts
 
@@ -118,6 +121,8 @@ Each route's Middlewares are in its own namespace.
 | `legal.kfirs.com` | public | `docs/docs:80` | Exact `/privacy.html`, `/privacy.md.html`, `/tos.html`, `/tos.md.html` | None |
 | `fin.kfirs.com` | public | `go-import/go-import:80` | All | None |
 | `octomaton.dev` | public, listener `octomaton-dev` | `octomaton/octomaton:80` (HTTPRoute `octomaton`, [hosting Octomaton](designs/octomaton.md)); `go-import/go-import:80` | Exact `/github/hooks`; everything else | None |
+| `cobranch.app` | `cobranch-app`, listener `app` (public) | `cobranch-app/cobranch-rest-server:80`; `…/cobranch-graphql-server:80`; `…/cobranch-auth-server:80`; `…/cobranch-admin-server:80`; `…/cobranch-back-office:80`; `…/cobranch-console:80` (the chart's HTTPRoutes) | `/api`, `/graphql`, `/auth`, `/admin` and `/back-office`, each prefix rewritten to `/`; everything else | None: Cobranch signs people in itself |
+| `git.cobranch.app` | `cobranch-app`, listener `git` (public) | `cobranch-app/cobranch-git-server:80` (the chart's HTTPRoute) | All | None: the Git server signs requests in with personal tokens |
 | `cobranch.dev` | public, listener `cobranch-dev` | `cobranch-site/cobranch-site:80` (Cobranch's site and Go import page, [design](designs/cobranch-site.md)) | Everything | None |
 
 ### Fin's gateways

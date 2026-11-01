@@ -1,0 +1,65 @@
+# cobranch.app's two names on Traefik's public entry point (9443): the Console and its APIs at cobranch.app, the Git
+# server at git.cobranch.app. Public on purpose: anyone signs up, and Cobranch signs every request in itself. A Gateway
+# of its own rather than listeners on traefik/public, whose listeners admit namespaces by label kfirs.com/public-ingress,
+# which would let this namespace's routes answer for *.kfirs.com too: both listeners take routes from namespace
+# cobranch-app alone, which the chart's HTTPRoutes attach from (cobranch.yaml). infra's records send both names to the
+# public gateway's address. Wave -1 issues the certificate, solved in zone cobranch-app, before the Gateway (wave 0)
+# references its Secret, and the Gateway comes before Application cobranch-app (wave 1): Argo CD waits for the
+# Application to be healthy, and its routes are healthy only once an existing Gateway accepts them.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cobranch-app
+  namespace: traefik
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  secretName: cobranch-app-tls
+  dnsNames:
+    - cobranch.app
+    - git.cobranch.app
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: letsencrypt
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: cobranch-app
+  namespace: traefik
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  gatewayClassName: traefik
+  listeners:
+    - name: app
+      protocol: HTTPS
+      port: 9443
+      hostname: cobranch.app
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: cobranch-app-tls
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              kubernetes.io/metadata.name: cobranch-app
+    - name: git
+      protocol: HTTPS
+      port: 9443
+      hostname: git.cobranch.app
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: cobranch-app-tls
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              kubernetes.io/metadata.name: cobranch-app

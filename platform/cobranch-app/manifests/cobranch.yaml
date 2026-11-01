@@ -1,0 +1,203 @@
+# cobranch.app, Cobranch's hosted service, in namespace cobranch-app. Its chart lives with its code, in chart/cobranch of
+# arikkfir-org/cobranch. Argo CD follows cobranch's main and runs the images of the synced commit, which cobranch's
+# pipeline main publishes for main's newest commit, tagged with its short SHA. Each sync upgrades it in place and
+# migrates the database first (the chart's migrate Job, ordered by its sync waves); the database's volume and the bucket
+# keep the data across every sync. No CreateNamespace: namespace.yaml holds it. Wave 1: after the Gateway its routes
+# attach to (gateway.yaml).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cobranch-app
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: cobranch-app
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cobranch-app
+  source:
+    repoURL: https://github.com/arikkfir-org/cobranch
+    targetRevision: main
+    path: chart/cobranch
+    helm:
+      releaseName: cobranch
+      # helm test's pod is for a person or CI to run, not for every sync.
+      skipTests: true
+      # The synced commit's images. As strings: a short SHA can be all digits.
+      parameters:
+        - name: images.cobranch.tag
+          value: ${ARGOCD_APP_REVISION_SHORT}
+          forceString: true
+        - name: images.console.tag
+          value: ${ARGOCD_APP_REVISION_SHORT}
+          forceString: true
+        - name: images.backOffice.tag
+          value: ${ARGOCD_APP_REVISION_SHORT}
+          forceString: true
+      valuesObject:
+        images:
+          cobranch:
+            repository: me-west1-docker.pkg.dev/arikkfir/cobranch/cobranch
+          console:
+            repository: me-west1-docker.pkg.dev/arikkfir/cobranch/cobranch-console
+          backOffice:
+            repository: me-west1-docker.pkg.dev/arikkfir/cobranch/cobranch-back-office
+        # One host for the Console and every API, so Cobranch's session cookie is __Host-cobranch-session; the Git
+        # server at a name of its own, since the Console owns every path of the apex. urls.admin runs the Admin server
+        # and the Back-office, where the installation's administrators run it: public like the rest, since the Admin API
+        # refuses everyone but them.
+        urls:
+          console: https://cobranch.app
+          rest: https://cobranch.app/api
+          graphql: https://cobranch.app/graphql
+          auth: https://cobranch.app/auth
+          admin: https://cobranch.app/admin
+          backOffice: https://cobranch.app/back-office
+          git: https://git.cobranch.app
+        # The chart's own routes, one per workload, each stripping its URL's path, on Gateway traefik/cobranch-app
+        # (gateway.yaml), whose listeners take routes from this namespace alone: the apex's on listener app, the Git
+        # server's on listener git.
+        httpRoute:
+          enabled: true
+          parentRefs:
+            - group: gateway.networking.k8s.io
+              kind: Gateway
+              namespace: traefik
+              name: cobranch-app
+        # Sign-in with Google, through the Google OAuth client the owner made by hand in Google Cloud project Cobranch,
+        # its redirect URI https://cobranch.app/auth/callback (infra's docs/infra/designs/cobranch-app.md). Its secret
+        # comes from google-secret.yaml. Sign-up and self-serve organizations are the Back-office's to set (anyone and
+        # on, until an administrator changes them), so the owner can close either without a deploy. The owner is the
+        # installation's administrator.
+        auth:
+          providers:
+            - id: google
+              name: Google
+              preset: google
+              clientId: GOOGLE_CLIENT_ID
+              clientSecret:
+                secretName: cobranch-google
+                key: client-secret
+          admins:
+            - arikkfir@gmail.com
+        # infra's bucket, which only the servers' ServiceAccount, cobranch-server, reaches through Workload Identity.
+        blob:
+          url: gs://arikkfir-cobranch-app
+        # Every pod on the system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
+        authServer:
+          # Reloader restarts the Auth server when Secret cobranch-google changes, so a rotated client secret takes
+          # effect without a hand.
+          podAnnotations:
+            reloader.stakater.com/auto: "true"
+          nodeSelector:
+            kfirs.com/pool: system
+          tolerations:
+            - key: components.gke.io/gke-managed-components
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+        restServer:
+          nodeSelector:
+            kfirs.com/pool: system
+          tolerations:
+            - key: components.gke.io/gke-managed-components
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+        graphqlServer:
+          nodeSelector:
+            kfirs.com/pool: system
+          tolerations:
+            - key: components.gke.io/gke-managed-components
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+        adminServer:
+          nodeSelector:
+            kfirs.com/pool: system
+          tolerations:
+            - key: components.gke.io/gke-managed-components
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+        console:
+          nodeSelector:
+            kfirs.com/pool: system
+          tolerations:
+            - key: components.gke.io/gke-managed-components
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+        backOffice:
+          nodeSelector:
+            kfirs.com/pool: system
+          tolerations:
+            - key: components.gke.io/gke-managed-components
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+        gitServer:
+          nodeSelector:
+            kfirs.com/pool: system
+          tolerations:
+            - key: components.gke.io/gke-managed-components
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+        pushWorker:
+          nodeSelector:
+            kfirs.com/pool: system
+          tolerations:
+            - key: components.gke.io/gke-managed-components
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+        migrate:
+          # A sync can start before main's pipeline has published the commit's images. The migrate Job, the chart's
+          # first wave after PostgreSQL, then waits for its image (pulls back off to five minutes apart) within this
+          # deadline, and the servers and the Console wait for it.
+          activeDeadlineSeconds: 1800
+          nodeSelector:
+            kfirs.com/pool: system
+          tolerations:
+            - key: components.gke.io/gke-managed-components
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+        maintenance:
+          nodeSelector:
+            kfirs.com/pool: system
+          tolerations:
+            - key: components.gke.io/gke-managed-components
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+        # Generated once in the cluster (secrets-key.yaml): the chart's own would change at every render.
+        secretsKey:
+          existingSecret: cobranch-secrets-key
+          secretKey: password
+        postgresql:
+          # Generated once in the cluster (postgresql-password.yaml): the chart's own would change at every render.
+          auth:
+            existingSecret: cobranch-postgresql-password
+          nodeSelector:
+            kfirs.com/pool: system
+          tolerations:
+            - key: components.gke.io/gke-managed-components
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    # Each retry syncs main's newest commit. One whose migrate Job failed fails again (the Job is named by a hash of
+    # its spec, so it is the same failed Job); a newer commit's Job has a new name.
+    retry:
+      limit: 10
+      refresh: true
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
