@@ -95,12 +95,6 @@ spec:
               auth:
                 admins:
                   - ada@cobranch.example
-              # A directory of each server's own, gone with its pod, until ENG-237 keeps Git objects in PostgreSQL, as the
-              # demo will (owner, 2026-11-01: no bucket in any of our installations).
-              blob:
-                url: file:///var/lib/cobranch/blobs
-                volume:
-                  emptyDir: {}
               # The demo data a reviewer starts from (cobranch's db/seeds/).
               seed:
                 enabled: true
@@ -154,10 +148,7 @@ spec:
                     operator: Equal
                     value: ci
                     effect: NoSchedule
-              # One Git server until ENG-237: the pushes' packs stay on its own blob directory, which a second one wouldn't
-              # see.
               gitServer:
-                replicas: 1
                 nodeSelector:
                   kfirs.com/pool: ci
                 tolerations:
@@ -197,6 +188,10 @@ spec:
                 existingSecret: cobranch-secrets-key
                 secretKey: password
               postgresql:
+                # Pinned here, as the demo's: a new major can't start on the old one's data.
+                image:
+                  repository: docker.io/library/postgres
+                  tag: 18.6-alpine
                 # Generated in the namespace (platform/cobranch/pull-request): the chart's own would change at every render.
                 auth:
                   existingSecret: cobranch-postgresql-password
