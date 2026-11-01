@@ -16,7 +16,7 @@ flowchart LR
   end
   subgraph delivery["delivery"]
     Set["ApplicationSet cobranch-pull-requests<br/>(platform/cobranch/manifests)"]
-    Extras["platform/cobranch/pull-request: Namespace, quota,<br/>password, secrets key, HTTPRoutes, Middleware admins, NetworkPolicy"]
+    Extras["platform/cobranch/pull-request: Namespace, quota,<br/>password, secrets key, HTTPRoutes, Middleware admins, NetworkPolicies"]
     Project["AppProject cobranch-pull-requests<br/>and policies cobranch-*"]
     GW["Gateway and Certificate<br/>traefik/cobranch-pull-requests"]
     GitGW["Gateway and Certificate<br/>traefik/cobranch-git, listener previews"]
@@ -80,7 +80,7 @@ flowchart TB
     K1["Deployments, StatefulSet, Job, CronJob, Services,<br/>ServiceAccount, budgets, NetworkPolicy"]
   end
   subgraph hub["What delivery adds"]
-    K2["Namespace, ResourceQuota, Passwords and ExternalSecrets,<br/>HTTPRoutes, Middleware admins, NetworkPolicy"]
+    K2["Namespace, ResourceQuota, Passwords and ExternalSecrets,<br/>HTTPRoutes, Middleware admins, NetworkPolicies"]
   end
   code --> Proj{"AppProject cobranch-pull-requests:<br/>those kinds, namespaces cobranch-pr-* only"}
   hub --> Proj
@@ -99,7 +99,7 @@ flowchart TB
 | --- | --- |
 | No cloud role | No grant in `infra` names a `cobranch-pr-*` namespace, and no Workload Identity pool trusts one. The bucket is a `file://` directory on each server's emptyDir |
 | No Secret but its own | AppProject admits no Secret; the database's password and the secrets key come from Password generators; ClusterSecretStore `gcp-secret-manager` refuses namespaces labelled `kfirs.com/cobranch-pull-request`, and policy `cobranch-external-secrets` admits only generators |
-| No reach beyond its host | Services are ClusterIP. A route attaches either to `traefik/cobranch-pull-requests`, with the namespace's own host, its rules sending to the namespace's Services behind `admins`, or to listener `previews` of `traefik/cobranch-git`, with the namespace's own Git host, its rules sending only to Service `cobranch-git-server` on port 80, unfiltered; NetworkPolicy `cobranch` admits only Traefik to the servers, the Git server, the Console and the Back-office, the chart's own only the servers, the push worker and the Job to PostgreSQL |
+| No reach beyond its host | Services are ClusterIP. A route attaches either to `traefik/cobranch-pull-requests`, with the namespace's own host, its rules sending to the namespace's Services behind `admins`, or to listener `previews` of `traefik/cobranch-git`, with the namespace's own Git host, its rules sending only to Service `cobranch-git-server` on port 80, unfiltered; NetworkPolicy `cobranch` admits only Traefik to the servers, the Git server, the Console and the Back-office, `cobranch-git-internal` only the REST and GraphQL servers to the Git server's internal port, the chart's own only the servers, the push worker and the Job to PostgreSQL |
 | Admins only | On `traefik/cobranch-pull-requests`, every rule asks Middleware `admins` first, which reads the hub's session cookie, then may only rewrite the URL: Traefik runs filters in order, so a redirect or mirror before `admins` would answer any hub user. Cookies pass through to the pods, Cobranch's own session cookie and the hub's (domain `.kfirs.com`) alike: a pull request's code can read the hub's, which is why only the owner's and Dependabot's pull requests get a preview (owner, 2026-10-30). The one exception is the Git route on `traefik/cobranch-git`, which Git clients reach without the hub's sign-in: it has no filter, and the Git server signs every request in with a personal token itself (owner, 2026-11-01) |
 | Sign-in without a provider | `urls.auth` deploys the chart's Auth server at `/auth`, with no identity provider: neither Keycloak nor Google takes a wildcard host in a redirect URI, and a preview reads no secret. People sign in as the seeded users (`seed.enabled`), which the sign-in page offers ([ENG-197](https://linear.app/arikkfir/issue/ENG-197)); the [demo](cobranch.md) signs in through Keycloak. `auth.admins` lists the seeded administrator, Ada Admin (`ada@cobranch.example`), so signing in as her opens the Back-office at `/back-office` ([ENG-219](https://linear.app/arikkfir/issue/ENG-219)) |
 | No room beyond its share | ResourceQuota `cobranch`: 3 CPUs and 4Gi requested, 10Gi of memory limits, 20 pods (each Deployment surges one more while it rolls out), one 2Gi volume |
