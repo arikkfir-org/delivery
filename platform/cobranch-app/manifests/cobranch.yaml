@@ -65,7 +65,7 @@ spec:
               kind: Gateway
               namespace: traefik
               name: cobranch-app
-        # Sign-in with Google, through the Google OAuth client the owner made by hand in Google Cloud project Cobranch,
+        # Sign-in with Google, through the Google OAuth client the owner made by hand in Google Cloud project arikkfir,
         # its redirect URI https://cobranch.app/auth/callback (infra's docs/infra/designs/cobranch-app.md). Its secret
         # comes from google-secret.yaml. Sign-up and self-serve organizations are the Back-office's to set (anyone and
         # on, until an administrator changes them), so the owner can close either without a deploy. The owner is the

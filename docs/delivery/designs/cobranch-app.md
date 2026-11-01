@@ -21,7 +21,7 @@ flowchart LR
   end
   GW --> R --> W
   W --> PG
-  W -- "Auth server" --> Google["Google sign-in<br/>OAuth client of project Cobranch"]
+  W -- "Auth server" --> Google["Google sign-in<br/>OAuth client of project arikkfir"]
   W -- "cobranch-server, Workload Identity" --> B1[("bucket arikkfir-cobranch-app")]
   BK -- "pg_dump" --> PG
   BK -- "cobranch-backup, create only" --> B2[("bucket arikkfir-cobranch-app-backups<br/>30 days")]
@@ -56,7 +56,7 @@ sequenceDiagram
   participant Go as Google
   B->>Au: Sign in with Google
   Au->>Go: authorize, PKCE and nonce, redirect https://cobranch.app/auth/callback
-  Go-->>B: consent screen of app Cobranch
+  Go-->>B: consent screen of project arikkfir's app
   B->>Au: callback with code
   Au->>Go: exchange the code
   Au->>Au: new identity: sign up under the Back-office's policy (anyone until changed);<br/>the owner's email becomes Installation admin
@@ -89,7 +89,7 @@ What `infra` provides, the records `cobranch.app` and `git.cobranch.app`, cert-m
 | Decision | Why | Rejected |
 | --- | --- | --- |
 | Start empty, in a namespace of its own | The demo's users are the hub's Keycloak identities: Cobranch refuses a new sign-up whose verified email another identity holds, so they couldn't sign in with Google; a public service starts without test data. A new namespace lets `cobranch.app` answer before the demo goes, all in Git | The demo turned into `cobranch.app` in place, keeping its data and the hub's provider |
-| Sign-in with Google, directly | Cobranch's `google` preset needs only a client; anyone with a Google account signs up | A Keycloak realm brokering Google: sign-in would pass through `id.kfirs.com`, and the client is still made by hand |
+| Sign-in with Google, directly, with a client in project `arikkfir` | Cobranch's `google` preset needs only a client; anyone with a Google account signs up. The client sits beside the hub's own Google client, under the project's existing consent screen (owner, 2026-11-01) | A Keycloak realm brokering Google: sign-in would pass through `id.kfirs.com`, and the client is still made by hand. A Google Cloud project of its own, whose consent screen would name Cobranch |
 | Public, with no hub gate | The hub's gate covers `kfirs.com` only, and a hosted service is for anyone. The Admin API checks every caller's permissions, so the public Back-office answers only the administrator | The Back-office behind the hub's sign-in: on another domain, the session cookie couldn't be `__Host-`, and the chart's URLs must share a parent domain |
 | A Gateway of its own | Listeners on `traefik/public` admit by label, which would let this namespace's routes answer for any `*.kfirs.com` name | Listeners on `traefik/public`, with `kfirs.com/public-ingress` on the namespace |
 | The chart's routes | As any operator installs Cobranch; with no Middleware to add, the hub's own routes would repeat the chart's | The demo's own HTTPRoutes |
