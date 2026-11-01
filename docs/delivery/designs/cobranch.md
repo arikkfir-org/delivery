@@ -22,7 +22,7 @@ flowchart LR
     Env --> Pass["Passwords and ExternalSecrets<br/>cobranch-postgresql-password, cobranch-secrets-key"]
     Env --> KC["ExternalSecret cobranch-keycloak"]
     Env --> App["Application cobranch<br/>Helm values: images, urls, bucket,<br/>password, secrets key, node pool"]
-    Env --> Gate["HTTPRoute cobranch, Middleware admins,<br/>NetworkPolicy cobranch"]
+    Env --> Gate["HTTPRoute cobranch, Middleware admins,<br/>NetworkPolicies cobranch and cobranch-git-internal"]
     Env --> Git["Gateway traefik/cobranch-git,<br/>HTTPRoute cobranch-git"]
   end
   Main -- "pushes as ci-cobranch-release" --> Reg[("Artifact Registry<br/>me-west1-docker.pkg.dev/arikkfir/cobranch")]
@@ -73,7 +73,7 @@ Argo CD can sync a commit before its pipeline has pushed its images. The migrate
 | Placement | Every pod on node pool `system` (`nodeSelector` and `tolerations` of `authServer`, `restServer`, `graphqlServer`, `adminServer`, `gitServer`, `pushWorker`, `console`, `backOffice`, `migrate`, `maintenance` and `postgresql`) ([node pools](node-pools.md)) |
 | Time for the images | `migrate.activeDeadlineSeconds: 1800` for image `cobranch` (the Console and the Back-office wait for theirs within their Deployments' default 10 minutes), and ten retries of a failed sync, each from `main`'s newest commit ([above](#a-merge-to-cobranchs-main)) |
 | A route to each workload | HTTPRoute `cobranch` on Gateway `traefik/protected`, host `cobranch.dev.kfirs.com`: `/api` to `cobranch-rest-server`, `/graphql` to `cobranch-graphql-server`, `/auth` to `cobranch-auth-server`, `/admin` to `cobranch-admin-server` and `/back-office` to `cobranch-back-office`, each prefix rewritten to `/`, and everything else to `cobranch-console`; Middleware `admins` on every rule. HTTPRoute `cobranch-git` on Gateway `traefik/cobranch-git`, listener `demo`, host `git.cobranch.dev.kfirs.com`: everything to `cobranch-git-server`, with no Middleware |
-| Network admission | NetworkPolicy `cobranch`: only namespace `traefik`, on 8080, to the Console's, the Back-office's and the servers' pods, the Auth, Admin and Git servers' included. The chart's own admits only the servers, the push worker and the migrate Job to PostgreSQL |
+| Network admission | NetworkPolicy `cobranch`: only namespace `traefik`, on 8080, to the Console's, the Back-office's and the servers' pods, the Auth, Admin and Git servers' included. NetworkPolicy `cobranch-git-internal`: only the REST and GraphQL servers' pods, on 8081, to the Git server's, for their internal call that reads trees and files. The chart's own admits only the servers, the push worker and the migrate Job to PostgreSQL |
 
 Replicas, budgets, rollouts and requests are the chart's: two of the Console, of each server but the Admin server and of the push worker, one Admin server and one Back-office, each with a budget of `maxUnavailable: 1`, rolling out by surging, and one PostgreSQL on an 8Gi volume of the cluster's default storage class.
 
