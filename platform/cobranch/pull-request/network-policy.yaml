@@ -55,3 +55,33 @@ spec:
       ports:
         - protocol: TCP
           port: 8081
+---
+# The demo data's Job, which runs after each sync with seed.enabled, signs in at the Auth server, makes a personal token
+# at the REST server and pushes the demo history to the Git server: only it reaches those three besides Traefik.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cobranch-seed
+  labels:
+    app.kubernetes.io/name: cobranch
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: cobranch
+      app.kubernetes.io/instance: cobranch
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [auth-server, rest-server, git-server]
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: cobranch
+              app.kubernetes.io/instance: cobranch
+              app.kubernetes.io/component: seed
+      ports:
+        - protocol: TCP
+          port: 8080
