@@ -26,3 +26,34 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
+---
+# Only the REST and GraphQL servers reach the Git server's internal port, which no route names: their reads of trees and
+# files (https://docs.dev.kfirs.com/cobranch/designs/code-browsing.md, "The internal call").
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cobranch-git-internal
+  namespace: cobranch
+  labels:
+    app.kubernetes.io/name: cobranch
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: cobranch
+      app.kubernetes.io/instance: cobranch
+      app.kubernetes.io/component: git-server
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: cobranch
+              app.kubernetes.io/instance: cobranch
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [rest-server, graphql-server]
+      ports:
+        - protocol: TCP
+          port: 8081

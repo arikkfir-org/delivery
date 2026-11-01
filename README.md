@@ -61,7 +61,7 @@ Each file there is an Application in namespace `argocd`, project `default`:
   Application `cobranch` installs `chart/cobranch` of `arikkfir-org/cobranch` from its `main` into namespace `cobranch`,
   with the images of the synced commit, which cobranch's pipeline `main` publishes, and the values this repository
   decides. Its namespace, AppProject `cobranch`, the database's generated password, the route behind Middleware `admins`
-  and the NetworkPolicy live beside it in `platform/cobranch/manifests`. It also previews every open pull request
+  and the NetworkPolicies live beside it in `platform/cobranch/manifests`. It also previews every open pull request
   cobranch's members open ([Cobranch's previews](docs/delivery/designs/cobranch-previews.md)): ApplicationSet
   `cobranch-pull-requests` installs the chart from each head commit into `cobranch-pr-<number>`, beside
   `platform/cobranch/pull-request`, under AppProject `cobranch-pull-requests` and admission policies `cobranch-*`.
