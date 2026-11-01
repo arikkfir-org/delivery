@@ -92,7 +92,7 @@ the Gateways that reference their Secrets, and so is `fin-pull-requests`'s in `f
 Secrets never live in Git: each one is an `ExternalSecret` reading Secret Manager through the `ClusterSecretStore`
 `gcp-secret-manager`. A credential only the cluster uses is generated instead, by an ESO `Password` generator with
 `refreshPolicy: CreatedOnce` (Grafana's database password). Every UI is served on the `protected` gateway, behind the
-oauth2-proxy interceptor ([design](docs/delivery/designs/phase-3-ingress-and-auth.md)); only `auth.kfirs.com/oauth2`, `octomaton.dev` (Octomaton's webhook, and its Go import page from `go-import`), `cobranch.dev` (Cobranch's Go import page, `go-import`),
+oauth2-proxy interceptor ([design](docs/delivery/designs/phase-3-ingress-and-auth.md)); only `auth.kfirs.com/oauth2`, `octomaton.dev` (Octomaton's webhook, and its Go import page from `go-import`), `cobranch.dev` (Cobranch's site and Go import page, `cobranch-site`),
 `legal.kfirs.com` (the docs site's privacy policy and terms of service, exact paths only), `id.kfirs.com` (Keycloak's
 realm `hub`, and realm `master` behind the interceptor) and `fin.kfirs.com` (Fin's Go import page, `go-import`, [design](docs/delivery/designs/go-import-pages.md)) use the
 `public` gateway. Fin's host names need certificates of their own, so production's environment has a Gateway of its
