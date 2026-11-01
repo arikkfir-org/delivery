@@ -25,7 +25,7 @@ flowchart LR
   Set -- "an Application per pull request" --> App["Application cobranch-pr-&lt;number&gt;"]
   App -- "source 1: Helm values" --> Chart
   App -- "source 2: kustomize" --> Extras
-  App --> NS["namespace cobranch-pr-&lt;number&gt; on pool ci:<br/>Console, Back-office, servers, Git server, push worker,<br/>migrate Job and seeds, maintenance CronJob, PostgreSQL"]
+  App --> NS["namespace cobranch-pr-&lt;number&gt; on pool ci:<br/>Console, Back-office, servers, Git server, push worker,<br/>migrate Job and seeds, seed Job, maintenance CronJob, PostgreSQL"]
   Reg -- "pulled by the nodes" --> NS
   Project -. "admits and holds" .-> NS
   GW --> NS
@@ -54,11 +54,12 @@ sequenceDiagram
   A->>K: wave 0: PostgreSQL
   A->>K: wave 1: migrate Job (waits for its image): schema, then seeds
   A->>K: wave 2: servers, Console and Back-office, ready once the schema is theirs
+  A->>K: PostSync: seed Job pushes the demo history to acme/website, unless it has one
   Dev->>K: https://pr-n.cobranch.dev.kfirs.com (sign-in, admins)
   Dev->>K: git clone https://pr-n.git.cobranch.dev.kfirs.com/... (a personal token, no sign-in)
 ```
 
-A sync can start before pipeline `preview` has pushed the commit's images: the migrate Job waits for its image within `migrate.activeDeadlineSeconds` (1800 seconds), and the servers and the Console wait for the Job. The seeds keep a version table of their own, so a preview upgraded in place runs only the new ones.
+A sync can start before pipeline `preview` has pushed the commit's images: the migrate Job waits for its image within `migrate.activeDeadlineSeconds` (1800 seconds), and the servers and the Console wait for the Job. The seeds keep a version table of their own, so a preview upgraded in place runs only the new ones. Once the sync is healthy, the chart's seed Job (a Helm `post-install,post-upgrade` hook, which Argo CD runs as PostSync) pushes a history to `acme/website` as the demo owner, through the Git server, unless it has one ([code browsing](../../cobranch/designs/code-browsing.md#configuration)).
 
 ### When the pull request closes
 
@@ -99,7 +100,7 @@ flowchart TB
 | --- | --- |
 | No cloud role | No grant in `infra` names a `cobranch-pr-*` namespace, and no Workload Identity pool trusts one. The bucket is a `file://` directory on each server's emptyDir |
 | No Secret but its own | AppProject admits no Secret; the database's password and the secrets key come from Password generators; ClusterSecretStore `gcp-secret-manager` refuses namespaces labelled `kfirs.com/cobranch-pull-request`, and policy `cobranch-external-secrets` admits only generators |
-| No reach beyond its host | Services are ClusterIP. A route attaches either to `traefik/cobranch-pull-requests`, with the namespace's own host, its rules sending to the namespace's Services behind `admins`, or to listener `previews` of `traefik/cobranch-git`, with the namespace's own Git host, its rules sending only to Service `cobranch-git-server` on port 80, unfiltered; NetworkPolicy `cobranch` admits only Traefik to the servers, the Git server, the Console and the Back-office, `cobranch-git-internal` only the REST and GraphQL servers to the Git server's internal port, the chart's own only the servers, the push worker and the Job to PostgreSQL |
+| No reach beyond its host | Services are ClusterIP. A route attaches either to `traefik/cobranch-pull-requests`, with the namespace's own host, its rules sending to the namespace's Services behind `admins`, or to listener `previews` of `traefik/cobranch-git`, with the namespace's own Git host, its rules sending only to Service `cobranch-git-server` on port 80, unfiltered; NetworkPolicy `cobranch` admits only Traefik to the servers, the Git server, the Console and the Back-office, `cobranch-git-internal` only the REST and GraphQL servers to the Git server's internal port, `cobranch-seed` only the chart's seed Job to the Auth server, the REST server and the Git server, the chart's own only the servers, the push worker and the Job to PostgreSQL |
 | Admins only | On `traefik/cobranch-pull-requests`, every rule asks Middleware `admins` first, which reads the hub's session cookie, then may only rewrite the URL: Traefik runs filters in order, so a redirect or mirror before `admins` would answer any hub user. Cookies pass through to the pods, Cobranch's own session cookie and the hub's (domain `.kfirs.com`) alike: a pull request's code can read the hub's, which is why only the owner's and Dependabot's pull requests get a preview (owner, 2026-10-30). The one exception is the Git route on `traefik/cobranch-git`, which Git clients reach without the hub's sign-in: it has no filter, and the Git server signs every request in with a personal token itself (owner, 2026-11-01) |
 | Sign-in without a provider | `urls.auth` deploys the chart's Auth server at `/auth`, with no identity provider: neither Keycloak nor Google takes a wildcard host in a redirect URI, and a preview reads no secret. People sign in as the seeded users (`seed.enabled`), which the sign-in page offers ([ENG-197](https://linear.app/arikkfir/issue/ENG-197)); the [demo](cobranch.md) signs in through Keycloak. `auth.admins` lists the seeded administrator, Ada Admin (`ada@cobranch.example`), so signing in as her opens the Back-office at `/back-office` ([ENG-219](https://linear.app/arikkfir/issue/ENG-219)) |
 | No room beyond its share | ResourceQuota `cobranch`: 3 CPUs and 4Gi requested, 10Gi of memory limits, 20 pods (each Deployment surges one more while it rolls out), one 2Gi volume |
