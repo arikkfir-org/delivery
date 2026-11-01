@@ -33,7 +33,7 @@ flowchart LR
 | Any other path | `302` to `/` |
 | `/healthz` | `200`, for the probes |
 
-The page uses Cobranch's design system ([its tokens](../../cobranch/designs/design-system.md)): ink on white, inverted in the system's dark mode, violet only for AI, and a branch drawn as the Console will show it. It names the product, its principles and what it builds in, and links only to the public repository on GitHub, its design and its license. It says nothing about the hub, and nothing yet about `cobranch.app`, which links in once that answers.
+The page uses Cobranch's design system ([its tokens](../../cobranch/designs/design-system.md)): ink on white, inverted in the system's dark mode, violet only for AI, and a branch drawn as the Console will show it. It names the product, its principles and what it builds in, and links only to the public repository on GitHub, its design and its license. It says nothing about the hub, and points to `cobranch.app`, Cobranch's hosted service, for early access ([cobranch.app](cobranch-app.md)).
 
 ### In the cluster
 

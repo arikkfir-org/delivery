@@ -1,0 +1,32 @@
+# cobranch.app, Cobranch's hosted service (platform/cobranch-app): its namespace and project, Application cobranch-app,
+# which installs cobranch's chart from its main, and what the hub decides around it. Wave 4: it needs External Secrets,
+# cert-manager and Traefik's Gateway API.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cobranch-app-environment
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  source:
+    repoURL: https://github.com/arikkfir-org/delivery
+    targetRevision: main
+    path: platform/cobranch-app/manifests
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 10
+      refresh: true
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+    syncOptions:
+      - SkipDryRunOnMissingResource=true
