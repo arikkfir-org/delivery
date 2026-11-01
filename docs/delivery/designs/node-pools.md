@@ -52,7 +52,7 @@ every taint, and the hub runs none of its own.
 | Keycloak's operator, Tekton's operator and its webhook | kustomize patches on the release manifests' Deployments |
 | Pipelines, Triggers, the Dashboard, the proxy webhook, the pruner | TektonConfig `spec.config`, which the operator sets on every Deployment and StatefulSet it makes, replacing theirs, and on the pruner's CronJob |
 | Octomaton and octomaton-logs | a patch on every Deployment in the `kustomize` options of Applications `octomaton` and `octomaton-logs` |
-| Cobranch's demo | `nodeSelector` and `tolerations` of each workload (`authServer`, `restServer`, `graphqlServer`, `adminServer`, `console`, `backOffice`, `migrate`, `maintenance`, `postgresql`) in Application `cobranch`'s Helm values |
+| Cobranch's demo | `nodeSelector` and `tolerations` of each workload (`authServer`, `restServer`, `graphqlServer`, `adminServer`, `gitServer`, `pushWorker`, `console`, `backOffice`, `migrate`, `maintenance`, `postgresql`) in Application `cobranch`'s Helm values |
 | Fin | its own `deploy/`: every pod template selects `fin` and tolerates its taint |
 | TaskRun pods | Tekton's `default-pod-template`: pool `ci` |
 | Cobranch's previews | `nodeSelector` and `tolerations` of each workload in ApplicationSet `cobranch-pull-requests`'s Helm values: pool `ci`, which policy `cobranch-node-pool` holds ([Cobranch's previews](cobranch-previews.md)) |

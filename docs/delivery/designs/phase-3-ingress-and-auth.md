@@ -13,6 +13,7 @@ flowchart LR
   U((Browser)) -- "argocd, tekton, grafana, traefik,<br/>nui, docs, tests .dev.kfirs.com" --> P[L4 LB<br/>ingress-protected]
   G((GitHub)) -- octomaton.dev/github/hooks --> Q[L4 LB<br/>ingress-public]
   U -- "auth.kfirs.com/oauth2, id.kfirs.com" --> Q
+  GC((Git clients)) -- "git.cobranch.dev.kfirs.com,<br/>pr-n.git.cobranch.dev.kfirs.com" --> Q
   subgraph traefik[Traefik]
     WS[entry point websecure<br/>middlewares: strip-auth-headers, oidc]
     PW[entry point public-websecure<br/>middleware: strip-auth-headers]
@@ -24,20 +25,22 @@ flowchart LR
   PW --> O
   PW --> SB[Octomaton webhook]
   PW --> K
+  PW --> GS[Cobranch's Git servers,<br/>demo and previews]
   O -- OIDC --> K[Keycloak]
   K -- the Google button --> GO[Google]
 ```
 
-One Traefik deployment serves two Gateways, each on its own entry points and its own load balancer IP:
+One Traefik deployment serves two entry points, each with its own load balancer IP, and the Gateways on them:
 
 | Gateway | Entry point | Load balancer | Interceptor | Routes allowed from |
 | --- | --- | --- | --- | --- |
 | `protected` | `websecure` (8443 → 443) | `ingress-protected` | every request authenticated | any namespace |
 | `public` | `public-websecure` (9443 → 443) | `ingress-public` | none | namespaces labelled `kfirs.com/public-ingress=true` |
+| `cobranch-git` | `public-websecure` (9443 → 443) | `ingress-public` | none | listener `demo`: namespace `cobranch`; listener `previews`: namespaces labelled `kfirs.com/cobranch-pull-request`, whose routes policy `cobranch-http-routes` holds to their own Git host and Service `cobranch-git-server` ([Cobranch's previews](cobranch-previews.md)) |
 
 The interceptor is attached to the **entry point**, not to routes: every route on the protected gateway is
 authenticated, including routes added later, and there is no per-route switch to forget. Going public requires two
-deliberate acts in `delivery`: labelling the namespace and attaching to the `public` gateway. Only `auth` (the login callback), `keycloak` (realm `hub`'s login page), `octomaton` (HMAC-verified webhooks), `go-import` (Go import pages) and `docs` (`legal.kfirs.com`, four exact paths) are public.
+deliberate acts in `delivery`: labelling the namespace and attaching to the `public` gateway. Only `auth` (the login callback), `keycloak` (realm `hub`'s login page), `octomaton` (HMAC-verified webhooks), `go-import` (Go import pages) and `docs` (`legal.kfirs.com`, four exact paths) are public that way. The one other public path is Gateway `cobranch-git`, on the same entry point, for Cobranch's Git servers, which sign every request in with a personal token themselves (owner, 2026-11-01): its listeners name their namespaces, so no preview namespace carries `kfirs.com/public-ingress`, and policy `cobranch-http-routes` holds each preview's route there to its own Git host and its Git server, unfiltered ([hosting Cobranch's demo](cobranch.md), [Cobranch's previews](cobranch-previews.md)). A new Gateway on `public-websecure` is a third deliberate act.
 
 Both gateways terminate TLS with a wildcard certificate for `*.kfirs.com`, `*.dev.kfirs.com` and `admin.id.kfirs.com` (cert-manager, Let's Encrypt, DNS-01), and redirect HTTP to HTTPS. The public gateway's `octomaton.dev` listener has a certificate of its own.
 
