@@ -81,9 +81,6 @@ spec:
                 key: client-secret
           admins:
             - arikkfir@gmail.com
-        # infra's bucket, which only the servers' ServiceAccount, cobranch-server, reaches through Workload Identity.
-        blob:
-          url: gs://arikkfir-cobranch-app
         # Every pod on the system node pool, beside GKE's own components (docs/delivery/designs/node-pools.md).
         authServer:
           # Reloader restarts the Auth server when Secret cobranch-google changes, so a rotated client secret takes
@@ -178,18 +175,19 @@ spec:
           existingSecret: cobranch-secrets-key
           secretKey: password
         postgresql:
-          # Pinned here rather than taken from the chart, with the backup's pg_dump (backup.yaml) at the same tag: a new
-          # major can't start on the old one's data, so moving to it is a dump and restore done on purpose, and pg_dump
-          # refuses a server newer than itself. Bump both together.
+          # Pinned here rather than taken from the chart: a new major can't start on the old one's data, so moving to it
+          # is a dump and restore done on purpose, never a merge to Cobranch's main.
           image:
             repository: docker.io/library/postgres
             tag: 18.6-alpine
-          # Generated once in the cluster (postgresql-password.yaml): the chart's own would change at every render. The
-          # database and user the backup dumps as.
+          # Generated once in the cluster (postgresql-password.yaml): the chart's own would change at every render.
           auth:
             existingSecret: cobranch-postgresql-password
-            database: cobranch
-            username: cobranch
+          # Everyone's accounts and Git data: Cobranch keeps repositories in its database by default, with no bucket
+          # (owner, 2026-11-01). A StatefulSet's volume size is fixed at its first sync; growing it later is the volume
+          # claim's, by hand.
+          storage:
+            size: 50Gi
           nodeSelector:
             kfirs.com/pool: system
           tolerations:
