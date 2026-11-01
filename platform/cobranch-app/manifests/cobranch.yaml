@@ -178,9 +178,18 @@ spec:
           existingSecret: cobranch-secrets-key
           secretKey: password
         postgresql:
-          # Generated once in the cluster (postgresql-password.yaml): the chart's own would change at every render.
+          # Pinned here rather than taken from the chart, with the backup's pg_dump (backup.yaml) at the same tag: a new
+          # major can't start on the old one's data, so moving to it is a dump and restore done on purpose, and pg_dump
+          # refuses a server newer than itself. Bump both together.
+          image:
+            repository: docker.io/library/postgres
+            tag: 18.6-alpine
+          # Generated once in the cluster (postgresql-password.yaml): the chart's own would change at every render. The
+          # database and user the backup dumps as.
           auth:
             existingSecret: cobranch-postgresql-password
+            database: cobranch
+            username: cobranch
           nodeSelector:
             kfirs.com/pool: system
           tolerations:
@@ -192,6 +201,9 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    # The chart's HTTPRoutes' CRD comes from Application gateway-api.
+    syncOptions:
+      - SkipDryRunOnMissingResource=true
     # Each retry syncs main's newest commit. One whose migrate Job failed fails again (the Job is named by a hash of
     # its spec, so it is the same failed Job); a newer commit's Job has a new name.
     retry:

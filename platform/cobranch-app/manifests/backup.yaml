@@ -54,10 +54,12 @@ spec:
               effect: NoSchedule
           initContainers:
             - name: dump
-              # The chart's PostgreSQL image, so pg_dump matches the server.
+              # The server's image, pinned at the same tag in Application cobranch-app's values (cobranch.yaml): pg_dump
+              # refuses a server newer than itself, so the two move together.
               image: docker.io/library/postgres:18.6-alpine
               command: [pg_dump, --format=custom, --no-owner, --file=/backup/cobranch.dump]
               env:
+                # The chart's Service of release cobranch, and the database and user its values set.
                 - name: PGHOST
                   value: cobranch-postgresql
                 - name: PGDATABASE

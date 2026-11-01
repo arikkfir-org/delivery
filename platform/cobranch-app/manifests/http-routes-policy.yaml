@@ -1,0 +1,51 @@
+# In namespace cobranch-app an HTTPRoute attaches only to Gateway traefik/cobranch-app (gateway.yaml), whose listeners
+# answer only for cobranch.app and git.cobranch.app; never to traefik/protected or traefik/public, which take routes for
+# any *.kfirs.com host. The chart writes these routes from Cobranch's main, which this repository doesn't review.
+# Matched by the namespace's name. Wave -1: in force before the chart's first sync.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: cobranch-app-http-routes
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - gateway.networking.k8s.io
+        apiVersions:
+          - "*"
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - httproutes
+  matchConditions:
+    - name: cobranch-app
+      expression: "request.namespace == 'cobranch-app'"
+    # Deleting an object, the garbage collector drops its finalizer with an update that leaves the spec as it was; that
+    # update passes, so an object made before this policy last tightened still goes. Every other update is checked.
+    - name: changed
+      expression: >-
+        request.operation == 'CREATE' || !has(oldObject.metadata.deletionTimestamp) || object.spec != oldObject.spec
+  variables:
+    - name: parents
+      expression: "has(object.spec.parentRefs) ? object.spec.parentRefs : []"
+  validations:
+    - expression: >-
+        size(variables.parents) > 0 && variables.parents.all(p, (!has(p.group) || p.group == 'gateway.networking.k8s.io')
+          && (!has(p.kind) || p.kind == 'Gateway')
+          && has(p.namespace) && p.namespace == 'traefik' && p.name == 'cobranch-app')
+      message: An HTTPRoute in namespace cobranch-app attaches to Gateway traefik/cobranch-app only.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: cobranch-app-http-routes
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: cobranch-app-http-routes
+  validationActions:
+    - Deny
