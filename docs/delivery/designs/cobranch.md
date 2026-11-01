@@ -133,6 +133,7 @@ The chart renders the Git server and the push worker only once `urls.git` is set
 - **The password.** Deleting Secret `cobranch-postgresql-password` makes a new one, which the database, initialized with the old one, refuses: delete the database's volume too, and its data with it.
 - **The secrets key.** Deleting Secret `cobranch-secrets-key` makes a new one: the client secrets of the identity providers added in the Back-office no longer open, those providers leave the sign-in page, and an administrator enters each secret again.
 - **Losing the data.** The database lives on one volume, without backups; the demo's data is disposable.
+- **The move into the database.** During the first rollout with `blob.moveFrom`, a Git server not yet rolled out still reads only the bucket, so a fetch it serves for a pack a rolled-out one has just written to the database fails until both have rolled out: the change merges in a quiet moment ([Git object storage](../../cobranch/designs/git-object-storage.md)). While packs move, maintenance's compaction and a repository's deletion delete packs from both stores, so the bucket is a full copy only until either runs: restoring `blob.url: gs://arikkfir-cobranch` is a rollback only before then; after, move back with `blob.url: gs://arikkfir-cobranch` and `blob.moveFrom: postgres://`.
 
 ## Rollout
 
