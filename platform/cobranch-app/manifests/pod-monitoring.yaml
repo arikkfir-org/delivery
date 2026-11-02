@@ -1,0 +1,19 @@
+# cobranch.app's metrics: Managed Service for Prometheus scrapes port metrics of every Cobranch server's pod each 30
+# seconds into Cloud Monitoring, where Grafana's dashboard Cobranch reads them and infra's alert policies watch them
+# (docs/delivery/designs/cobranch-app.md, "Monitoring"). Pods without that port, the Console's, the Back-office's,
+# PostgreSQL's and the Jobs', aren't scraped.
+apiVersion: monitoring.googleapis.com/v1
+kind: PodMonitoring
+metadata:
+  name: cobranch
+  namespace: cobranch-app
+  labels:
+    app.kubernetes.io/name: cobranch
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cobranch
+      app.kubernetes.io/instance: cobranch
+  endpoints:
+    - port: metrics
+      interval: 30s

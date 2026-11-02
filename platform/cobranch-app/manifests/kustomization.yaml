@@ -1,7 +1,7 @@
 # cobranch.app, Cobranch's hosted service (docs/delivery/designs/cobranch-app.md): its namespace and project, the
 # Application that installs cobranch's chart from its main, and what the hub decides around it: the database's password,
 # the secrets key, the Google sign-in client's secret, the Gateway and certificate for its two names, who reaches the
-# pods, and the admission policies that hold the chart's routes and Services to that Gateway.
+# pods, the admission policies that hold the chart's routes and Services to that Gateway, and the scrape of its metrics.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
@@ -15,3 +15,4 @@ resources:
   - gateway.yaml
   - cobranch.yaml
   - network-policy.yaml
+  - pod-monitoring.yaml
