@@ -112,3 +112,33 @@ spec:
       ports:
         - protocol: TCP
           port: 5432
+---
+# Cobranch's job pods reach the REST, GraphQL and Git servers: their API calls and checkouts, which the chart's egress
+# rule sends to those pods alone. Only the preview's job namespaces carry its installation label, as policy
+# cobranch-job-controllers holds (docs/delivery/designs/cobranch-jobs.md). ApplicationSet cobranch-pull-requests
+# patches the label's value to the preview's own, cobranch-pr-<number>-cobranch.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cobranch-jobs
+  labels:
+    app.kubernetes.io/name: cobranch
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: cobranch
+      app.kubernetes.io/instance: cobranch
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [rest-server, graphql-server, git-server]
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              cobranch.dev/installation: cobranch-pr-0-cobranch
+      ports:
+        - protocol: TCP
+          port: 8080

@@ -3,9 +3,11 @@
 # it the kinds the chart renders there (the servers', the Console's and PostgreSQL's workloads, Services, budgets and
 # NetworkPolicy, the servers' ServiceAccount, the migrate Job) and those delivery adds (platform/cobranch/pull-request: the
 # quota, the database's generated password and secrets key, the routes and Middleware admins, the Job that recreates the
-# database at every push). Never Secrets (the password is a
-# generator's, as the key is), RBAC, cluster-scoped kinds but the Namespace, Gateways, certificates or secret stores. The admission
-# policies beside this hold what the admitted kinds may do (docs/delivery/designs/cobranch-previews.md). Its
+# database at every push), and the job controller's ClusterRoles and ClusterRoleBinding, by name: cobranch-pr-<number>-…,
+# which policy cobranch-cluster-roles holds (jobs-policy.yaml, docs/delivery/designs/cobranch-jobs.md). Never Secrets (the
+# password is a generator's, as the key is), namespaced RBAC, other cluster-scoped kinds, Gateways, certificates or
+# secret stores. The admission policies beside this hold what the admitted kinds may do
+# (docs/delivery/designs/cobranch-previews.md). Its
 # ServiceAccounts hold no cloud role: no grant in infra names a cobranch-pr-* namespace. Wave -1: before the
 # ApplicationSet that names it.
 apiVersion: argoproj.io/v1alpha1
@@ -26,6 +28,12 @@ spec:
   clusterResourceWhitelist:
     - group: ""
       kind: Namespace
+      name: cobranch-pr-*
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: cobranch-pr-*
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
       name: cobranch-pr-*
   namespaceResourceWhitelist:
     - group: apps

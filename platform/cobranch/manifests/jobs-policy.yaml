@@ -1,0 +1,178 @@
+# Cobranch's job controller, in every installation on the hub: cobranch.app (namespace cobranch-app) and each preview
+# (cobranch-pr-<number>). Its chart grants it cluster-scoped RBAC, named after the installation's namespace: ClusterRole
+# and ClusterRoleBinding <namespace>-cobranch-controller, which create the installation's job namespaces and bind roles
+# in them, and ClusterRoles <namespace>-cobranch-jobs-*, which the controller binds in each job namespace it creates,
+# <namespace>-jobs-<organization> (docs/delivery/designs/cobranch-jobs.md). AppProjects cobranch-pull-requests and
+# cobranch-app admit ClusterRoles and ClusterRoleBindings by those names alone; these policies hold what they may say and
+# what the controller may do with them, whoever writes them, so a chart can't grant itself the cluster. The chart's own
+# policy, which says the same, stays off on the hub (jobs.admissionPolicy): a pull request's chart could otherwise
+# install a policy that refuses anything, anywhere. Wave -1: in force before any installation.
+#
+# cobranch-cluster-roles: a role named ...-controller holds namespaces, RoleBindings, and get and bind on its own
+# installation's roles alone; any other holds pods, their logs, Secrets, ConfigMaps, events, NetworkPolicies,
+# LimitRanges and ResourceQuotas, and never bind, escalate or impersonate, so it reaches only the namespaces it is bound
+# in. Neither aggregates other roles. A ClusterRoleBinding binds only the ...-controller role of its own name, and only
+# to ServiceAccounts of its installation's namespace.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: cobranch-cluster-roles
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - rbac.authorization.k8s.io
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - clusterroles
+          - clusterrolebindings
+  matchConditions:
+    - name: installation
+      expression: "object.metadata.name.startsWith('cobranch-pr-') || object.metadata.name.startsWith('cobranch-app-')"
+  variables:
+    - name: role
+      expression: "request.resource.resource == 'clusterroles'"
+    - name: controller
+      expression: "object.metadata.name.endsWith('-controller')"
+    # The installation's namespace and a dash, which starts the name: cobranch-pr-12- or cobranch-app-.
+    - name: home
+      expression: "object.metadata.name.find('^(cobranch-pr-[0-9]+|cobranch-app)-')"
+    - name: readWrite
+      expression: "['get', 'list', 'watch', 'create', 'update', 'patch', 'delete']"
+  validations:
+    - expression: "variables.home != ''"
+      message: >-
+        A Cobranch installation's ClusterRole or ClusterRoleBinding is named after its namespace: cobranch-app-… or
+        cobranch-pr-<number>-….
+    - expression: "!variables.role || !has(object.aggregationRule)"
+      message: A Cobranch installation's ClusterRole aggregates no other roles.
+    - expression: >-
+        !variables.role || !variables.controller || !has(object.rules) || object.rules.all(r,
+          (!has(r.nonResourceURLs) || size(r.nonResourceURLs) == 0) && has(r.apiGroups) && has(r.resources) && (
+            (r.apiGroups.all(g, g == '') && r.resources.all(x, x == 'namespaces')
+              && r.verbs.all(v, v in variables.readWrite))
+            || (r.apiGroups.all(g, g == 'rbac.authorization.k8s.io') && r.resources.all(x, x == 'rolebindings')
+              && r.verbs.all(v, v in variables.readWrite))
+            || (r.apiGroups.all(g, g == 'rbac.authorization.k8s.io') && r.resources.all(x, x == 'clusterroles')
+              && r.verbs.all(v, v in ['get', 'bind']) && has(r.resourceNames) && size(r.resourceNames) > 0
+              && r.resourceNames.all(n, n.startsWith(variables.home)))))
+      message: >-
+        A Cobranch installation's …-controller ClusterRole holds namespaces and RoleBindings, and get and bind on its own
+        installation's ClusterRoles by name, nothing else.
+    - expression: >-
+        !variables.role || variables.controller || !has(object.rules) || object.rules.all(r,
+          (!has(r.nonResourceURLs) || size(r.nonResourceURLs) == 0) && has(r.apiGroups) && has(r.resources)
+          && r.apiGroups.all(g, g in ['', 'networking.k8s.io'])
+          && r.resources.all(x, x in ['pods', 'pods/log', 'secrets', 'configmaps', 'events', 'limitranges',
+            'resourcequotas', 'networkpolicies'])
+          && r.verbs.all(v, v in variables.readWrite || v == 'deletecollection'))
+      message: >-
+        A Cobranch installation's job ClusterRole holds pods, their logs, Secrets, ConfigMaps, events, NetworkPolicies,
+        LimitRanges and ResourceQuotas, nothing else, and never bind, escalate or impersonate.
+    - expression: >-
+        variables.role || (variables.controller && object.roleRef.kind == 'ClusterRole'
+          && object.roleRef.name == object.metadata.name)
+      message: A Cobranch installation's ClusterRoleBinding binds only the …-controller ClusterRole of its own name.
+    - expression: >-
+        variables.role || (has(object.subjects) && size(object.subjects) > 0 && object.subjects.all(s,
+          s.kind == 'ServiceAccount' && has(s.namespace) && s.namespace + '-' == variables.home))
+      message: A Cobranch installation's ClusterRoleBinding names only ServiceAccounts of its installation's namespace.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: cobranch-cluster-roles
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: cobranch-cluster-roles
+  validationActions:
+    - Deny
+---
+# cobranch-job-controllers: what an installation's ServiceAccounts, the controller's above all, do with that RBAC. They
+# create, change and delete only their own job namespaces, <namespace>-jobs-…, labelled cobranch.dev/installation
+# <namespace>-…, and bind roles only there: their own
+# installation's job roles, never its …-controller role, to their own namespace's ServiceAccounts. Policy
+# cobranch-namespaces holds what such a namespace says, and cobranch-node-pool where its pods run. Requests of anyone
+# else (Argo CD, the garbage collector, which deletes the job namespaces with their installation's ClusterRole, the
+# namespace controller) pass.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: cobranch-job-controllers
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+          - DELETE
+        resources:
+          - namespaces
+      - apiGroups:
+          - rbac.authorization.k8s.io
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+          - DELETE
+        resources:
+          - rolebindings
+  matchConditions:
+    - name: installation
+      expression: "request.userInfo.username.matches('^system:serviceaccount:(cobranch-pr-[0-9]+|cobranch-app):')"
+  variables:
+    - name: home
+      expression: "request.userInfo.username.split(':')[2]"
+    - name: jobs
+      expression: "variables.home + '-jobs-'"
+    - name: name
+      expression: "request.operation == 'DELETE' ? oldObject.metadata.name : object.metadata.name"
+  validations:
+    - expression: "request.resource.resource != 'namespaces' || variables.name.startsWith(variables.jobs)"
+      messageExpression: >-
+        'A Cobranch installation creates, changes and deletes only its own job namespaces, ' + variables.jobs + '….'
+    # NetworkPolicy cobranch-jobs admits an installation's job namespaces to its servers by this label.
+    - expression: >-
+        request.resource.resource != 'namespaces' || request.operation == 'DELETE'
+        || (has(object.metadata.labels) && 'cobranch.dev/installation' in object.metadata.labels
+          && object.metadata.labels['cobranch.dev/installation'].startsWith(variables.home + '-'))
+      messageExpression: >-
+        'A Cobranch installation labels its job namespaces as its own: cobranch.dev/installation ' + variables.home + '-….'
+    - expression: "request.resource.resource != 'rolebindings' || request.namespace.startsWith(variables.jobs)"
+      messageExpression: "'A Cobranch installation binds roles only in its own job namespaces, ' + variables.jobs + '….'"
+    - expression: >-
+        request.resource.resource != 'rolebindings' || request.operation == 'DELETE'
+        || (object.roleRef.kind == 'ClusterRole' && object.roleRef.name.startsWith(variables.home + '-')
+          && !object.roleRef.name.endsWith('-controller')
+          && has(object.subjects) && size(object.subjects) > 0 && object.subjects.all(s,
+            s.kind == 'ServiceAccount' && has(s.namespace) && s.namespace == variables.home))
+      message: >-
+        A Cobranch installation binds, in its job namespaces, only its own job ClusterRoles, never its …-controller
+        ClusterRole, and only to its own namespace's ServiceAccounts.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: cobranch-job-controllers
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: cobranch-job-controllers
+  validationActions:
+    - Deny

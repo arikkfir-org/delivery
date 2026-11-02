@@ -2,7 +2,12 @@
 # request's chart could render one too, so its labels are held whoever writes them: pods meet the restricted Pod
 # Security Standard, and its only kfirs.com/ label is kfirs.com/cobranch-pull-request "true", which keeps
 # ClusterSecretStore gcp-secret-manager out of its reach. Never kfirs.com/pull-request, which would admit it to Fin's
-# NATS and Gateway, nor kfirs.com/public-ingress. Wave -1: in force before any preview.
+# NATS and Gateway, nor kfirs.com/public-ingress. The job namespaces a preview's controller creates,
+# cobranch-pr-<number>-jobs-<organization>, are held the same, and cobranch.app's, cobranch-app-jobs-<organization>, are
+# restricted too and carry no kfirs.com/ label at all (jobs-policy.yaml). A namespace labelled cobranch.dev/installation
+# <N>-cobranch, which NetworkPolicy cobranch-jobs admits to N's servers, is one of N's job namespaces, <N>-jobs-…,
+# whoever writes it: only cobranch.app's controller makes cobranch-app-jobs-…, so no preview's or Fin's chart labels a
+# namespace into cobranch.app's servers. Wave -1: in force before any preview.
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:
@@ -23,8 +28,10 @@ spec:
         resources:
           - namespaces
   matchConditions:
-    - name: preview
-      expression: "object.metadata.name.startsWith('cobranch-pr-')"
+    - name: installation
+      expression: >-
+        object.metadata.name.startsWith('cobranch-pr-') || object.metadata.name.startsWith('cobranch-app-jobs-')
+        || (has(object.metadata.labels) && 'cobranch.dev/installation' in object.metadata.labels)
     # Deleting a namespace, the garbage collector drops its finalizer with an update that leaves the labels as they
     # were; that update passes, so a namespace made before this policy last tightened still goes. Every other update is
     # checked.
@@ -33,6 +40,11 @@ spec:
         request.operation == 'CREATE' || !has(oldObject.metadata.deletionTimestamp)
         || (has(object.metadata.labels) ? object.metadata.labels : {})
           != (has(oldObject.metadata.labels) ? oldObject.metadata.labels : {})
+  variables:
+    - name: installation
+      expression: >-
+        has(object.metadata.labels) && 'cobranch.dev/installation' in object.metadata.labels
+        ? object.metadata.labels['cobranch.dev/installation'] : ''
   validations:
     - expression: >-
         has(object.metadata.labels)
@@ -40,13 +52,26 @@ spec:
         && object.metadata.labels['pod-security.kubernetes.io/enforce'] == 'restricted'
         && (!('pod-security.kubernetes.io/enforce-version' in object.metadata.labels)
           || object.metadata.labels['pod-security.kubernetes.io/enforce-version'] == 'latest')
-      message: A Cobranch preview's namespace enforces the latest restricted Pod Security Standard.
+      message: >-
+        A Cobranch preview's namespace, or a Cobranch installation's job namespace, enforces the latest restricted Pod
+        Security Standard.
     - expression: >-
-        has(object.metadata.labels)
+        !object.metadata.name.startsWith('cobranch-pr-') || (has(object.metadata.labels)
         && object.metadata.labels.all(key, !key.startsWith('kfirs.com/') || key == 'kfirs.com/cobranch-pull-request')
         && 'kfirs.com/cobranch-pull-request' in object.metadata.labels
-        && object.metadata.labels['kfirs.com/cobranch-pull-request'] == 'true'
+        && object.metadata.labels['kfirs.com/cobranch-pull-request'] == 'true')
       message: A Cobranch preview's namespace is labelled kfirs.com/cobranch-pull-request "true", and no other kfirs.com/ label.
+    - expression: >-
+        !object.metadata.name.startsWith('cobranch-app-jobs-') || !has(object.metadata.labels)
+        || object.metadata.labels.all(key, !key.startsWith('kfirs.com/'))
+      message: A job namespace of cobranch.app carries no kfirs.com/ label.
+    - expression: >-
+        variables.installation == '' || (variables.installation.endsWith('-cobranch')
+        && object.metadata.name.startsWith(
+          variables.installation.substring(0, size(variables.installation) - size('-cobranch')) + '-jobs-'))
+      message: >-
+        A namespace labelled cobranch.dev/installation <N>-cobranch is one of that installation's job namespaces, named
+        <N>-jobs-<organization>.
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding

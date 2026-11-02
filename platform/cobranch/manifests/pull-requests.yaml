@@ -190,6 +190,29 @@ spec:
                     operator: Equal
                     value: ci
                     effect: NoSchedule
+              controller:
+                nodeSelector:
+                  kfirs.com/pool: ci
+                tolerations:
+                  - key: kfirs.com/pool
+                    operator: Equal
+                    value: ci
+                    effect: NoSchedule
+              # As cobranch.app's: jobs on pool ci, held by the hub's policies rather than the chart's own. Each job
+              # namespace the preview's controller creates, cobranch-pr-<number>-jobs-<organization>, is labelled as the
+              # preview's own namespace is, which policy cobranch-namespaces requires and which keeps ClusterSecretStore
+              # gcp-secret-manager out of its reach (docs/delivery/designs/cobranch-jobs.md).
+              jobs:
+                admissionPolicy: false
+                namespaceLabels:
+                  kfirs.com/cobranch-pull-request: "true"
+                nodeSelector:
+                  kfirs.com/pool: ci
+                tolerations:
+                  - key: kfirs.com/pool
+                    operator: Equal
+                    value: ci
+                    effect: NoSchedule
               # Generated in the namespace (platform/cobranch/pull-request): the chart's own would change at every render.
               secretsKey:
                 existingSecret: cobranch-secrets-key
@@ -236,6 +259,13 @@ spec:
                     path: /spec/hostnames
                     value:
                       - "{{ .values.env }}.git.cobranch.dev.kfirs.com"
+              - target:
+                  kind: NetworkPolicy
+                  name: cobranch-jobs
+                patch: |-
+                  - op: replace
+                    path: /spec/ingress/0/from/0/namespaceSelector/matchLabels/cobranch.dev~1installation
+                    value: "cobranch-{{ .values.env }}-cobranch"
         # What each head commit adds (platform/cobranch/pull-request-commit): Job cobranch-recreate-database, named after the
         # commit so that it runs once for each, and every push starts from an empty database, with the commit's image to
         # wait for.
