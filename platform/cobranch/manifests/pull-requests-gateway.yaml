@@ -1,6 +1,6 @@
 # Every Cobranch preview shares this Gateway and its one certificate, so a preview issues none: a certificate each would run
 # into Let's Encrypt's 50 a week for kfirs.com, which the hub's own certificates share. A wildcard covers one label, so a
-# preview's host is pr-<number>.cobranch.dev.kfirs.com, beside the demo's cobranch.dev.kfirs.com, and infra's record
+# preview's host is pr-<number>.cobranch.dev.kfirs.com, and infra's record
 # *.cobranch.dev sends them all to the protected gateway's address. The listener is on Traefik's protected entry
 # point (8443), behind the hub's sign-in, and takes routes only from namespaces labelled kfirs.com/cobranch-pull-request,
 # which cobranch-http-routes holds to their own host. In traefik, out of every preview's reach, no pull request's code can

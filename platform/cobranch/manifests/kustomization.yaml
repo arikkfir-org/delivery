@@ -1,22 +1,10 @@
-# Cobranch on the hub. Its demo: its namespace and project, the Application that installs cobranch's chart from its main,
-# and what the hub decides around it (docs/delivery/designs/cobranch.md): the database's password and the secrets key, the route behind the
-# hub's sign-in and group admins, its Keycloak client's secret, and who reaches the pods. The demo's and the previews' Git servers: their
-# public Gateway, traefik/cobranch-git, and the demo's route. Its pull requests' previews: their shared Gateway, project,
-# admission policies and ApplicationSet (docs/delivery/designs/cobranch-previews.md); what each preview holds beside the
-# chart is platform/cobranch/pull-request.
+# Cobranch's previews on the hub: a Cobranch of every pull request that cobranch's members open, their shared Gateway,
+# project, admission policies and ApplicationSet (docs/delivery/designs/cobranch-previews.md), and their public Git
+# Gateway, traefik/cobranch-git; what each preview holds beside the chart is platform/cobranch/pull-request. The demo
+# that ran here from cobranch's main gave way to cobranch.app (platform/cobranch-app, docs/delivery/designs/cobranch.md).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - namespace.yaml
-  - project.yaml
-  - postgresql-password.yaml
-  - secrets-key.yaml
-  - keycloak-secret.yaml
-  - cobranch.yaml
-  - http-route.yaml
-  - git-http-route.yaml
-  - middleware.yaml
-  - network-policy.yaml
   - pull-requests-project.yaml
   - namespaces-policy.yaml
   - services-policy.yaml

@@ -1,6 +1,6 @@
 # Hosting cobranch.app
 
-**Decision**: `https://cobranch.app` is Cobranch's hosted service: anyone signs up with Google, creates organizations and repositories, and clones, fetches and pushes at `https://git.cobranch.app`. The hub runs it in namespace `cobranch-app` from Cobranch's `main`, as the demo ran before it: every merge upgrades it in place, the migrate Job first, and its database volume keeps the data, Git repositories included, across every sync. It is public, on Traefik's public entry point through a Gateway of its own, with no hub sign-in in front: Cobranch signs everyone in itself, and its Back-office answers only the installation's administrator. It uses no bucket, and nothing backs it up yet (owner, 2026-11-01). It replaces the demo at `cobranch.dev.kfirs.com`, which goes away once `cobranch.app` answers; previews stay ([Cobranch's previews](cobranch-previews.md)). Linear: [ENG-232](https://linear.app/arikkfir/issue/ENG-232). Its Google Cloud side is infra's ([cobranch.app in GCP](../../infra/designs/cobranch-app.md)).
+**Decision**: `https://cobranch.app` is Cobranch's hosted service: anyone signs up with Google, creates organizations and repositories, and clones, fetches and pushes at `https://git.cobranch.app`. The hub runs it in namespace `cobranch-app` from Cobranch's `main`, as the demo ran before it: every merge upgrades it in place, the migrate Job first, and its database volume keeps the data, Git repositories included, across every sync. It is public, on Traefik's public entry point through a Gateway of its own, with no hub sign-in in front: Cobranch signs everyone in itself, and its Back-office answers only the installation's administrator. It uses no bucket, and nothing backs it up yet (owner, 2026-11-01). It replaced the demo at `cobranch.dev.kfirs.com`, which the owner took down once `cobranch.app` answered and their first push to it worked (2026-11-02); previews stay ([Cobranch's previews](cobranch-previews.md)). Linear: [ENG-232](https://linear.app/arikkfir/issue/ENG-232). Its Google Cloud side is infra's ([cobranch.app in GCP](../../infra/designs/cobranch-app.md)).
 
 ## Why
 
@@ -41,7 +41,7 @@ sequenceDiagram
   Note over K: the old pods serve until the new ones are ready
 ```
 
-It is the demo's path, unchanged ([hosting Cobranch's demo](cobranch.md#a-merge-to-cobranchs-main)): Argo CD may sync a commit before its images exist, and the migrate Job then waits for them within its 30-minute deadline while the old pods keep serving. Nothing is recreated: the StatefulSet's volume outlives every sync, and a migration that fails leaves the old version running.
+It is the path the demo ran on, unchanged ([hosting Cobranch's demo](cobranch.md#a-merge-to-cobranchs-main)): Argo CD may sync a commit before its images exist, and the migrate Job then waits for them within its 30-minute deadline while the old pods keep serving. Nothing is recreated: the StatefulSet's volume outlives every sync, and a migration that fails leaves the old version running.
 
 ### Sign-in
 
@@ -64,19 +64,19 @@ sequenceDiagram
 | Cobranch asks for | The hub provides |
 | --- | --- |
 | The chart, installed with its values | Application `cobranch-app`, project `cobranch-app`: `chart/cobranch` of `https://github.com/arikkfir-org/cobranch` at `main`, release `cobranch`, Helm's tests skipped, automated sync with prune and self-heal, ten retries, each from `main`'s newest commit; wave 1, after the Gateway |
-| Its images | `me-west1-docker.pkg.dev/arikkfir/cobranch`, tagged `${ARGOCD_APP_REVISION_SHORT}`, as the demo's |
+| Its images | `me-west1-docker.pkg.dev/arikkfir/cobranch`, tagged `${ARGOCD_APP_REVISION_SHORT}` |
 | `urls.*` | `https://cobranch.app` for the Console, `/api`, `/graphql`, `/auth`, `/admin` and `/back-office` beside it, and `https://git.cobranch.app` for the Git server. One host for everything but Git, so the session cookie is `__Host-cobranch-session` |
 | `httpRoute` | On: the chart's own routes, one per workload, each stripping its URL's path, with `parentRefs` Gateway `traefik/cobranch-app`. AppProject `cobranch-app` admits HTTPRoutes, and the Gateway admits them from this namespace only |
 | `auth.providers` | `google` (preset `google`), the client the owner made by hand ([manual steps](../../infra/designs/cobranch-app.md#manual-steps)); its secret is Secret `cobranch-google`, key `client-secret`, from ExternalSecret `cobranch-google` on `cobranch-app-google-client-secret`. Reloader restarts the Auth server when it changes |
 | `auth.signUp`, `organizations.selfServe` | Left to the Back-office: anyone signs up and creates organizations until the administrator changes either there, with no deploy |
 | `auth.admins` | The owner's email: the installation's administrator, who runs it from `https://cobranch.app/back-office` |
-| `blob.url` | Unset: Cobranch keeps Git data in its PostgreSQL by default ([ENG-237](https://linear.app/arikkfir/issue/ENG-237)). No installation of ours is to use a bucket (owner, 2026-11-01); the demo moves its packs from its own into its database ([hosting Cobranch's demo](cobranch.md)) |
-| `postgresql.auth.existingSecret`, `secretsKey` | Secrets `cobranch-postgresql-password` and `cobranch-secrets-key`, made once in the cluster by ESO `Password` generators (`refreshPolicy: CreatedOnce`), as the demo's |
+| `blob.url` | Unset: Cobranch keeps Git data in its PostgreSQL by default ([ENG-237](https://linear.app/arikkfir/issue/ENG-237)). No installation of ours uses a bucket (owner, 2026-11-01) |
+| `postgresql.auth.existingSecret`, `secretsKey` | Secrets `cobranch-postgresql-password` and `cobranch-secrets-key`, made once in the cluster by ESO `Password` generators (`refreshPolicy: CreatedOnce`) |
 | `postgresql.image` | `docker.io/library/postgres:18.6-alpine`, set here rather than taken from the chart ([decisions](#decisions)) |
 | `postgresql.storage.size` | 50Gi, for everyone's Git data as well as their accounts. A StatefulSet's volume claim template can't change after its first sync: growing the volume later means editing its claim by hand, which the default storage class allows |
-| Placement and size | Every pod on node pool `system` ([node pools](node-pools.md)), with the chart's requests and memory limits and no CPU limit, as the demo's ([resource requests](resource-requests.md)): Git's packing for a push takes only idle CPU beyond its request, and every neighbour keeps the CPU it requests |
+| Placement and size | Every pod on node pool `system` ([node pools](node-pools.md)), with the chart's requests and memory limits and no CPU limit ([resource requests](resource-requests.md)): Git's packing for a push takes only idle CPU beyond its request, and every neighbour keeps the CPU it requests |
 | Admission | Policy `cobranch-app-http-routes`: an HTTPRoute in namespace `cobranch-app` attaches to Gateway `traefik/cobranch-app` only, never to `traefik/protected` or `traefik/public`, which take routes for any `*.kfirs.com` host. Policy `cobranch-app-cluster-ip-services`: its Services are of type `ClusterIP`, with no external IPs |
-| Network admission | NetworkPolicy `cobranch`: only namespace `traefik`, on 8080, to the Console's, the Back-office's and the servers' pods. NetworkPolicy `cobranch-git-internal`: only the REST and GraphQL servers' pods, on 8081, to the Git server's, for their internal call that reads trees and files, as the demo's. The chart's own admits only the servers, the push worker, the migrate Job and the maintenance CronJob to PostgreSQL |
+| Network admission | NetworkPolicy `cobranch`: only namespace `traefik`, on 8080, to the Console's, the Back-office's and the servers' pods. NetworkPolicy `cobranch-git-internal`: only the REST and GraphQL servers' pods, on 8081, to the Git server's, for their internal call that reads trees and files. The chart's own admits only the servers, the push worker, the migrate Job and the maintenance CronJob to PostgreSQL |
 
 What `infra` provides, the records `cobranch.app` and `git.cobranch.app`, cert-manager's grant on zone `cobranch-app` and the secret's container, is in its pages ([cobranch.app in GCP](../../infra/designs/cobranch-app.md)). ClusterIssuers `letsencrypt` and `letsencrypt-staging` solve `cobranch.app`'s challenges in zone `cobranch-app`.
 
@@ -102,7 +102,7 @@ What `infra` provides, the records `cobranch.app` and `git.cobranch.app`, cert-m
 - **The client's secret.** Bumping it in the Google Cloud console and adding a version of `cobranch-app-google-client-secret` rotates it; External Secrets syncs it within its refresh interval, and Reloader restarts the Auth server.
 - **Losing the database.** Its volume, a zonal persistent disk replicated within its zone, holds everyone's data, Git repositories included, and nothing backs it up yet: losing it loses them all. Deleting namespace `cobranch-app`, or cascade-deleting Application `cobranch-app-environment`, deletes it.
 - **A full volume.** Pushes, and then every write, fail once the 50Gi fill; Cobranch has no quotas yet. Growing the volume is the owner's, by editing its claim.
-- **The password and secrets key.** As the demo's: deleting either Secret makes a new one, which the database refuses, or which no longer opens the client secrets that the Back-office sealed ([hosting Cobranch's demo](cobranch.md#security-and-failure-modes)).
+- **The password and secrets key.** Deleting either Secret makes a new one, which the database refuses, or which no longer opens the client secrets that the Back-office sealed.
 
 ## Rollout
 
@@ -110,4 +110,4 @@ What `infra` provides, the records `cobranch.app` and `git.cobranch.app`, cert-m
 2. Cobranch: Git data in PostgreSQL by default, with `blob.url` optional ([ENG-237](https://linear.app/arikkfir/issue/ENG-237)), on Cobranch's `main`.
 3. The owner makes the Google client and adds its secret ([manual steps](../../infra/designs/cobranch-app.md#manual-steps)).
 4. This repository: `cobranch-app-environment` and its manifests, the ClusterIssuers' solver for `cobranch.app`, and the link from `cobranch.dev`. Open `https://cobranch.app`, sign up with Google, and push to a new repository at `https://git.cobranch.app`.
-5. This repository and `infra`: the demo goes, once the owner confirms: `cobranch-environment` keeps only the previews and the previews' Git listener, and `infra` removes the demo's records, Keycloak client and bucket.
+5. This repository and `infra`: the demo goes once the owner's first push to `cobranch.app` works (owner, 2026-11-02): `cobranch-environment` keeps only the previews and their Git listener, and `infra` then removes the demo's records, Keycloak client and bucket ([hosting Cobranch's demo](cobranch.md#rollout)).

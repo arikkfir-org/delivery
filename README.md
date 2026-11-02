@@ -57,12 +57,8 @@ Each file there is an Application in namespace `argocd`, project `default`:
   labelled `kfirs.com/pull-request: "true"`. Pull requests share Gateway `traefik/fin-pull-requests` and its
   one wildcard certificate, so a pull request issues no certificate. Argo CD reads `fin`, an internal repository, and
   lists its pull requests with its own GitHub App (Secret `argocd/github-app`).
-- `cobranch-environment` deploys Cobranch's demo ([hosting Cobranch's demo](docs/delivery/designs/cobranch.md)):
-  Application `cobranch` installs `chart/cobranch` of `arikkfir-org/cobranch` from its `main` into namespace `cobranch`,
-  with the images of the synced commit, which cobranch's pipeline `main` publishes, and the values this repository
-  decides. Its namespace, AppProject `cobranch`, the database's generated password, the route behind Middleware `admins`
-  and the NetworkPolicies live beside it in `platform/cobranch/manifests`. It also previews every open pull request
-  cobranch's members open ([Cobranch's previews](docs/delivery/designs/cobranch-previews.md)): ApplicationSet
+- `cobranch-environment` previews every open pull request cobranch's members open
+  ([Cobranch's previews](docs/delivery/designs/cobranch-previews.md)): ApplicationSet
   `cobranch-pull-requests` installs the chart from each head commit into `cobranch-pr-<number>`, beside
   `platform/cobranch/pull-request`, under AppProject `cobranch-pull-requests` and admission policies `cobranch-*`.
 - `cobranch-app-environment` deploys `cobranch.app`, Cobranch's hosted service

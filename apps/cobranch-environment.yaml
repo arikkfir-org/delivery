@@ -1,5 +1,5 @@
-# Cobranch's demo environment (platform/cobranch): its namespace and project, Application cobranch, which installs
-# cobranch's chart from its main, its pull requests' previews, and what the hub decides around them. Wave 4: it needs
+# Cobranch's previews (platform/cobranch): its pull requests' previews, their Gateways, and what the hub decides around
+# them. Its demo, Application cobranch, gave way to cobranch.app (cobranch-app-environment.yaml). Wave 4: it needs
 # External Secrets and Traefik's Gateway API.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
