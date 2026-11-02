@@ -1,0 +1,11 @@
+# What each head commit of a Cobranch pull request adds to its preview, beside platform/cobranch/pull-request: Job
+# cobranch-recreate-database, which empties the database (docs/delivery/designs/cobranch-previews.md). ApplicationSet
+# cobranch-pull-requests (platform/cobranch/manifests) renders it for each pull request with kustomize's namespace set to
+# cobranch-pr-<number>, and names the Job after the head commit, with that commit's image. A source of its own, so that an
+# Application renders the Job only with the name and image the ApplicationSet gives it. As written, it is pull request
+# 0's.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: cobranch-pr-0
+resources:
+  - recreate-database.yaml

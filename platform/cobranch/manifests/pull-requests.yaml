@@ -1,14 +1,15 @@
 # A Cobranch of every open pull request that cobranch's members open, whatever its base branch: namespace
 # cobranch-pr-<number>, at https://pr-<number>.cobranch.dev.kfirs.com, the APIs under /api and /graphql, through
 # the shared Gateway traefik/cobranch-pull-requests (pull-requests-gateway.yaml), running the pull request's head commit,
-# seeded with demo data (docs/delivery/designs/cobranch-previews.md). The generator lists cobranch's pull requests through
+# seeded afresh with demo data at every push (docs/delivery/designs/cobranch-previews.md). The generator lists cobranch's pull requests through
 # Argo CD's GitHub App (Secret github-app, platform/argocd) every minute; when a pull request closes or merges, its
 # Application goes and the resources finalizer deletes the preview, namespace and database included. It
 # names the preview from the pull request's number and the commit from its head SHA, never from a title; the template
-# uses those alone. Two sources: the chart from the head commit, and what the hub decides around it from delivery's
-# main (platform/cobranch/pull-request), which holds the Namespace, so no CreateNamespace. A preview is configured as the
-# demo is (cobranch.yaml), but for what the design lists under "What differs from the demo", each with the owner's
-# reason: a value the demo gains comes here in the same pull request.
+# uses those alone. Three sources: the chart from the head commit, and what the hub decides around it from delivery's
+# main (platform/cobranch/pull-request, which holds the Namespace, so no CreateNamespace, and, for each head commit,
+# platform/cobranch/pull-request-commit). A preview is configured as the demo is (cobranch.yaml), but for what the design
+# lists under "What differs from the demo", each with the owner's reason: a value the demo gains comes here in the same
+# pull request.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -168,6 +169,11 @@ spec:
                 # A sync can start before pipeline preview has pushed the commit's images: the Job waits for its image within
                 # this deadline, and the servers and the Console wait for the Job.
                 activeDeadlineSeconds: 1800
+                # The Job's name is a hash of its spec, so this names a new one for each Job that empties the database
+                # (platform/cobranch/pull-request): an emptied database is always migrated and seeded again, even for a head
+                # commit whose migrate Job ran before that Job came, as every preview open when it first came had.
+                podAnnotations:
+                  kfirs.com/database-recreated-by: "cobranch-recreate-database-{{ .values.tag }}"
                 nodeSelector:
                   kfirs.com/pool: ci
                 tolerations:
@@ -224,13 +230,40 @@ spec:
                     path: /spec/hostnames
                     value:
                       - "{{ .values.env }}.git.cobranch.dev.kfirs.com"
+        # What each head commit adds (platform/cobranch/pull-request-commit): Job cobranch-recreate-database, named after the
+        # commit so that it runs once for each, and every push starts from an empty database, with the commit's image to
+        # wait for.
+        - repoURL: https://github.com/arikkfir-org/delivery
+          targetRevision: main
+          path: platform/cobranch/pull-request-commit
+          kustomize:
+            namespace: "cobranch-{{ .values.env }}"
+            images:
+              - "me-west1-docker.pkg.dev/arikkfir/cobranch-previews/cobranch:{{ .values.tag }}"
+            patches:
+              - target:
+                  kind: Job
+                  name: cobranch-recreate-database
+                patch: |-
+                  - op: replace
+                    path: /metadata/name
+                    value: "cobranch-recreate-database-{{ .values.tag }}"
+                options:
+                  allowNameChange: true
       # A StatefulSet's volume claim templates can't change: a preview keeps the database volume it started with when a
       # newer chart, or this file, sizes it otherwise, instead of failing every sync. A new preview gets the chart's.
+      # A Job's spec can't change either: the head commit's Job cobranch-recreate-database keeps the spec it started with
+      # when its file changes it, and the next push's Job takes the new one.
       ignoreDifferences:
         - group: apps
           kind: StatefulSet
           jsonPointers:
             - /spec/volumeClaimTemplates
+        - group: batch
+          kind: Job
+          name: "cobranch-recreate-database-{{ .values.tag }}"
+          jsonPointers:
+            - /spec
       syncPolicy:
         automated:
           prune: true
