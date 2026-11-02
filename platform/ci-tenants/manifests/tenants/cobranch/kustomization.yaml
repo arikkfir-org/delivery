@@ -6,3 +6,4 @@ resources:
   - ../../base
   - release.yaml
   - preview.yaml
+  - ci.yaml

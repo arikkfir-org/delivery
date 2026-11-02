@@ -177,8 +177,9 @@ token:
 | `ci-infra` | `ci-infra-apply` | `main` | `apply`: applies merges to `main` |
 | `ci-octomaton` | `ci-octomaton-release` | branch `main`, tags `v*` | `main`: pushes Octomaton's images of every commit on `main`; `tag`: adds a version's tag to them ([versioned releases](../octomaton/designs/releases.md)) |
 | `ci-octomaton` | `ci-octomaton-ci` | None | `ci`: restores `main`'s or its pull request's Go caches, saves its pull request's |
-| `ci-cobranch` | `ci-cobranch-release` | branch `main`, tags `v*` | `main`: pushes Cobranch's images of `main`'s newest commit, which `cobranch.app` runs ([hosting cobranch.app](designs/cobranch-app.md)); `tag`: adds a version's tag to them and publishes the chart at that version ([the Cobranch repository](../cobranch/designs/repository.md)) |
-| `ci-cobranch` | `ci-cobranch-preview` | None | `preview`: pushes each pull request's head commit's images to `cobranch-previews`, which only previews pull ([Cobranch's previews](designs/cobranch-previews.md)) |
+| `ci-cobranch` | `ci-cobranch-release` | branch `main`, tags `v*` | `main`: pushes Cobranch's images of `main`'s newest commit, which `cobranch.app` runs ([hosting cobranch.app](designs/cobranch-app.md)), and saves the Go caches that `ci` and `preview` restore; `tag`: adds a version's tag to them and publishes the chart at that version ([the Cobranch repository](../cobranch/designs/repository.md)) |
+| `ci-cobranch` | `ci-cobranch-preview` | None | `preview`: pushes each pull request's head commit's images to `cobranch-previews`, which only previews pull ([Cobranch's previews](designs/cobranch-previews.md)), restoring the Go caches that `main` saves |
+| `ci-cobranch` | `ci-cobranch-ci` | None | `ci`: restores the Go caches that `main` saves ([the Cobranch repository](../cobranch/designs/repository.md#continuous-integration)) |
 | `ci-tooling` | `ci-tooling-publish` | `main` | `publish`: writes bucket `arikkfir-claude`; `reviewer-image`: pushes the reviewer image |
 | `ci-fin` | `ci-fin-release` | `main` | `release`: production's images; saves the CI cache |
 | `ci-fin` | `ci-fin-preview` | None | `preview`: pull requests' images |
