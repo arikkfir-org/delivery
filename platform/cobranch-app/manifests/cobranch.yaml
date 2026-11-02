@@ -188,6 +188,12 @@ spec:
           # claim's, by hand.
           storage:
             size: 50Gi
+          # The cluster autoscaler never removes the node it runs on: its one replica holds all of cobranch.app's state,
+          # and a move took three minutes in which every request that needed it failed
+          # (docs/delivery/root-causes/2026-11-02-cobranch-app-down-while-its-database-moves.md). GKE's upgrades and
+          # repairs still drain the node, as its budget allows.
+          podAnnotations:
+            cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
           nodeSelector:
             kfirs.com/pool: system
           tolerations:
