@@ -194,7 +194,8 @@ spec:
                 existingSecret: cobranch-secrets-key
                 secretKey: password
               postgresql:
-                # Pinned here, as cobranch.app's: a new major can't start on the old one's data.
+                # Pinned here, as cobranch.app's: a new major can't start on the old one's data. Unlike cobranch.app's, its
+                # pod lets the cluster autoscaler move it: a preview never keeps a CI node up.
                 image:
                   repository: docker.io/library/postgres
                   tag: 18.6-alpine
