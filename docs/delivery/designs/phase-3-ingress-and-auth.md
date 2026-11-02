@@ -13,7 +13,7 @@ flowchart LR
   U((Browser)) -- "argocd, tekton, grafana, traefik,<br/>nui, docs, tests .dev.kfirs.com" --> P[L4 LB<br/>ingress-protected]
   G((GitHub)) -- octomaton.dev/github/hooks --> Q[L4 LB<br/>ingress-public]
   U -- "auth.kfirs.com/oauth2, id.kfirs.com" --> Q
-  GC((Git clients)) -- "git.cobranch.dev.kfirs.com,<br/>pr-n.git.cobranch.dev.kfirs.com" --> Q
+  GC((Git clients)) -- "pr-n.git.cobranch.dev.kfirs.com" --> Q
   subgraph traefik[Traefik]
     WS[entry point websecure<br/>middlewares: strip-auth-headers, oidc]
     PW[entry point public-websecure<br/>middleware: strip-auth-headers]
