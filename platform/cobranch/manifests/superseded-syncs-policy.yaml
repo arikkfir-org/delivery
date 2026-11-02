@@ -1,0 +1,58 @@
+# A Cobranch preview's sync is pinned to the head commit it started at, and waits in wave 0 for that commit's image
+# (Job cobranch-recreate-database-<sha7>) for up to 1800 seconds. A newer push supersedes the older commit's build, whose
+# image then never comes, and Argo CD starts no sync of the new head commit while that one runs. Once the ApplicationSet
+# has moved the Application's head commit (its first source's targetRevision) past the commit a running sync is pinned
+# to (its syncResult's first revision), any update of the Application marks that sync Terminating, as Argo CD's own
+# terminate does: the controller ends it, without retries, and its next automated sync takes the new head commit
+# (docs/delivery/designs/cobranch-previews.md, "A newer push"). Not a guard: Ignore on any error, which leaves the sync to
+# its deadline, as before.
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicy
+metadata:
+  name: cobranch-superseded-syncs
+spec:
+  failurePolicy: Ignore
+  reinvocationPolicy: Never
+  matchConstraints:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: argocd
+    resourceRules:
+      - apiGroups:
+          - argoproj.io
+        apiVersions:
+          - v1alpha1
+        operations:
+          - UPDATE
+        resources:
+          - applications
+  matchConditions:
+    - name: preview
+      expression: "has(object.spec.project) && object.spec.project == 'cobranch-pull-requests'"
+    - name: superseded
+      expression: >-
+        has(object.spec.sources) && size(object.spec.sources) > 0 && has(object.spec.sources[0].targetRevision)
+        && has(object.status) && has(object.status.operationState)
+        && has(object.status.operationState.phase) && object.status.operationState.phase == 'Running'
+        && has(object.status.operationState.syncResult) && has(object.status.operationState.syncResult.revisions)
+        && size(object.status.operationState.syncResult.revisions) > 0
+        && object.status.operationState.syncResult.revisions[0] != object.spec.sources[0].targetRevision
+  mutations:
+    - patchType: JSONPatch
+      jsonPatch:
+        expression: >-
+          [
+            JSONPatch{op: "add", path: "/status/operationState/phase", value: "Terminating"},
+            JSONPatch{
+              op: "add",
+              path: "/status/operationState/message",
+              value: "operation is terminating: the pull request's head commit is now " + object.spec.sources[0].targetRevision
+            }
+          ]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionPolicyBinding
+metadata:
+  name: cobranch-superseded-syncs
+spec:
+  policyName: cobranch-superseded-syncs
