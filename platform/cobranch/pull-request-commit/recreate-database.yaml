@@ -18,7 +18,7 @@ metadata:
     argocd.argoproj.io/sync-wave: "0"
 spec:
   backoffLimit: 2
-  # As the chart's migrate Job waits for the same image.
+  # A deadline of its own, as long as the preview's migrate.activeDeadlineSeconds: both wait for the same image.
   activeDeadlineSeconds: 1800
   template:
     metadata:
@@ -72,7 +72,9 @@ spec:
               until pg_isready --quiet; do case $? in 1 | 2) sleep 2 ;; *) exit 1 ;; esac; done
               psql --no-psqlrc --set ON_ERROR_STOP=1 \
                 --command 'DROP DATABASE IF EXISTS cobranch WITH (FORCE)' --command 'CREATE DATABASE cobranch'
-          # The chart's PostgreSQL, user and database (postgresql.auth), from its maintenance database.
+          # The chart's PostgreSQL Service, for release cobranch, and the user and database that ApplicationSet
+          # cobranch-pull-requests pins in postgresql.auth: change them there together. It connects to the maintenance
+          # database, postgres.
           env:
             - name: PGHOST
               value: cobranch-postgresql
