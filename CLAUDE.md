@@ -18,7 +18,8 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   `arikkfir-org/octomaton`: its tag as `targetRevision` and as the images' tag, the same in both. The exceptions run the
   image of the commit they sync: Fin's environments (`platform/fin/manifests`) follow `main` of `arikkfir-org/fin`
   (production), each pull request's head commit (its own environment) and each merge queue entry's merge group commit
-  (its own); `cobranch.app` (`platform/cobranch-app/manifests`) follows `main` of `arikkfir-org/cobranch`.
+  (its own); `cobranch.app` (`platform/cobranch-app/manifests`) installs the newest chart that `main` of
+  `arikkfir-org/cobranch` publishes, once its images are pushed.
 - Fin's `deploy/` comes from pull requests and holds its own Namespace, Gateway, routes, certificate, ExternalSecrets,
   NATS resources, autoscaling, ID-token Middleware, and the Role and RoleBinding that let its workloads read Job
   migrate; a pull request's deployment drops the Gateway and certificate, and

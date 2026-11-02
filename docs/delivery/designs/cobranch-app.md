@@ -1,6 +1,6 @@
 # Hosting cobranch.app
 
-**Decision**: `https://cobranch.app` is Cobranch's hosted service: anyone signs up with Google, creates organizations and repositories, and clones, fetches and pushes at `https://git.cobranch.app`. The hub runs it in namespace `cobranch-app` from Cobranch's `main`, as the demo ran before it: every merge upgrades it in place, the migrate Job first, and its database volume keeps the data, Git repositories included, across every sync. It is public, on Traefik's public entry point through a Gateway of its own, with no hub sign-in in front: Cobranch signs everyone in itself, and its Back-office answers only the installation's administrator. It uses no bucket, and nothing backs it up yet (owner, 2026-11-01). It replaced the demo at `cobranch.dev.kfirs.com`, which the owner took down once `cobranch.app` answered and their first push to it worked (2026-11-02); previews stay ([Cobranch's previews](cobranch-previews.md)). Linear: [ENG-232](https://linear.app/arikkfir/issue/ENG-232). Its Google Cloud side is infra's ([cobranch.app in GCP](../../infra/designs/cobranch-app.md)).
+**Decision**: `https://cobranch.app` is Cobranch's hosted service: anyone signs up with Google, creates organizations and repositories, and clones, fetches and pushes at `https://git.cobranch.app`. The hub runs it in namespace `cobranch-app` from Cobranch's `main`, through the chart that `main` publishes for a commit once its images are pushed: every merge upgrades it in place, the migrate Job first, and its database volume keeps the data, Git repositories included, across every sync. It is public, on Traefik's public entry point through a Gateway of its own, with no hub sign-in in front: Cobranch signs everyone in itself, and its Back-office answers only the installation's administrator. It uses no bucket, and nothing backs it up yet (owner, 2026-11-01). It replaced the demo at `cobranch.dev.kfirs.com`, which the owner took down once `cobranch.app` answered and their first push to it worked (2026-11-02); previews stay ([Cobranch's previews](cobranch-previews.md)). Linear: [ENG-232](https://linear.app/arikkfir/issue/ENG-232). Its Google Cloud side is infra's ([cobranch.app in GCP](../../infra/designs/cobranch-app.md)).
 
 ## Why
 
@@ -29,19 +29,23 @@ flowchart LR
 sequenceDiagram
   participant G as cobranch's main
   participant P as pipeline main
+  participant R as Artifact Registry
   participant A as Argo CD
   participant K as namespace cobranch-app
-  G->>P: push
-  G-->>A: new commit (polled)
-  A->>K: wave 0: PostgreSQL, its volume kept
-  A->>K: wave 1: migrate Job at the commit's tag
-  P-->>K: images pushed; the Job's pull succeeds
+  G->>P: push, the newest waiting one
+  P->>R: images, tagged with the commit's short SHA
+  P->>R: then the chart, 0.0.0-main.n.g and the short SHA
+  Note over A,K: meanwhile Synced and Healthy on the previous chart
+  A->>R: lists the charts, about every three minutes
+  R-->>A: a higher version
+  A->>K: wave 0: PostgreSQL, its pod and volume kept
+  A->>K: wave 1: migrate Job, its image already there
   K-->>A: the schema is the commit's
   A->>K: wave 2: servers, Console and Back-office roll out by surging
   Note over K: the old pods serve until the new ones are ready
 ```
 
-It is the path the demo ran on, unchanged ([hosting Cobranch's demo](cobranch.md#a-merge-to-cobranchs-main)): Argo CD may sync a commit before its images exist, and the migrate Job then waits for them within its 30-minute deadline while the old pods keep serving. Nothing is recreated: the StatefulSet's volume outlives every sync, and a migration that fails leaves the old version running.
+Argo CD follows `main`'s charts, not its head in Git. Pipeline `main` publishes a commit's chart only once it has pushed the commit's images, at `0.0.0-main.<n>.g<short SHA>`, where `n` counts `main`'s commits up to it, with the short SHA as its app version, which the images' tags default to ([the Cobranch repository](../../cobranch/designs/repository.md)). Application `cobranch-app` installs the highest of them (`>=0.0.0-main.0, <0.0.0`, which only `main`'s charts match), so it stays Synced and Healthy on the previous chart until the merge's images are there, and its migrate Job never waits for an image. A push that a newer one overtakes while it waits is never built, so it publishes no chart and never rolls out: the newer one does. Until 2026-11-02 it followed `main` in Git, as the demo had ([hosting Cobranch's demo](cobranch.md#a-merge-to-cobranchs-main)): each merge's migrate Job waited 6 to 12 minutes for its images, and one whose build was overtaken held cobranch.app on the old version for the Job's 30-minute deadline ([ENG-248](https://linear.app/arikkfir/issue/ENG-248)). Nothing is recreated: the StatefulSet's volume outlives every sync, and a migration that fails leaves the old version running.
 
 ### Sign-in
 
@@ -55,7 +59,7 @@ sequenceDiagram
   Go-->>B: consent screen of project arikkfir's app
   B->>Au: callback with code
   Au->>Go: exchange the code
-  Au->>Au: new identity: sign up under the Back-office's policy (anyone until changed);<br/>the owner's email becomes Installation admin
+  Au->>Au: new identity: sign up under the Back-office's policy (anyone until changed),<br/>the owner's email becomes Installation admin
   Au-->>B: cookie __Host-cobranch-session
 ```
 
@@ -63,8 +67,8 @@ sequenceDiagram
 
 | Cobranch asks for | The hub provides |
 | --- | --- |
-| The chart, installed with its values | Application `cobranch-app`, project `cobranch-app`: `chart/cobranch` of `https://github.com/arikkfir-org/cobranch` at `main`, release `cobranch`, Helm's tests skipped, automated sync with prune and self-heal, ten retries, each from `main`'s newest commit; wave 1, after the Gateway |
-| Its images | `me-west1-docker.pkg.dev/arikkfir/cobranch`, tagged `${ARGOCD_APP_REVISION_SHORT}` |
+| The chart, installed with its values | Application `cobranch-app`, project `cobranch-app`: `oci://me-west1-docker.pkg.dev/arikkfir/cobranch/charts/cobranch` at `>=0.0.0-main.0, <0.0.0`, `main`'s newest chart, release `cobranch`, Helm's tests skipped, automated sync with prune and self-heal, ten retries, each from `main`'s newest chart; wave 1, after the Gateway |
+| Its images | `me-west1-docker.pkg.dev/arikkfir/cobranch`, tagged with the chart's app version: its commit's short SHA |
 | `urls.*` | `https://cobranch.app` for the Console, `/api`, `/graphql`, `/auth`, `/admin` and `/back-office` beside it, and `https://git.cobranch.app` for the Git server. One host for everything but Git, so the session cookie is `__Host-cobranch-session` |
 | `httpRoute` | On: the chart's own routes, one per workload, each stripping its URL's path, with `parentRefs` Gateway `traefik/cobranch-app`. AppProject `cobranch-app` admits HTTPRoutes, and the Gateway admits them from this namespace only |
 | `auth.providers` | `google` (preset `google`), the client the owner made by hand ([manual steps](../../infra/designs/cobranch-app.md#manual-steps)); its secret is Secret `cobranch-google`, key `client-secret`, from ExternalSecret `cobranch-google` on `cobranch-app-google-client-secret`. Reloader restarts the Auth server when it changes |
@@ -117,6 +121,7 @@ What `infra` provides, the records `cobranch.app` and `git.cobranch.app`, cert-m
 | A Gateway of its own | Listeners on `traefik/public` admit by label, which would let this namespace's routes answer for any `*.kfirs.com` name | Listeners on `traefik/public`, with `kfirs.com/public-ingress` on the namespace |
 | The chart's routes | As any operator installs Cobranch; with no Middleware to add, the hub's own routes would repeat the chart's | The demo's own HTTPRoutes |
 | Git at `git.cobranch.app`, HTTPS only | The Console owns every path of the apex; SSH needs a TCP entry point and an address of its own, which can come later | Git under `/git`; SSH from day one |
+| `main`'s newest chart, not `main`'s head in Git | Pipeline `main` publishes a chart only once its images are pushed, so no rollout waits for them, and a build that a newer push overtook holds none; cobranch.app stays Synced and Healthy until there is a commit to roll out ([ENG-248](https://linear.app/arikkfir/issue/ENG-248)) | `main` in Git, with the migrate Job waiting for its images, which held each rollout for 6 to 12 minutes, and for 30 when a build was overtaken; ending a sync when `main` moves on, as the previews do ([a newer push](cobranch-previews.md#a-newer-push)), which still starts before the images exist; Argo CD Image Updater, which moves the images but not the chart that goes with them |
 | PostgreSQL's image pinned here | A new major can't start on the old one's data, so moving to it is a dump and restore done on purpose, in a change of this repository | Following the chart's image, which a merge to Cobranch's `main` can move to a new major under live data |
 | Git data in PostgreSQL, no bucket | Cobranch's default; a bucket stays a supported option of the product, which no installation of ours is to use (owner, 2026-11-01) | Bucket `arikkfir-cobranch-app`, which infra made first and removed before anything used it |
 | PostgreSQL off the autoscaler's scale-down | Its one replica is all of cobranch.app's state. A move took three minutes, in which every request that needed it failed, and the cluster's profile consolidates the system pool often ([root cause](../root-causes/2026-11-02-cobranch-app-down-while-its-database-moves.md)). The node it runs on stays, which the pool's minimum of one node keeps anyway | A replicated PostgreSQL that fails over, which would cover upgrades too but needs an operator, for later; the `balanced` profile, which only makes consolidation rarer, for the whole cluster ([node autoscaling](../../infra/designs/node-autoscaling.md)); a budget of `minAvailable: 1`, which blocks GKE's upgrades too ([disruption budgets](disruption-budgets.md#decisions)) |
@@ -131,6 +136,7 @@ What `infra` provides, the records `cobranch.app` and `git.cobranch.app`, cert-m
 - **Anyone signs up.** Cobranch has no quotas yet: a user can create repositories and push up to the Git server's 2 GiB a push. The administrator can set sign-up to invitations or domains, or turn off self-serve organizations, in the Back-office at once. Repositories are never public: Cobranch has no anonymous grants yet.
 - **The public Back-office and Admin API.** The Admin API denies by default; only `auth.admins` holds Installation admin, through a verified Google email.
 - **A merge reaches the cluster unreviewed by this repository.** AppProject `cobranch-app` admits only namespace `cobranch-app` and the chart's kinds, HTTPRoutes included, with no cluster-scoped object and no Secret. Policy `cobranch-app-http-routes` holds the routes to Gateway `traefik/cobranch-app`, whose listeners answer only for `cobranch.app` and `git.cobranch.app`, and policy `cobranch-app-cluster-ip-services` keeps every Service inside the cluster, so nothing reaches the pods but through that Gateway. The namespace enforces the restricted Pod Security Standard.
+- **Pipeline `main` fails.** A commit whose images or chart fail to publish gets no chart, so cobranch.app stays on the previous one, Synced and Healthy, until a later merge's build publishes; only the failed check on the commit says so. While Argo CD can't read the registry, cobranch.app keeps running what it has, and its Application shows the error.
 - **The client's secret.** Bumping it in the Google Cloud console and adding a version of `cobranch-app-google-client-secret` rotates it; External Secrets syncs it within its refresh interval, and Reloader restarts the Auth server.
 - **Losing the database.** Its volume, a zonal persistent disk replicated within its zone, holds everyone's data, Git repositories included, and nothing backs it up yet: losing it loses them all. Deleting namespace `cobranch-app`, or cascade-deleting Application `cobranch-app-environment`, deletes it.
 - **Moving the database.** PostgreSQL runs one replica, so cobranch.app is down whenever it moves: about three minutes, while its volume detaches, reattaches on another node, and PostgreSQL starts. The cluster autoscaler never moves it (`safe-to-evict: "false"`). GKE's node upgrades, in the cluster's maintenance window, and its repairs still drain the node, as its budget allows.
@@ -146,3 +152,4 @@ What `infra` provides, the records `cobranch.app` and `git.cobranch.app`, cert-m
 5. This repository and `infra`: the demo goes once the owner's first push to `cobranch.app` works (owner, 2026-11-02): `cobranch-environment` keeps only the previews and their Git listener ([delivery#112](https://github.com/arikkfir-org/delivery/pull/112)), and `infra` then removes the demo's records, Keycloak client and bucket ([hosting Cobranch's demo](cobranch.md#rollout)).
 6. This repository: PostgreSQL kept off the cluster autoscaler's scale-down after it took cobranch.app down for three minutes ([ENG-243](https://linear.app/arikkfir/issue/ENG-243), [root cause](../root-causes/2026-11-02-cobranch-app-down-while-its-database-moves.md)). Merging restarts PostgreSQL once, for the new annotation: a StatefulSet deletes its pod before making the new one, which the scheduler may place on another system node. On the same node it is back in seconds; on another, it takes the full move of about three minutes.
 7. Monitoring ([ENG-235](https://linear.app/arikkfir/issue/ENG-235)): Cobranch's metrics on its `main` ([cobranch#44](https://github.com/arikkfir-org/cobranch/pull/44)), then this repository's scrape, network admission and dashboard, which needs the chart's `telemetry.metrics`, and `infra`'s alert policies.
+8. `main`'s charts ([ENG-248](https://linear.app/arikkfir/issue/ENG-248)): Cobranch's pipeline `main` publishes them, and PostgreSQL's pod drops the labels that change with every chart ([cobranch#64](https://github.com/arikkfir-org/cobranch/pull/64)), which restarts PostgreSQL once on cobranch.app. Once `main` has published its first chart, this repository moves Application `cobranch-app` onto them; the switch rolls out the newest chart's commit, with no wait for images.
