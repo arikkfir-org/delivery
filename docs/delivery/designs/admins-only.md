@@ -33,7 +33,6 @@ flowchart LR
 | `traefik.dev.kfirs.com` | `traefik` | The dashboard's IngressRoute, through the chart's `ingressRoute.dashboard.middlewares` |
 | `docs.dev.kfirs.com` | `docs` | The rule's only filter; `legal.kfirs.com` stays public |
 | `tests.dev.kfirs.com` | `tests` | The rule's only filter |
-| `cobranch.dev.kfirs.com` | `cobranch` | Before the URL rewrite on `/api`, `/graphql`, `/auth`, `/admin` and `/back-office`; the Console's rule's only filter ([hosting Cobranch's demo](cobranch.md)) |
 | `admin.id.kfirs.com` | `keycloak` | The console's rule |
 | `id.kfirs.com/realms/master` | `keycloak` | After `oidc`; `/realms/hub` and `/resources` stay public, for the login page |
 

@@ -7,9 +7,9 @@
 # names the preview from the pull request's number and the commit from its head SHA, never from a title; the template
 # uses those alone. Three sources: the chart from the head commit, and what the hub decides around it from delivery's
 # main (platform/cobranch/pull-request, which holds the Namespace, so no CreateNamespace, and, for each head commit,
-# platform/cobranch/pull-request-commit). A preview is configured as the demo is (cobranch.yaml), but for what the design
-# lists under "What differs from the demo", each with the owner's reason: a value the demo gains comes here in the same
-# pull request.
+# platform/cobranch/pull-request-commit). A preview is configured as cobranch.app is
+# (platform/cobranch-app/manifests/cobranch.yaml), but for what the design lists under "What differs from cobranch.app",
+# each with the owner's reason: a value cobranch.app gains comes here in the same pull request.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
@@ -99,7 +99,7 @@ spec:
               # The demo data a reviewer starts from (cobranch's db/seeds/).
               seed:
                 enabled: true
-              # Replicas and resources are the chart's, as the demo's are. Every pod on pool ci, which policy
+              # Replicas and resources are the chart's, as cobranch.app's are. Every pod on pool ci, which policy
               # cobranch-node-pool holds.
               authServer:
                 nodeSelector:
@@ -194,7 +194,7 @@ spec:
                 existingSecret: cobranch-secrets-key
                 secretKey: password
               postgresql:
-                # Pinned here, as the demo's: a new major can't start on the old one's data.
+                # Pinned here, as cobranch.app's: a new major can't start on the old one's data.
                 image:
                   repository: docker.io/library/postgres
                   tag: 18.6-alpine

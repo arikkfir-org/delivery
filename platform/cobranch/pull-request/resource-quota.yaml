@@ -1,5 +1,5 @@
 # What a preview may take from pool ci, whatever its pull request's chart asks for: the chart's replicas and resources,
-# as the demo runs them, while every Deployment surges one pod and the Jobs and maintenance run, with room to
+# as cobranch.app runs them, while every Deployment surges one pod and the Jobs and maintenance run, with room to
 # spare; and its database's volume, twice the chart's size. Every container has to state its requests and memory limit
 # to start, as the chart's do.
 apiVersion: v1

@@ -28,7 +28,7 @@ spec:
           port: 8080
 ---
 # Only the REST and GraphQL servers reach the Git server's internal port, which no route names: their reads of trees and
-# files (https://docs.dev.kfirs.com/cobranch/designs/code-browsing.md, "The internal call"). As the demo's.
+# files (https://docs.dev.kfirs.com/cobranch/designs/code-browsing.md, "The internal call"). As the previews'.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:

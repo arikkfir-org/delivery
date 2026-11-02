@@ -1,5 +1,5 @@
 # A preview on one host, pr-<number>.cobranch.dev.kfirs.com, on the Gateway every preview shares, behind the
-# hub's sign-in and Middleware admins, as the demo is. Each workload serves as if it were alone (the Console, the
+# hub's sign-in and Middleware admins. Each workload serves as if it were alone (the Console, the
 # Back-office and GraphQL at /, REST and Admin under /v1/, the Auth server at /), so each workload's prefix is stripped,
 # as the chart's urls say. Every rule asks admins first, which reads the hub's session cookie: the hub's sign-in admits every hub user, Fin's test users
 # included, and Traefik runs filters in order, so a redirect or mirror before admins would answer them. Cookies pass

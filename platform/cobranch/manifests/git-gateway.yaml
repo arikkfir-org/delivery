@@ -1,13 +1,11 @@
-# Cobranch's Git servers, the demo's at git.cobranch.dev.kfirs.com and each preview's at
-# pr-<number>.git.cobranch.dev.kfirs.com, on Traefik's public entry point (9443): Git clients can't pass the hub's
-# sign-in, and the Git server signs every request in itself, a personal token as the password (owner, 2026-11-01).
-# infra's records git.cobranch.dev and *.git.cobranch.dev send both names to the public gateway's address. A Gateway
-# of its own rather than listeners on traefik/public, whose listeners admit only namespaces labelled
-# kfirs.com/public-ingress, which no preview may carry: listener demo takes routes from namespace cobranch alone, and
-# listener previews from namespaces labelled kfirs.com/cobranch-pull-request, which policy cobranch-http-routes holds
-# to their own host and to Service cobranch-git-server. One certificate covers both names, so a preview issues none,
-# and in traefik no pull request's code can read its private key. Wave 0 issues the certificate before the Gateway
-# (wave 1) references its Secret, and the demo's route (git-http-route.yaml, wave 2) attaches once the Gateway is there.
+# Cobranch's previews' Git servers, each at pr-<number>.git.cobranch.dev.kfirs.com, on Traefik's public entry point
+# (9443): Git clients can't pass the hub's sign-in, and the Git server signs every request in itself, a personal token
+# as the password (owner, 2026-11-01). infra's record *.git.cobranch.dev sends every name to the public gateway's
+# address. A Gateway of its own rather than listeners on traefik/public, whose listeners admit only namespaces labelled
+# kfirs.com/public-ingress, which no preview may carry: listener previews takes routes from namespaces labelled
+# kfirs.com/cobranch-pull-request, which policy cobranch-http-routes holds to their own host and to Service
+# cobranch-git-server. One certificate covers every name, so a preview issues none, and in traefik no pull request's
+# code can read its private key. Wave 0 issues the certificate before the Gateway (wave 1) references its Secret.
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -16,7 +14,6 @@ metadata:
 spec:
   secretName: cobranch-git-tls
   dnsNames:
-    - git.cobranch.dev.kfirs.com
     - "*.git.cobranch.dev.kfirs.com"
   issuerRef:
     group: cert-manager.io
@@ -33,21 +30,6 @@ metadata:
 spec:
   gatewayClassName: traefik
   listeners:
-    - name: demo
-      protocol: HTTPS
-      port: 9443
-      hostname: git.cobranch.dev.kfirs.com
-      tls:
-        mode: Terminate
-        certificateRefs:
-          - kind: Secret
-            name: cobranch-git-tls
-      allowedRoutes:
-        namespaces:
-          from: Selector
-          selector:
-            matchLabels:
-              kubernetes.io/metadata.name: cobranch
     - name: previews
       protocol: HTTPS
       port: 9443
