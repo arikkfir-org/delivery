@@ -170,8 +170,8 @@ spec:
               operator: Equal
               value: "true"
               effect: NoSchedule
-        # Every server serves its metrics at /metrics on port metrics (9464), which PodMonitoring cobranch
-        # (pod-monitoring.yaml) scrapes into Cloud Monitoring through Managed Service for Prometheus.
+        # Every server and the push worker serve their metrics at /metrics on port metrics (9464), which PodMonitoring
+        # cobranch (pod-monitoring.yaml) scrapes into Cloud Monitoring through Managed Service for Prometheus.
         telemetry:
           metrics:
             exporter: prometheus

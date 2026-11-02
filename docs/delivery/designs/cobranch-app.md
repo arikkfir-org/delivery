@@ -78,7 +78,7 @@ sequenceDiagram
 | Placement and size | Every pod on node pool `system` ([node pools](node-pools.md)), with the chart's requests and memory limits and no CPU limit ([resource requests](resource-requests.md)): Git's packing for a push takes only idle CPU beyond its request, and every neighbour keeps the CPU it requests |
 | Admission | Policy `cobranch-app-http-routes`: an HTTPRoute in namespace `cobranch-app` attaches to Gateway `traefik/cobranch-app` only, never to `traefik/protected` or `traefik/public`, which take routes for any `*.kfirs.com` host. Policy `cobranch-app-cluster-ip-services`: its Services are of type `ClusterIP`, with no external IPs |
 | Network admission | NetworkPolicy `cobranch`: only namespace `traefik`, on 8080, to the Console's, the Back-office's and the servers' pods. NetworkPolicy `cobranch-git-internal`: only the REST and GraphQL servers' pods, on 8081, to the Git server's, for their internal call that reads trees and files. NetworkPolicy `cobranch-metrics`: only namespace `gmp-system`, on 9464, to the servers' and the push worker's pods ([monitoring](#monitoring)). The chart's own admits only the servers, the push worker, the migrate Job and the maintenance CronJob to PostgreSQL |
-| `telemetry.metrics` | `exporter: prometheus`: every server serves its metrics at `/metrics` on port `metrics`, 9464 ([monitoring](#monitoring)) |
+| `telemetry.metrics` | `exporter: prometheus`: every server and the push worker serve their metrics at `/metrics` on port `metrics`, 9464 ([monitoring](#monitoring)) |
 
 ### Monitoring
 
@@ -95,7 +95,7 @@ flowchart LR
   A["infra's alert policies<br/>email the owner"] --> CM
 ```
 
-Cobranch exports its metrics through OpenTelemetry to whatever an operator runs ([Cobranch's monitoring](../../cobranch/designs/monitoring.md)); the hub takes them in Prometheus's format, since its cluster already runs Managed Service for Prometheus, which the GKE cluster turns on ([the cluster](../../infra/terraform/gcp.md)). PodMonitoring `cobranch` selects the release's pods and scrapes port `metrics`, which only the servers declare, so the Console, the Back-office, PostgreSQL and the Jobs aren't scraped. The collectors write each series to Cloud Monitoring with the pod's `namespace`, `pod` and `container`, beside the workload's own `service_name`.
+Cobranch exports its metrics through OpenTelemetry to whatever an operator runs ([Cobranch's monitoring](../../cobranch/designs/monitoring.md)); the hub takes them in Prometheus's format, since its cluster already runs Managed Service for Prometheus, which the GKE cluster turns on ([the cluster](../../infra/terraform/gcp.md)). PodMonitoring `cobranch` selects the release's pods and scrapes port `metrics`, which only the servers and the push worker declare, so the Console, the Back-office, PostgreSQL and the Jobs aren't scraped. The collectors write each series to Cloud Monitoring with the pod's `namespace`, `pod` and `container`, beside the workload's own `service_name`.
 
 | Shows | Dashboard `Cobranch` (Grafana, folder Hub), each from PromQL over namespace `cobranch-app` |
 | --- | --- |
@@ -126,7 +126,7 @@ What `infra` provides, the records `cobranch.app` and `git.cobranch.app`, cert-m
 
 ## Security and failure modes
 
-- **The metrics endpoint.** It answers anyone who reaches port 9464, and holds only Cobranch's metrics, nothing about users; NetworkPolicy `cobranch-metrics` admits only the collectors. A scrape that fails leaves gaps in the dashboard, and once no server has been scraped for 15 minutes, `infra`'s alert emails the owner.
+- **The metrics endpoint.** It answers anyone who reaches port 9464, and holds only Cobranch's metrics, nothing about users; NetworkPolicy `cobranch-metrics` admits only the collectors. A scrape that fails leaves gaps in the dashboard; once `infra`'s alert policies land (rollout step 7), one emails the owner when no server has been scraped for 15 minutes, and until then nothing does.
 
 - **Anyone signs up.** Cobranch has no quotas yet: a user can create repositories and push up to the Git server's 2 GiB a push. The administrator can set sign-up to invitations or domains, or turn off self-serve organizations, in the Back-office at once. Repositories are never public: Cobranch has no anonymous grants yet.
 - **The public Back-office and Admin API.** The Admin API denies by default; only `auth.admins` holds Installation admin, through a verified Google email.
