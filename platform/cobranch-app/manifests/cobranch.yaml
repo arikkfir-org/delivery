@@ -1,6 +1,7 @@
 # cobranch.app, Cobranch's hosted service, in namespace cobranch-app. Its chart lives with its code, in chart/cobranch of
-# arikkfir-org/cobranch. Argo CD follows cobranch's main and runs the images of the synced commit, which cobranch's
-# pipeline main publishes for main's newest commit, tagged with its short SHA. Each sync upgrades it in place and
+# arikkfir-org/cobranch. Argo CD installs main's newest chart, which cobranch's pipeline main publishes for a commit only
+# once it has pushed the commit's images, tagged with its short SHA, so it never rolls out a commit before its images
+# are there, nor one whose build a newer push overtook. Each sync upgrades it in place and
 # migrates the database first (the chart's migrate Job, ordered by its sync waves); the database's volume keeps
 # the data, Git repositories included, across every sync. No CreateNamespace: namespace.yaml holds it. Wave 1:
 # after the Gateway its routes attach to (gateway.yaml).
@@ -17,24 +18,16 @@ spec:
     server: https://kubernetes.default.svc
     namespace: cobranch-app
   source:
-    repoURL: https://github.com/arikkfir-org/cobranch
-    targetRevision: main
-    path: chart/cobranch
+    # main's charts are 0.0.0-main.<n>.g<short SHA>, n counting main's commits up to the commit, so the newest is the
+    # highest; as prereleases of 0.0.0, they are the only charts below 0.0.0. Each has the commit's short SHA as its app
+    # version, which the images' tags default to. Argo CD lists the tags every three minutes.
+    repoURL: oci://me-west1-docker.pkg.dev/arikkfir/cobranch/charts/cobranch
+    targetRevision: ">=0.0.0-main.0, <0.0.0"
+    path: .
     helm:
       releaseName: cobranch
       # helm test's pod is for a person or CI to run, not for every sync.
       skipTests: true
-      # The synced commit's images. As strings: a short SHA can be all digits.
-      parameters:
-        - name: images.cobranch.tag
-          value: ${ARGOCD_APP_REVISION_SHORT}
-          forceString: true
-        - name: images.console.tag
-          value: ${ARGOCD_APP_REVISION_SHORT}
-          forceString: true
-        - name: images.backOffice.tag
-          value: ${ARGOCD_APP_REVISION_SHORT}
-          forceString: true
       valuesObject:
         images:
           cobranch:
@@ -151,10 +144,6 @@ spec:
               value: "true"
               effect: NoSchedule
         migrate:
-          # A sync can start before main's pipeline has published the commit's images. The migrate Job, the chart's
-          # first wave after PostgreSQL, then waits for its image (pulls back off to five minutes apart) within this
-          # deadline, and the servers and the Console wait for it.
-          activeDeadlineSeconds: 1800
           nodeSelector:
             kfirs.com/pool: system
           tolerations:
@@ -213,7 +202,7 @@ spec:
     # The chart's HTTPRoutes' CRD comes from Application gateway-api.
     syncOptions:
       - SkipDryRunOnMissingResource=true
-    # Each retry syncs main's newest commit. One whose migrate Job failed fails again (the Job is named by a hash of
+    # Each retry syncs main's newest chart. One whose migrate Job failed fails again (the Job is named by a hash of
     # its spec, so it is the same failed Job); a newer commit's Job has a new name.
     retry:
       limit: 10

@@ -1,5 +1,5 @@
-# The project of cobranch.app. Its source, chart/cobranch in arikkfir-org/cobranch, comes from cobranch's main, so every
-# merge there changes the cluster; this holds it to namespace cobranch-app and the kinds the chart renders there: the
+# The project of cobranch.app. Its source, the charts that cobranch's pipeline main publishes, comes from cobranch's main,
+# so every merge there changes the cluster; this holds it to namespace cobranch-app and the kinds the chart renders there: the
 # servers', the Console's, the Back-office's and PostgreSQL's workloads, Services, budgets and the database's
 # NetworkPolicy, the servers' ServiceAccount, the migrate Job, the maintenance CronJob and the routes, which attach only
 # to Gateway traefik/cobranch-app, for its two names. No cluster-scoped kinds (namespace.yaml holds the Namespace), no
@@ -15,7 +15,7 @@ metadata:
 spec:
   description: cobranch.app, Cobranch's hosted service, from cobranch's main.
   sourceRepos:
-    - https://github.com/arikkfir-org/cobranch
+    - oci://me-west1-docker.pkg.dev/arikkfir/cobranch/charts/cobranch
   destinations:
     - server: https://kubernetes.default.svc
       namespace: cobranch-app
