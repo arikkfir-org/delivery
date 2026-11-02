@@ -1,0 +1,105 @@
+# Every push to a pull request starts its preview from scratch (owner, 2026-11-01): this Job drops the preview's database,
+# Git's objects included, and creates it empty; the chart's migrate Job (wave 1) then migrates and seeds it, and its seed
+# Job pushes the demo history (docs/delivery/designs/cobranch-previews.md). ApplicationSet cobranch-pull-requests names it
+# after the head commit and sets its first image to that commit's, so it runs once for each new head commit, and never for
+# another sync of the same one; the next one's sync prunes it. Wave 0, beside PostgreSQL. It waits for the commit's image
+# first, so the preview keeps serving the last push until pipeline preview has pushed the new one, then for PostgreSQL to
+# answer. A Job's spec can't change, so the ApplicationSet ignores it on a Job that exists: an edit here reaches an open
+# preview with its next push.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cobranch-recreate-database
+  labels:
+    app.kubernetes.io/name: cobranch
+    app.kubernetes.io/instance: cobranch
+    app.kubernetes.io/component: recreate-database
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  backoffLimit: 2
+  # A deadline of its own, as long as the preview's migrate.activeDeadlineSeconds: both wait for the same image.
+  activeDeadlineSeconds: 1800
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cobranch
+        app.kubernetes.io/instance: cobranch
+        app.kubernetes.io/component: recreate-database
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      nodeSelector:
+        kfirs.com/pool: ci
+      tolerations:
+        - key: kfirs.com/pool
+          operator: Equal
+          value: ci
+          effect: NoSchedule
+      initContainers:
+        # The head commit's image, which starts only once pipeline preview has pushed it: it prints its version.
+        - name: image
+          image: me-west1-docker.pkg.dev/arikkfir/cobranch-previews/cobranch:0000000
+          args: [version]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          securityContext:
+            runAsUser: 65532
+            runAsGroup: 65532
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+      containers:
+        - name: recreate-database
+          # PostgreSQL's own image, as pull-requests.yaml pins it, for its client.
+          image: docker.io/library/postgres:18.6-alpine
+          command:
+            - sh
+            - -c
+            # pg_isready answers 1 while PostgreSQL starts and 2 before it listens; anything else is a mistake here.
+            # FORCE ends the last push's connections, and new ones wait for the drop, then find no database.
+            - |
+              set -eu
+              until pg_isready --quiet; do case $? in 1 | 2) sleep 2 ;; *) exit 1 ;; esac; done
+              psql --no-psqlrc --set ON_ERROR_STOP=1 \
+                --command 'DROP DATABASE IF EXISTS cobranch WITH (FORCE)' --command 'CREATE DATABASE cobranch'
+          # The chart's PostgreSQL Service, for release cobranch, and the user and database that ApplicationSet
+          # cobranch-pull-requests pins in postgresql.auth: change them there together. It connects to the maintenance
+          # database, postgres.
+          env:
+            - name: PGHOST
+              value: cobranch-postgresql
+            - name: PGUSER
+              value: cobranch
+            - name: PGDATABASE
+              value: postgres
+            - name: PGCONNECT_TIMEOUT
+              value: "5"
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cobranch-postgresql-password
+                  key: password
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          # The image's own postgres user.
+          securityContext:
+            runAsUser: 70
+            runAsGroup: 70
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
