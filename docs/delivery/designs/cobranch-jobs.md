@@ -78,9 +78,9 @@ Everything else is the chart's: the job namespaces' prefix (`N-jobs-`), Pod Secu
 
 ## Rollout
 
-1. Cobranch: the chart's `controller` and `jobs` values, which nothing reads yet, and its design's snapshot, which names the cluster-scoped objects and job namespaces after the release's namespace, as the table above does.
+1. Cobranch: the chart's `controller` and `jobs` values, which nothing reads yet.
 2. This repository: the AppProjects, the policies and the values above, merged right after step 1: until Cobranch's `main` knows the values, cobranch.app would fail to render. A preview already rendered keeps running; one whose pull request predates step 1 fails to render at its next push, until it merges `main` ([Cobranch's previews](cobranch-previews.md#security-and-failure-modes)).
-3. Cobranch: the controller, its RBAC and the job namespaces ([Cobranch jobs](../../cobranch/designs/jobs.md#rollout)), whose runs reach the servers through NetworkPolicy `cobranch-jobs`, in step 2. Its pull request's preview is the first to run a job here, and cobranch.app runs them once it merges.
+3. Cobranch: the controller, its RBAC and the job namespaces ([Cobranch jobs](../../cobranch/designs/jobs.md#rollout)), named after the release's namespace as the table above does, with its design's snapshot that names them so, whose runs reach the servers through NetworkPolicy `cobranch-jobs`, in step 2. Its pull request's preview is the first to run a job here, and cobranch.app runs them once it merges.
 
 ## Open questions
 
