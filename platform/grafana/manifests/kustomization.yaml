@@ -6,3 +6,13 @@ resources:
   - middleware.yaml
   - network-policy.yaml
   - postgres.yaml
+# The dashboards Grafana provisions, in folder Hub (values.yaml, dashboardProviders), each a JSON file under
+# dashboards/: Cobranch, cobranch.app's metrics (docs/delivery/designs/cobranch-app.md, "Monitoring").
+configMapGenerator:
+  - name: grafana-dashboards
+    namespace: grafana
+    files:
+      - dashboards/cobranch.json
+generatorOptions:
+  # Grafana's pods mount it by name, and re-read the files as they change, without a restart.
+  disableNameSuffixHash: true
