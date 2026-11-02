@@ -1,0 +1,818 @@
+{
+  "uid": "cobranch-app",
+  "title": "Cobranch",
+  "description": "cobranch.app: Console page views, API routes, the Git server's throwaway repositories and pack cache (Cobranch's monitoring design).",
+  "tags": [
+    "cobranch"
+  ],
+  "timezone": "browser",
+  "editable": false,
+  "graphTooltip": 1,
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "version": 1,
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Console pages",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Page view time, 95th percentile",
+      "description": "How long each Console page took to show, from the navigation's start (load) or the click (route) to the page drawn.",
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "google-cloud-monitoring"
+      },
+      "id": 2,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": true
+          },
+          "displayName": "${__field.labels.cobranch_console_page} ${__field.labels.cobranch_console_navigation}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "google-cloud-monitoring"
+          },
+          "queryType": "promQL",
+          "promQLQuery": {
+            "projectName": "arikkfir",
+            "expr": "histogram_quantile(0.95, sum by (le, cobranch_console_page, cobranch_console_navigation) (rate(cobranch_console_page_duration_seconds_bucket{namespace=\"cobranch-app\"}[15m])))",
+            "step": "60s"
+          }
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Git reads per page view",
+      "description": "Throwaway repositories the Git server built for one view of each page, on average.",
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "google-cloud-monitoring"
+      },
+      "id": 3,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": true
+          },
+          "displayName": "${__field.labels.cobranch_console_page}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "google-cloud-monitoring"
+          },
+          "queryType": "promQL",
+          "promQLQuery": {
+            "projectName": "arikkfir",
+            "expr": "sum by (cobranch_console_page) (rate(cobranch_console_page_git_reads_sum{namespace=\"cobranch-app\"}[15m])) / sum by (cobranch_console_page) (rate(cobranch_console_page_git_reads_count{namespace=\"cobranch-app\"}[15m]))",
+            "step": "60s"
+          }
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Page views per minute",
+      "description": "Views each page took, as the Console reported them.",
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "google-cloud-monitoring"
+      },
+      "id": 4,
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": true
+          },
+          "displayName": "${__field.labels.cobranch_console_page}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "google-cloud-monitoring"
+          },
+          "queryType": "promQL",
+          "promQLQuery": {
+            "projectName": "arikkfir",
+            "expr": "60 * sum by (cobranch_console_page) (rate(cobranch_console_page_duration_seconds_count{namespace=\"cobranch-app\"}[15m]))",
+            "step": "60s"
+          }
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "APIs",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "id": 5,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Route time, 95th percentile",
+      "description": "How long each route of the REST, GraphQL, Auth, Admin and Git servers took to answer.",
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "google-cloud-monitoring"
+      },
+      "id": 6,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 18
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": true
+          },
+          "displayName": "${__field.labels.service_name} ${__field.labels.http_route}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "google-cloud-monitoring"
+          },
+          "queryType": "promQL",
+          "promQLQuery": {
+            "projectName": "arikkfir",
+            "expr": "histogram_quantile(0.95, sum by (le, service_name, http_route) (rate(http_server_request_duration_seconds_bucket{namespace=\"cobranch-app\"}[15m])))",
+            "step": "60s"
+          }
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Server errors",
+      "description": "The share of each server's answers that were 5xx.",
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "google-cloud-monitoring"
+      },
+      "id": 7,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 18
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": true
+          },
+          "displayName": "${__field.labels.service_name}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "google-cloud-monitoring"
+          },
+          "queryType": "promQL",
+          "promQLQuery": {
+            "projectName": "arikkfir",
+            "expr": "sum by (service_name) (rate(http_server_request_duration_seconds_count{namespace=\"cobranch-app\", http_response_status_code=~\"5..\"}[15m])) / sum by (service_name) (rate(http_server_request_duration_seconds_count{namespace=\"cobranch-app\"}[15m]))",
+            "step": "60s"
+          }
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Requests per minute",
+      "description": "Each server's requests, by route.",
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "google-cloud-monitoring"
+      },
+      "id": 8,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 26
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": true
+          },
+          "displayName": "${__field.labels.service_name} ${__field.labels.http_route}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "google-cloud-monitoring"
+          },
+          "queryType": "promQL",
+          "promQLQuery": {
+            "projectName": "arikkfir",
+            "expr": "60 * sum by (service_name, http_route) (rate(http_server_request_duration_seconds_count{namespace=\"cobranch-app\"}[15m]))",
+            "step": "60s"
+          }
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "GraphQL root field time, 95th percentile",
+      "description": "How long each root field of a query or mutation took, with everything beneath it.",
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "google-cloud-monitoring"
+      },
+      "id": 9,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 26
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": true
+          },
+          "displayName": "${__field.labels.graphql_operation_type} ${__field.labels.cobranch_graphql_field}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "google-cloud-monitoring"
+          },
+          "queryType": "promQL",
+          "promQLQuery": {
+            "projectName": "arikkfir",
+            "expr": "histogram_quantile(0.95, sum by (le, graphql_operation_type, cobranch_graphql_field) (rate(cobranch_graphql_field_duration_seconds_bucket{namespace=\"cobranch-app\"}[15m])))",
+            "step": "60s"
+          }
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "title": "Git server",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
+      "id": 10,
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Throwaway repository build time, 95th percentile",
+      "description": "From the snapshot's read to the last pack linked, by what the repository served.",
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "google-cloud-monitoring"
+      },
+      "id": 11,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 35
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": true
+          },
+          "displayName": "${__field.labels.cobranch_git_operation}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "google-cloud-monitoring"
+          },
+          "queryType": "promQL",
+          "promQLQuery": {
+            "projectName": "arikkfir",
+            "expr": "histogram_quantile(0.95, sum by (le, cobranch_git_operation) (rate(cobranch_git_workspace_duration_seconds_bucket{namespace=\"cobranch-app\"}[15m])))",
+            "step": "60s"
+          }
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Throwaway repository disk, 95th percentile",
+      "description": "The bytes of a throwaway repository's files that nothing else links, measured as it is removed.",
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "google-cloud-monitoring"
+      },
+      "id": 12,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 35
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": true
+          },
+          "displayName": "${__field.labels.cobranch_git_operation}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "google-cloud-monitoring"
+          },
+          "queryType": "promQL",
+          "promQLQuery": {
+            "projectName": "arikkfir",
+            "expr": "histogram_quantile(0.95, sum by (le, cobranch_git_operation) (rate(cobranch_git_workspace_size_bytes_bucket{namespace=\"cobranch-app\"}[15m])))",
+            "step": "60s"
+          }
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Throwaway repositories per minute",
+      "description": "Repositories built, by what they served.",
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "google-cloud-monitoring"
+      },
+      "id": 13,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 43
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": true
+          },
+          "displayName": "${__field.labels.cobranch_git_operation}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "google-cloud-monitoring"
+          },
+          "queryType": "promQL",
+          "promQLQuery": {
+            "projectName": "arikkfir",
+            "expr": "60 * sum by (cobranch_git_operation) (rate(cobranch_git_workspace_duration_seconds_count{namespace=\"cobranch-app\"}[15m]))",
+            "step": "60s"
+          }
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Pack cache hit rate",
+      "description": "The share of the packs throwaway repositories linked that the pack cache held.",
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "google-cloud-monitoring"
+      },
+      "id": 14,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 43
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": true
+          },
+          "displayName": "hit rate"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "min"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "google-cloud-monitoring"
+          },
+          "queryType": "promQL",
+          "promQLQuery": {
+            "projectName": "arikkfir",
+            "expr": "sum(rate(cobranch_git_pack_cache_lookups_total{namespace=\"cobranch-app\", cobranch_git_pack_cache_result=\"hit\"}[15m])) / sum(rate(cobranch_git_pack_cache_lookups_total{namespace=\"cobranch-app\"}[15m]))",
+            "step": "60s"
+          }
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Pack cache usage",
+      "description": "The bytes of packs each Git server pod's cache holds, against what it keeps before it evicts.",
+      "datasource": {
+        "type": "stackdriver",
+        "uid": "google-cloud-monitoring"
+      },
+      "id": 15,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 43
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "spanNulls": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "${__field.labels.pod}"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "limit"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "last",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "google-cloud-monitoring"
+          },
+          "queryType": "promQL",
+          "promQLQuery": {
+            "projectName": "arikkfir",
+            "expr": "sum by (pod) (cobranch_git_pack_cache_usage_bytes{namespace=\"cobranch-app\"})",
+            "step": "60s"
+          }
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "stackdriver",
+            "uid": "google-cloud-monitoring"
+          },
+          "queryType": "promQL",
+          "promQLQuery": {
+            "projectName": "arikkfir",
+            "expr": "max(cobranch_git_pack_cache_limit_bytes{namespace=\"cobranch-app\"})",
+            "step": "60s"
+          }
+        }
+      ]
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "links": [
+    {
+      "title": "Cobranch monitoring design",
+      "url": "https://docs.dev.kfirs.com/cobranch/designs/monitoring.md.html",
+      "type": "link",
+      "targetBlank": true
+    }
+  ]
+}

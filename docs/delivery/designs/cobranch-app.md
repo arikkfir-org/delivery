@@ -77,7 +77,33 @@ sequenceDiagram
 | `postgresql.podAnnotations` | `cluster-autoscaler.kubernetes.io/safe-to-evict: "false"`: the cluster autoscaler never removes the node PostgreSQL runs on ([decisions](#decisions)) |
 | Placement and size | Every pod on node pool `system` ([node pools](node-pools.md)), with the chart's requests and memory limits and no CPU limit ([resource requests](resource-requests.md)): Git's packing for a push takes only idle CPU beyond its request, and every neighbour keeps the CPU it requests |
 | Admission | Policy `cobranch-app-http-routes`: an HTTPRoute in namespace `cobranch-app` attaches to Gateway `traefik/cobranch-app` only, never to `traefik/protected` or `traefik/public`, which take routes for any `*.kfirs.com` host. Policy `cobranch-app-cluster-ip-services`: its Services are of type `ClusterIP`, with no external IPs |
-| Network admission | NetworkPolicy `cobranch`: only namespace `traefik`, on 8080, to the Console's, the Back-office's and the servers' pods. NetworkPolicy `cobranch-git-internal`: only the REST and GraphQL servers' pods, on 8081, to the Git server's, for their internal call that reads trees and files. The chart's own admits only the servers, the push worker, the migrate Job and the maintenance CronJob to PostgreSQL |
+| Network admission | NetworkPolicy `cobranch`: only namespace `traefik`, on 8080, to the Console's, the Back-office's and the servers' pods. NetworkPolicy `cobranch-git-internal`: only the REST and GraphQL servers' pods, on 8081, to the Git server's, for their internal call that reads trees and files. NetworkPolicy `cobranch-metrics`: only namespace `gmp-system`, on 9464, to the servers' and the push worker's pods ([monitoring](#monitoring)). The chart's own admits only the servers, the push worker, the migrate Job and the maintenance CronJob to PostgreSQL |
+| `telemetry.metrics` | `exporter: prometheus`: every server serves its metrics at `/metrics` on port `metrics`, 9464 ([monitoring](#monitoring)) |
+
+### Monitoring
+
+```mermaid
+flowchart LR
+  subgraph ns["namespace cobranch-app"]
+    S["REST, GraphQL, Auth, Admin and Git servers,<br/>push worker: /metrics on port metrics (9464)"]
+    PM["PodMonitoring cobranch<br/>every 30 s"]
+  end
+  C["Managed Service for Prometheus<br/>collectors, namespace gmp-system"] -- "scrape, admitted by<br/>NetworkPolicy cobranch-metrics" --> S
+  PM -. "selects" .-> S
+  C --> CM[("Cloud Monitoring<br/>project arikkfir")]
+  G["Grafana, dashboard Cobranch<br/>folder Hub, PromQL"] --> CM
+  A["infra's alert policies<br/>email the owner"] --> CM
+```
+
+Cobranch exports its metrics through OpenTelemetry to whatever an operator runs ([Cobranch's monitoring](../../cobranch/designs/monitoring.md)); the hub takes them in Prometheus's format, since its cluster already runs Managed Service for Prometheus, which the GKE cluster turns on ([the cluster](../../infra/terraform/gcp.md)). PodMonitoring `cobranch` selects the release's pods and scrapes port `metrics`, which only the servers declare, so the Console, the Back-office, PostgreSQL and the Jobs aren't scraped. The collectors write each series to Cloud Monitoring with the pod's `namespace`, `pod` and `container`, beside the workload's own `service_name`.
+
+| Shows | Dashboard `Cobranch` (Grafana, folder Hub), each from PromQL over namespace `cobranch-app` |
+| --- | --- |
+| Console | Page view time, 95th percentile, by page and navigation; Git reads per view; views per minute |
+| APIs | Route time, 95th percentile, by server and route; the share of 5xx answers by server; requests per minute; GraphQL root field time |
+| Git server | Throwaway repository build time and disk, 95th percentile, by operation; repositories per minute; the pack cache's hit rate; its usage per pod against its limit |
+
+The alerts on the ones that matter, and the email they send, are `infra`'s: alert policies in Cloud Monitoring, which keep working while Grafana is down ([cobranch.app in GCP](../../infra/designs/cobranch-app.md)).
 
 What `infra` provides, the records `cobranch.app` and `git.cobranch.app`, cert-manager's grant on zone `cobranch-app` and the secret's container, is in its pages ([cobranch.app in GCP](../../infra/designs/cobranch-app.md)). ClusterIssuers `letsencrypt` and `letsencrypt-staging` solve `cobranch.app`'s challenges in zone `cobranch-app`.
 
@@ -95,8 +121,12 @@ What `infra` provides, the records `cobranch.app` and `git.cobranch.app`, cert-m
 | Git data in PostgreSQL, no bucket | Cobranch's default; a bucket stays a supported option of the product, which no installation of ours is to use (owner, 2026-11-01) | Bucket `arikkfir-cobranch-app`, which infra made first and removed before anything used it |
 | PostgreSQL off the autoscaler's scale-down | Its one replica is all of cobranch.app's state. A move took three minutes, in which every request that needed it failed, and the cluster's profile consolidates the system pool often ([root cause](../root-causes/2026-11-02-cobranch-app-down-while-its-database-moves.md)). The node it runs on stays, which the pool's minimum of one node keeps anyway | A replicated PostgreSQL that fails over, which would cover upgrades too but needs an operator, for later; the `balanced` profile, which only makes consolidation rarer, for the whole cluster ([node autoscaling](../../infra/designs/node-autoscaling.md)); a budget of `minAvailable: 1`, which blocks GKE's upgrades too ([disruption budgets](disruption-budgets.md#decisions)) |
 | No backups yet | The owner's call at launch (2026-11-01) | A nightly `pg_dump` to a bucket the dump could only add to; Backup for GKE |
+| Metrics scraped by Managed Service for Prometheus | The cluster runs its collectors already; Cloud Monitoring keeps the series, Grafana reads them with the role it has, and nothing new runs or needs a grant ([ENG-235](https://linear.app/arikkfir/issue/ENG-235)) | Cobranch pushing OTLP to the Telemetry API, which needs an OpenTelemetry Collector to authenticate, or a role on every server's ServiceAccount; a Prometheus of our own |
+| The dashboard in Git, read only | A change to it is reviewed like any other; Grafana re-reads the mounted files without a restart | Dashboards made in Grafana's UI, kept only in its database |
 
 ## Security and failure modes
+
+- **The metrics endpoint.** It answers anyone who reaches port 9464, and holds only Cobranch's metrics, nothing about users; NetworkPolicy `cobranch-metrics` admits only the collectors. A scrape that fails leaves gaps in the dashboard, and once no server has been scraped for 15 minutes, `infra`'s alert emails the owner.
 
 - **Anyone signs up.** Cobranch has no quotas yet: a user can create repositories and push up to the Git server's 2 GiB a push. The administrator can set sign-up to invitations or domains, or turn off self-serve organizations, in the Back-office at once. Repositories are never public: Cobranch has no anonymous grants yet.
 - **The public Back-office and Admin API.** The Admin API denies by default; only `auth.admins` holds Installation admin, through a verified Google email.
@@ -115,3 +145,4 @@ What `infra` provides, the records `cobranch.app` and `git.cobranch.app`, cert-m
 4. This repository: `cobranch-app-environment` and its manifests, the ClusterIssuers' solver for `cobranch.app`, and the link from `cobranch.dev`. Open `https://cobranch.app`, sign up with Google, and push to a new repository at `https://git.cobranch.app`.
 5. This repository and `infra`: the demo goes once the owner's first push to `cobranch.app` works (owner, 2026-11-02): `cobranch-environment` keeps only the previews and their Git listener ([delivery#112](https://github.com/arikkfir-org/delivery/pull/112)), and `infra` then removes the demo's records, Keycloak client and bucket ([hosting Cobranch's demo](cobranch.md#rollout)).
 6. This repository: PostgreSQL kept off the cluster autoscaler's scale-down after it took cobranch.app down for three minutes ([ENG-243](https://linear.app/arikkfir/issue/ENG-243), [root cause](../root-causes/2026-11-02-cobranch-app-down-while-its-database-moves.md)). Merging restarts PostgreSQL once, for the new annotation: a StatefulSet deletes its pod before making the new one, which the scheduler may place on another system node. On the same node it is back in seconds; on another, it takes the full move of about three minutes.
+7. Monitoring ([ENG-235](https://linear.app/arikkfir/issue/ENG-235)): Cobranch's metrics on its `main` ([cobranch#44](https://github.com/arikkfir-org/cobranch/pull/44)), then this repository's scrape, network admission and dashboard, which needs the chart's `telemetry.metrics`, and `infra`'s alert policies.

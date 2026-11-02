@@ -57,6 +57,24 @@ datasources:
           authenticationType: gce
           defaultProject: arikkfir
 
+# Dashboards in Git: every JSON file of ConfigMap grafana-dashboards (manifests/dashboards/), in folder Hub, read only
+# here; a change merges here and reaches Grafana as the mounted files change.
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: hub
+        orgId: 1
+        folder: Hub
+        type: file
+        disableDeletion: true
+        editable: false
+        allowUiUpdates: false
+        options:
+          path: /var/lib/grafana/dashboards/hub
+dashboardsConfigMaps:
+  hub: grafana-dashboards
+
 # State lives in PostgreSQL (StatefulSet postgres in manifests/), shared by both replicas, so pods keep nothing and roll
 # one at a time. Password: Secret grafana-db (ExternalSecret in manifests/).
 persistence:
