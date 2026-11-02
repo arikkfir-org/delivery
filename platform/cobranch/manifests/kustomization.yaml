@@ -14,6 +14,7 @@ resources:
   - disruption-budgets-policy.yaml
   - node-pool-policy.yaml
   - cron-jobs-policy.yaml
+  - superseded-syncs-policy.yaml
   - pull-requests-gateway.yaml
   - git-gateway.yaml
   - pull-requests.yaml

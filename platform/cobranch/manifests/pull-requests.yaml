@@ -167,7 +167,8 @@ spec:
                     effect: NoSchedule
               migrate:
                 # A sync can start before pipeline preview has pushed the commit's images: the Job waits for its image within
-                # this deadline, and the servers and the Console wait for the Job.
+                # this deadline, and the servers and the Console wait for the Job. A newer push ends the wait at once
+                # (superseded-syncs-policy.yaml).
                 activeDeadlineSeconds: 1800
                 # The Job's name is a hash of its spec, so this names a new one for each Job that empties the database
                 # (platform/cobranch/pull-request-commit): an emptied database is always migrated and seeded again, even for a head
