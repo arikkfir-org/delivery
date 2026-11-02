@@ -164,6 +164,27 @@ spec:
         telemetry:
           metrics:
             exporter: prometheus
+        controller:
+          nodeSelector:
+            kfirs.com/pool: system
+          tolerations:
+            - key: components.gke.io/gke-managed-components
+              operator: Equal
+              value: "true"
+              effect: NoSchedule
+        # Jobs run their repositories' code, anyone's: on pool ci, beside every repository's CI runs, never beside the
+        # hub's own components, as policy cobranch-node-pool requires of cobranch-app-jobs-*. The hub's policies hold the
+        # controller (platform/cobranch/manifests/jobs-policy.yaml), not the chart's own, which the previews can't be
+        # trusted to install (docs/delivery/designs/cobranch-jobs.md).
+        jobs:
+          admissionPolicy: false
+          nodeSelector:
+            kfirs.com/pool: ci
+          tolerations:
+            - key: kfirs.com/pool
+              operator: Equal
+              value: ci
+              effect: NoSchedule
         # Generated once in the cluster (secrets-key.yaml): the chart's own would change at every render.
         secretsKey:
           existingSecret: cobranch-secrets-key

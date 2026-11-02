@@ -1,7 +1,9 @@
 # Cobranch's previews run on pool ci, beside the CI runs that already run every pull request's code, and nowhere else: a
 # pod in a preview may tolerate only ci's taint, beside the not-ready and unreachable ones Kubernetes adds to every pod,
-# and may not name its node, which would skip the scheduler and the taints. Pods only, so whatever makes them is held
-# alike (docs/delivery/designs/node-pools.md). Matched by the namespace's name. Wave -1: in force before any preview.
+# and may not name its node, which would skip the scheduler and the taints. So do the jobs of every Cobranch
+# installation, which run their repositories' code: a preview's job namespaces start with its own name, and cobranch.app's
+# are cobranch-app-jobs-<organization> (jobs-policy.yaml). Pods only, so whatever makes them is held alike
+# (docs/delivery/designs/node-pools.md). Matched by the namespace's name. Wave -1: in force before any preview.
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:
@@ -22,8 +24,8 @@ spec:
         resources:
           - pods
   matchConditions:
-    - name: preview
-      expression: "request.namespace.startsWith('cobranch-pr-')"
+    - name: installation
+      expression: "request.namespace.startsWith('cobranch-pr-') || request.namespace.startsWith('cobranch-app-jobs-')"
     # The Job controller drops a pod's finalizer, and the scheduler binds it (a subresource), without changing its spec:
     # those pass. An update that changes the spec, such as an added toleration, is checked.
     - name: changed
@@ -36,10 +38,12 @@ spec:
           || (has(t.key) && t.key in ['node.kubernetes.io/not-ready', 'node.kubernetes.io/unreachable']
             && has(t.effect) && t.effect == 'NoExecute'))
       message: >-
-        A pod in a Cobranch preview tolerates only node pool ci's taint (kfirs.com/pool=ci, operator Equal), beside the
-        not-ready and unreachable ones.
+        A pod in a Cobranch preview, or in a Cobranch installation's job namespace, tolerates only node pool ci's taint
+        (kfirs.com/pool=ci, operator Equal), beside the not-ready and unreachable ones.
     - expression: "request.operation != 'CREATE' || !has(object.spec.nodeName) || object.spec.nodeName == ''"
-      message: A pod in a Cobranch preview leaves its node to the scheduler (no nodeName).
+      message: >-
+        A pod in a Cobranch preview, or in a Cobranch installation's job namespace, leaves its node to the scheduler (no
+        nodeName).
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding

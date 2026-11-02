@@ -2,9 +2,11 @@
 # so every merge there changes the cluster; this holds it to namespace cobranch-app and the kinds the chart renders there: the
 # servers', the Console's, the Back-office's and PostgreSQL's workloads, Services, budgets and the database's
 # NetworkPolicy, the servers' ServiceAccount, the migrate Job, the maintenance CronJob and the routes, which attach only
-# to Gateway traefik/cobranch-app, for its two names. No cluster-scoped kinds (namespace.yaml holds the Namespace), no
-# Secrets (postgresql-password.yaml, secrets-key.yaml and google-secret.yaml hold them). Wave -1: before the
-# Application that names it.
+# to Gateway traefik/cobranch-app, for its two names. Cluster-scoped, only the job controller's ClusterRoles and
+# ClusterRoleBinding, by name: cobranch-app-…, which policy cobranch-cluster-roles holds
+# (platform/cobranch/manifests/jobs-policy.yaml, docs/delivery/designs/cobranch-jobs.md); namespace.yaml holds the
+# Namespace. No Secrets (postgresql-password.yaml, secrets-key.yaml and google-secret.yaml hold them). Wave -1: before
+# the Application that names it.
 apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
@@ -19,7 +21,13 @@ spec:
   destinations:
     - server: https://kubernetes.default.svc
       namespace: cobranch-app
-  clusterResourceWhitelist: []
+  clusterResourceWhitelist:
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: cobranch-app-*
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+      name: cobranch-app-*
   namespaceResourceWhitelist:
     - group: apps
       kind: Deployment

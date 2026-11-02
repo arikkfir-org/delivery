@@ -1,6 +1,8 @@
 # Cobranch's previews on the hub: a Cobranch of every pull request that cobranch's members open, their shared Gateway,
 # project, admission policies and ApplicationSet (docs/delivery/designs/cobranch-previews.md), and their public Git
-# Gateway, traefik/cobranch-git; what each preview holds beside the chart is platform/cobranch/pull-request. The demo
+# Gateway, traefik/cobranch-git; what each preview holds beside the chart is platform/cobranch/pull-request. The
+# policies on Cobranch's job controllers and job namespaces hold cobranch.app's too (jobs-policy.yaml,
+# docs/delivery/designs/cobranch-jobs.md). The demo
 # that ran here from cobranch's main gave way to cobranch.app (platform/cobranch-app, docs/delivery/designs/cobranch.md).
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -15,6 +17,7 @@ resources:
   - node-pool-policy.yaml
   - cron-jobs-policy.yaml
   - superseded-syncs-policy.yaml
+  - jobs-policy.yaml
   - pull-requests-gateway.yaml
   - git-gateway.yaml
   - pull-requests.yaml
