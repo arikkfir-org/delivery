@@ -1,0 +1,8 @@
+# The identity of cobranch's ci (see https://docs.dev.kfirs.com/infra/terraform/gcp.md, "IAM"): any branch may use it,
+# and terraform/gcp lets it read bucket arikkfir-cobranch-ci-cache through Workload Identity. ci restores the Go caches
+# that main saves; they hold nothing secret.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ci-cobranch-ci
+automountServiceAccountToken: false
