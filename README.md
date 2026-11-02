@@ -62,11 +62,12 @@ Each file there is an Application in namespace `argocd`, project `default`:
   `cobranch-pull-requests` installs the chart from each head commit into `cobranch-pr-<number>`, beside
   `platform/cobranch/pull-request`, under AppProject `cobranch-pull-requests` and admission policies `cobranch-*`.
 - `cobranch-app-environment` deploys `cobranch.app`, Cobranch's hosted service
-  ([hosting cobranch.app](docs/delivery/designs/cobranch-app.md)): Application `cobranch-app` installs `chart/cobranch`
-  of `arikkfir-org/cobranch` from its `main` into namespace `cobranch-app`, upgrading it in place, with the chart's own
+  ([hosting cobranch.app](docs/delivery/designs/cobranch-app.md)): Application `cobranch-app` installs the newest chart
+  that `arikkfir-org/cobranch`'s pipeline `main` publishes, which it does only once the commit's images are pushed, into
+  namespace `cobranch-app`, upgrading it in place, with the chart's own
   routes on Gateway `traefik/cobranch-app` and Google sign-in, with no backups yet, in `platform/cobranch-app/manifests`.
 - Every Application syncs automatically with prune and self-heal, retries with backoff (`refresh: true`, so a retry
-  picks up a newer commit; ten times, but twice for Fin's pull requests, whose syncs can wait 20 minutes a try for
+  picks up a newer commit, or `cobranch-app` a newer chart; ten times, but twice for Fin's pull requests, whose syncs can wait 20 minutes a try for
   images that never come), and creates its namespace, except those whose `deploy/` holds it (Octomaton's and Fin's)
   and `octomaton-logs`, which syncs a wave after `octomaton`, whose `deploy/` holds the namespace it shares.
   Namespace labels come from `managedNamespaceMetadata`
