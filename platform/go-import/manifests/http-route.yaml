@@ -2,7 +2,7 @@
 # where a repository is; reading a private one (fin) still takes access to it. Each host name attaches to the listener
 # whose hostname covers it: *.kfirs.com's public-websecure, and octomaton.dev's own. On octomaton.dev,
 # Octomaton's route keeps the exact path /github/hooks, which takes precedence over this prefix. cobranch.dev's page is
-# Cobranch's site's (platform/cobranch-site).
+# Cobranch's website's, which Cobranch delivers into namespace cobranch-website.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:

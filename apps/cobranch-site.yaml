@@ -5,6 +5,10 @@ kind: Application
 metadata:
   name: cobranch-site
   namespace: argocd
+  # Retiring: cobranch.dev is the website Cobranch delivers (cobranch-website). The resources finalizer lets removing this
+  # file next delete what it made.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
   annotations:
     argocd.argoproj.io/sync-wave: "4"
 spec:

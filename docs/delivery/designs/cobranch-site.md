@@ -1,5 +1,7 @@
 # Cobranch's site
 
+> **Superseded** (2026-11-27): `cobranch.dev` serves the website that Cobranch itself delivers, from repository `website` of `cobranch.app`'s organization `cobranch` ([Cobranch's website, delivered by Cobranch](cobranch-website.md)). Application `cobranch-site` is retiring; this page records what it was.
+
 **Decision**: `https://cobranch.dev`, the domain of Cobranch the open-source product, serves a static "Coming soon" page about Cobranch's features and capabilities, with no functionality: no scripts, no forms, nothing from another origin. One Caddy, Application `cobranch-site`, serves it from this repository's `platform/cobranch-site/manifests/site`, and also answers the `go` command's import requests for the domain, which is Cobranch's module path, so `go get cobranch.dev/...` keeps resolving. Linear: [ENG-232](https://linear.app/arikkfir/issue/ENG-232), which also launches Cobranch's hosted service at `cobranch.app`.
 
 ## Why

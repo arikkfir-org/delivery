@@ -20,9 +20,11 @@ spec:
     automated:
       prune: true
       selfHeal: true
-    # Not kfirs.com/public-ingress: nothing delivered here is public until listener cobranch-dev admits it.
+    # Public on purpose: the website is cobranch.dev, Cobranch's public face, with no sign-in. Listener cobranch-dev
+    # admits no other labelled namespace, and policy cobranch-website-http-routes holds this one's routes to it.
     managedNamespaceMetadata:
       labels:
+        kfirs.com/public-ingress: "true"
         pod-security.kubernetes.io/enforce: restricted
     retry:
       limit: 10

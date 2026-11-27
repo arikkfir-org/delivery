@@ -70,7 +70,8 @@ spec:
                 values:
                   - octomaton
                   - go-import
-    # Cobranch's own domain: its site and Go import page, from cobranch-site alone.
+    # Cobranch's own domain: its website and Go import page, from cobranch-website alone, where cobranch.app's
+    # organization cobranch delivers its repository website (docs/delivery/designs/cobranch-website.md).
     - name: cobranch-dev
       protocol: HTTPS
       port: 9443
@@ -90,4 +91,4 @@ spec:
               - key: kubernetes.io/metadata.name
                 operator: In
                 values:
-                  - cobranch-site
+                  - cobranch-website
