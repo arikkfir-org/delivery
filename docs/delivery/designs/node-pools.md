@@ -20,7 +20,7 @@ themselves; Fin's [environments](../../fin/designs/environments.md) keep product
 flowchart TB
   subgraph system["pool system: taint components.gke.io/gke-managed-components, 1 to 3 on-demand nodes"]
     GKE["GKE: kube-dns, metrics-server, konnectivity, …"]
-    Hub["The hub's services: Argo CD, oauth2-proxy, cert-manager, docs, tests, ESO, go-import, Cobranch's site, Grafana,<br/>KEDA, Keycloak, NATS, Octomaton and octomaton-logs, Reloader, Tekton, Traefik,<br/>cobranch.app"]
+    Hub["The hub's services: Argo CD, oauth2-proxy, cert-manager, docs, tests, ESO, go-import, Grafana,<br/>KEDA, Keycloak, NATS, Octomaton and octomaton-logs, Reloader, Tekton, Traefik,<br/>cobranch.app"]
   end
   subgraph ci["pool ci: taint kfirs.com/pool=ci, 0 to 10 Spot nodes"]
     Runs["TaskRun pods (Tekton's default pod template)"]
