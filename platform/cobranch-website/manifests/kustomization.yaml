@@ -1,0 +1,7 @@
+# The namespace cobranch.app's organization cobranch delivers its website into, and the account it applies as
+# (docs/delivery/designs/cobranch-website.md).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: cobranch-website
+resources:
+  - delivery-account.yaml

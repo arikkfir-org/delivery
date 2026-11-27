@@ -1,0 +1,35 @@
+# Where cobranch.app's organization cobranch delivers its repository website (platform/cobranch-website): namespace
+# cobranch-website and the account Cobranch's delivery applies there as, through a kubeconfig the organization keeps as
+# a secret (docs/delivery/designs/cobranch-website.md). Argo CD makes the namespace and the account; Cobranch delivers
+# what runs in it.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cobranch-website
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cobranch-website
+  source:
+    repoURL: https://github.com/arikkfir-org/delivery
+    targetRevision: main
+    path: platform/cobranch-website/manifests
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    # Not kfirs.com/public-ingress: nothing delivered here is public until listener cobranch-dev admits it.
+    managedNamespaceMetadata:
+      labels:
+        pod-security.kubernetes.io/enforce: restricted
+    retry:
+      limit: 10
+      refresh: true
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+    syncOptions:
+      - CreateNamespace=true
