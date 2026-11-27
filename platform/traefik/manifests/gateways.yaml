@@ -135,3 +135,25 @@ spec:
                 operator: In
                 values:
                   - kfirs-website
+    # Previews of the family's website, one branch at a time: from kfirs-website-preview alone, where organization kfirs
+    # delivers its website's branches. The wildcard certificate covers the name.
+    - name: preview-kfirs-com
+      protocol: HTTPS
+      port: 9443
+      hostname: preview.kfirs.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: wildcard-kfirs-com-tls
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              kfirs.com/public-ingress: "true"
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - kfirs-website-preview

@@ -1,0 +1,7 @@
+# The namespace cobranch.app's organization kfirs previews its website's branches in, and the account it applies as
+# (docs/delivery/designs/kfirs-website.md). The objects take Application kfirs-website-preview's destination namespace;
+# the admission policies that hold what it delivers are Application kfirs-website's.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - delivery-account.yaml

@@ -36,8 +36,8 @@ flowchart LR
 | ServiceAccount | `cobranch-delivery`, no token mounted anywhere; its token in Secret `cobranch-delivery-token` |
 | Role `cobranch-delivery` | Every verb on ConfigMaps, Services, Deployments, PodDisruptionBudgets, NetworkPolicies and HTTPRoutes, in `kfirs-website` |
 | ClusterRole `kfirs-website-namespace` | `get` on namespace `kfirs-website` alone |
-| Policy `kfirs-website-cluster-ip-services` | Every Service in `kfirs-website` is of type `ClusterIP`, with no external IPs |
-| Policy `kfirs-website-http-routes` | Every HTTPRoute in `kfirs-website` attaches to listeners `kfirs-com` and `www-kfirs-com` of Gateway `traefik/public` alone |
+| Policy `kfirs-website-cluster-ip-services` | Every Service in `kfirs-website` and `kfirs-website-preview` is of type `ClusterIP`, with no external IPs |
+| Policy `kfirs-website-http-routes` | Every HTTPRoute in `kfirs-website` attaches to listeners `kfirs-com` and `www-kfirs-com` of Gateway `traefik/public` alone, and every one in `kfirs-website-preview` to its listener `preview-kfirs-com` alone |
 | Listeners `kfirs-com` and `www-kfirs-com` of `traefik/public` | `kfirs.com` and `www.kfirs.com`, from namespace `kfirs-website` alone, while it carries `kfirs.com/public-ingress: "true"` |
 | Certificate `traefik/kfirs-com` | `kfirs.com` and `www.kfirs.com`, Secret `kfirs-com-tls`, issued by DNS-01 in zone `kfirs-com`, so before the names point at the hub |
 | `cobranch.app`'s `delivery.clusters.allowedCIDRs` | Unchanged: `10.30.0.1/32` already admits the API server ([hosting cobranch.app](cobranch-app.md)) |
@@ -46,12 +46,33 @@ The website's repository holds what runs here: a Caddy that serves its static pa
 
 The kubeconfig is built as for Cobranch's website ([the kubeconfig](cobranch-website.md#the-kubeconfig)), with `ns=kfirs-website`, and added as a secret of organization `kfirs`.
 
+### Previews
+
+The website's branches are delivered too, to try a change before it reaches `main` (owner, 2026-11-27): target `preview` of the website's `/cobranch.yaml` delivers its matching branches into namespace `kfirs-website-preview`, served at `https://preview.kfirs.com`, one branch at a time.
+
+| Piece | Value |
+| --- | --- |
+| Application | `kfirs-website-preview`, `platform/kfirs-website/preview`, project `default` |
+| Namespace | `kfirs-website-preview`, labelled as `kfirs-website` is |
+| Account | As in `kfirs-website`, in `kfirs-website-preview`: ServiceAccount `cobranch-delivery`, Secret `cobranch-delivery-token`, Role `cobranch-delivery`, ClusterRole `kfirs-website-preview-namespace` (`get` on its namespace alone) |
+| Listener `preview-kfirs-com` of `traefik/public` | `preview.kfirs.com`, from namespace `kfirs-website-preview` alone, with the wildcard certificate `traefik/wildcard-kfirs-com-tls` |
+| DNS | `preview.kfirs.com` on the public gateway ([DNS](../../infra/terraform/gcp.md)) |
+
+Its kubeconfig is built the same way, with `ns=kfirs-website-preview`, and added as a second secret of organization `kfirs`, so neither environment's kubeconfig reaches the other's namespace.
+
+```mermaid
+flowchart LR
+  B["branch kfirs-n-…"] -->|"target preview"| P["namespace kfirs-website-preview<br/>preview.kfirs.com"]
+  M["main"] -->|"target production"| W["namespace kfirs-website<br/>www.kfirs.com, kfirs.com"]
+```
+
 ## Decisions
 
 | Decision | Why | Rejected |
 | --- | --- | --- |
 | A namespace and account of its own, beside `cobranch-website` | Each organization's kubeconfig reaches its own namespace and nothing else; a leak of one doesn't reach the other's site | Delivering into `cobranch-website`: one organization could change the other's website. `delivery.inCluster.enabled`: every organization could make namespaces in the hub |
-| Listeners of their own on `traefik/public` | `public-websecure` admits every labelled namespace for any `*.kfirs.com` host, and doesn't cover `kfirs.com`; exact listeners admit `kfirs-website` alone, and the policy holds its routes to them | Attaching to `public-websecure`: the policy would be the only thing between another labelled namespace and `www.kfirs.com` |
+| Listeners of their own on `traefik/public`, held by policy `kfirs-website-http-routes` | `public-websecure` admits every labelled namespace for any `*.kfirs.com` host, and doesn't cover `kfirs.com`. Traefik 3.7 doesn't isolate listeners: a route on another listener of the Gateway still answers for its own hostnames, so the policy, not the listeners' namespace selectors, is what keeps another namespace's routes off these names, and every public namespace whose routes this repository doesn't review needs such a policy | Attaching to `public-websecure`: nothing but the policy would tell the website's routes from another labelled namespace's |
+| One preview namespace, not one per branch | Cobranch makes a missing environment's namespace itself, which the account could do only with the right to make any namespace and to change what is in it, cluster-wide; a namespace made here keeps the account to that one namespace, as production's. Two branches matching target `preview` at once share it, so previews go one at a time | `delivery.inCluster.enabled` on `cobranch.app`: every organization could make namespaces in the hub |
 | A certificate of its own for both names | The wildcard doesn't cover the bare domain, and a problem with these names stays off the wildcard's renewal | Adding `kfirs.com` to the wildcard |
 | The website redirects `kfirs.com`, not the Gateway | The redirect is the website's behaviour and changes with it, as GitHub Pages' did | An HTTPRoute redirect filter here: the website's own route would then be split between two repositories |
 

@@ -1,8 +1,9 @@
-# What Cobranch delivers into namespace kfirs-website, from the website's main, which this repository doesn't review,
-# stays inside the cluster: its Services are of type ClusterIP with no external IPs, and its HTTPRoutes attach only to
-# listeners kfirs-com and www-kfirs-com of Gateway traefik/public (docs/delivery/designs/kfirs-website.md); never to
+# What Cobranch delivers into namespaces kfirs-website and kfirs-website-preview, from the website's branches, which
+# this repository doesn't review, stays inside the cluster: its Services are of type ClusterIP with no external IPs, and
+# its HTTPRoutes attach only to listeners kfirs-com and www-kfirs-com of Gateway traefik/public from kfirs-website, and
+# only to listener preview-kfirs-com from kfirs-website-preview (docs/delivery/designs/kfirs-website.md); never to
 # traefik/protected, nor to listener public-websecure of traefik/public, which take routes for any *.kfirs.com host.
-# Matched by the namespace's name. Wave -1: in force before the account exists.
+# Matched by the namespaces' names. Wave -1: in force before the accounts exist.
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:
@@ -24,7 +25,7 @@ spec:
           - services
   matchConditions:
     - name: kfirs-website
-      expression: "request.namespace == 'kfirs-website'"
+      expression: "request.namespace in ['kfirs-website', 'kfirs-website-preview']"
     # Deleting an object, the garbage collector drops its finalizer with an update that leaves the spec as it was; that
     # update passes, so an object made before this policy last tightened still goes. Every other update is checked.
     - name: changed
@@ -32,9 +33,9 @@ spec:
         request.operation == 'CREATE' || !has(oldObject.metadata.deletionTimestamp) || object.spec != oldObject.spec
   validations:
     - expression: "!has(object.spec.type) || object.spec.type == 'ClusterIP'"
-      message: A Service in namespace kfirs-website is of type ClusterIP.
+      message: A Service in namespaces kfirs-website and kfirs-website-preview is of type ClusterIP.
     - expression: "!has(object.spec.externalIPs) || size(object.spec.externalIPs) == 0"
-      message: A Service in namespace kfirs-website has no external IPs.
+      message: A Service in namespaces kfirs-website and kfirs-website-preview has no external IPs.
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding
@@ -68,7 +69,7 @@ spec:
           - httproutes
   matchConditions:
     - name: kfirs-website
-      expression: "request.namespace == 'kfirs-website'"
+      expression: "request.namespace in ['kfirs-website', 'kfirs-website-preview']"
     # As for Services above.
     - name: changed
       expression: >-
@@ -76,15 +77,18 @@ spec:
   variables:
     - name: parents
       expression: "has(object.spec.parentRefs) ? object.spec.parentRefs : []"
+    - name: listeners
+      expression: >-
+        request.namespace == 'kfirs-website' ? ['kfirs-com', 'www-kfirs-com'] : ['preview-kfirs-com']
   validations:
     - expression: >-
         size(variables.parents) > 0 && variables.parents.all(p, (!has(p.group) || p.group == 'gateway.networking.k8s.io')
           && (!has(p.kind) || p.kind == 'Gateway')
           && has(p.namespace) && p.namespace == 'traefik' && p.name == 'public'
-          && has(p.sectionName) && p.sectionName in ['kfirs-com', 'www-kfirs-com'])
-      message: >-
-        An HTTPRoute in namespace kfirs-website attaches to listeners kfirs-com and www-kfirs-com of Gateway
-        traefik/public only.
+          && has(p.sectionName) && p.sectionName in variables.listeners)
+      messageExpression: >-
+        'An HTTPRoute in namespace ' + request.namespace + ' attaches to listeners ' + variables.listeners.join(', ')
+        + ' of Gateway traefik/public only.'
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding
