@@ -33,6 +33,8 @@ flowchart LR
 | Namespace | `cobranch-website`, labelled `pod-security.kubernetes.io/enforce: restricted` by the Application; not `kfirs.com/public-ingress` until the website takes over `cobranch.dev` |
 | ServiceAccount | `cobranch-delivery`, no token mounted anywhere; its token in Secret `cobranch-delivery-token`, which Kubernetes fills and keeps until the Secret is deleted |
 | Role `cobranch-delivery` | Every verb on ConfigMaps, Services, Deployments, PodDisruptionBudgets, NetworkPolicies and HTTPRoutes, in `cobranch-website` |
+| Policy `cobranch-website-cluster-ip-services` | Every Service in `cobranch-website` is of type `ClusterIP`, with no external IPs |
+| Policy `cobranch-website-http-routes` | Every HTTPRoute in `cobranch-website` attaches to listener `cobranch-dev` of Gateway `traefik/public` alone, which admits the namespace only once it takes over `cobranch.dev` |
 | ClusterRole `cobranch-website-namespace` | `get` on namespace `cobranch-website` alone: Cobranch reads an environment's namespace first, uses one that exists, and tries to make one it may not read |
 | `cobranch.app`'s `delivery.clusters.allowedCIDRs` | `10.30.0.1/32`, Service `default/kubernetes`: the one private address a target's kubeconfig may name. The controller refuses every other address in `jobs.egress.except` |
 
@@ -56,21 +58,24 @@ kubectl -n "$ns" get secret cobranch-delivery-token -o json | jq -r --arg ns "$n
 | Reach the API server at its in-cluster address | The controller runs in the hub, so its calls stay inside the cluster; the control plane's only other endpoint is GKE's DNS-based one, which the hub reaches with Google credentials ([the cluster](../../infra/terraform/gcp.md)) | The DNS-based endpoint, whose Google credentials need an exec plugin, which Cobranch refuses, or a key, which the hub never issues |
 | Admit `10.30.0.1/32` alone | Any organization's kubeconfig may name the address, but reaches nothing without a token the API server takes; every other private address stays refused | Admitting `10.30.0.0/20`, every Service of the hub |
 | A token Secret, not a short-lived token | Cobranch keeps a kubeconfig as a secret and never refreshes it; deleting the Secret revokes it | `kubectl create token`, which expires within a day by default |
+| Admission policies on the Services and HTTPRoutes it delivers | What the website's `main` delivers isn't reviewed here, and the Role may change those kinds; as for [cobranch.app](cobranch-app.md), the policies hold them inside the cluster | Leaving HTTPRoutes out of the Role until the cutover: the cutover would then change the Role too, and Services would still need a policy |
 | The namespace from Argo CD, read-only to Cobranch | Cobranch uses a namespace that exists and never deletes one it didn't make, so a teardown leaves the account in place | Letting Cobranch make it: the account would need to make namespaces, cluster-wide |
 
 ## Security and failure modes
 
 - **The account's reach** is the Role's kinds in one namespace: it can't read Secrets, make pods directly, bind roles or touch another namespace. Pod Security `restricted` holds whatever its Deployments run.
-- **A leaked kubeconfig** gives that much and no more. Revoke it by deleting Secret `cobranch-delivery-token` (Argo CD makes it again, with a new token), then replace the organization's secret.
-- **Public exposure** waits for a change here: the namespace carries no `kfirs.com/public-ingress`, and no listener admits it, so an HTTPRoute delivered there attaches to nothing.
+- **A leaked kubeconfig** gives that much and no more, under the same policies. Revoke it by deleting Secret `cobranch-delivery-token` (Argo CD makes it again, with a new token), then replace the organization's secret.
+- **Public exposure** waits for a change here. Policy `cobranch-website-http-routes` holds every HTTPRoute to listener `cobranch-dev` of `traefik/public`, never `traefik/protected`, whose listener takes routes from every namespace for any `*.kfirs.com` host; `cobranch-dev` admits only `cobranch-site` until the cutover, and the namespace carries no `kfirs.com/public-ingress`, so a route delivered there attaches to nothing. Policy `cobranch-website-cluster-ip-services` refuses a Service of another type or with external IPs, which would face beyond the cluster without any Gateway.
 - **Cobranch's delivery fails** (a render error, the API server unreachable): the environment shows it, and what runs stays as it was.
 
 ## Rollout
 
-1. Merge this: Argo CD makes the namespace and the account, and `cobranch.app` admits the address.
+1. Merge this: Argo CD makes the policies, the namespace and the account, and `cobranch.app` admits the address.
 2. The owner builds the kubeconfig (above) and adds it as an organization secret of `cobranch`.
 3. The website's `/cobranch.yaml` names target `production`; its principal gets Secret reader on that secret; its first push to `main` delivers.
 4. Later, in a pull request of its own: listener `cobranch-dev` admits `cobranch-website` instead of `cobranch-site`, the namespace gets `kfirs.com/public-ingress`, and `cobranch-site` goes, once the website serves the Go import page too.
+
+Rolling back: reverting this deletes Application `cobranch-website` but not what it made, since Applications here carry no resources finalizer, so the token still authenticates. Revoke it by deleting Secret `cobranch-website/cobranch-delivery-token`, or the whole namespace, after the revert; the cluster-scoped ClusterRole, ClusterRoleBinding and policies go by hand too.
 
 ## Open questions
 
