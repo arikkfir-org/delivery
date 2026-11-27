@@ -32,6 +32,7 @@ Replicas, budgets and rollouts: [disruption budgets](designs/disruption-budgets.
 | `tests` | Tests site (`tests`): Caddy, two replicas ([design](designs/docs-and-tests-servers.md)) | `docker.io/library/caddy`, in `platform/tests/manifests` | `2.11.7-alpine` | 4 |
 | `go-import` | Go import pages (`go-import`): Caddy, two replicas ([design](designs/go-import-pages.md)) | `docker.io/library/caddy`, in `platform/go-import/manifests` | `2.11.7-alpine` | 4 |
 | `cobranch-website` | Where `cobranch.app`'s organization `cobranch` delivers its repository `website` (`cobranch-website`): ServiceAccount `cobranch-delivery` with its token Secret, Role `cobranch-delivery`, ClusterRole `cobranch-website-namespace`, and policies `cobranch-website-cluster-ip-services` and `cobranch-website-http-routes`, which hold its Services inside the cluster and its routes to listener `cobranch-dev`; what runs there, Cobranch's website at `cobranch.dev` and the domain's Go import page, comes from Cobranch's delivery ([design](designs/cobranch-website.md)) | `platform/cobranch-website/manifests` | n/a | 0 |
+| `kfirs-website` | Where `cobranch.app`'s organization `kfirs` delivers its repository `website` (`kfirs-website`): ServiceAccount `cobranch-delivery` with its token Secret, Role `cobranch-delivery`, ClusterRole `kfirs-website-namespace`, and policies `kfirs-website-cluster-ip-services` and `kfirs-website-http-routes`, which hold its Services inside the cluster and its routes to listeners `kfirs-com` and `www-kfirs-com`; what runs there, the family's website at `www.kfirs.com`, comes from Cobranch's delivery ([design](designs/kfirs-website.md)) | `platform/kfirs-website/manifests` | n/a | 0 |
 | `ci-<repository>` | CI tenants (`ci-tenants`) ([CI tenants](#ci-tenants)) | `platform/ci-tenants/manifests` | n/a | 4 |
 | `keycloak` | Keycloak (`keycloak`): resource `keycloak`, two instances, Service `keycloak-service` on 8080 ([design](designs/keycloak.md)) | `quay.io/keycloak/keycloak`, in `platform/keycloak/manifests` | `26.8.1` | 4 |
 | `keycloak` | PostgreSQL for Keycloak: StatefulSet `postgres` ([design](designs/keycloak.md#in-the-cluster)) | `docker.io/library/postgres`, in `platform/keycloak/manifests` | `18.6-trixie` | 4 |
@@ -73,7 +74,7 @@ and the annotation are read only when a Service is created: changing either mean
 | Gateway | Entry points (container → exposed) | Load balancer IP | Interceptor | Who may attach routes |
 | --- | --- | --- | --- | --- |
 | `traefik/protected` | `web` 8000→80 (redirects to HTTPS), `websecure` 8443→443; Service `traefik` | `ingress-protected` | Entry-point middlewares `strip-auth-headers` and `oidc` on `websecure`, before every route | Any namespace |
-| `traefik/public` | `public-web` 9080→80 (redirects to HTTPS), `public-websecure` 9443→443; Service `traefik-public` | `ingress-public` | `strip-auth-headers` only | Namespaces labelled `kfirs.com/public-ingress: "true"`; listener `octomaton-dev` only `octomaton` and `go-import` among them, and `cobranch-dev` only `cobranch-website` |
+| `traefik/public` | `public-web` 9080→80 (redirects to HTTPS), `public-websecure` 9443→443; Service `traefik-public` | `ingress-public` | `strip-auth-headers` only | Namespaces labelled `kfirs.com/public-ingress: "true"`; listener `octomaton-dev` only `octomaton` and `go-import` among them, `cobranch-dev` only `cobranch-website`, and `kfirs-com` and `www-kfirs-com` only `kfirs-website` |
 
 The middlewares and the sign-in: [phase 3](designs/phase-3-ingress-and-auth.md). The hub's tools add Middleware
 `admins` on their routes ([admins only](designs/admins-only.md)).
@@ -89,6 +90,7 @@ cert-manager issues them from Let's Encrypt through ClusterIssuer `letsencrypt`,
 | `protected/websecure`, `public/public-websecure` | `*.kfirs.com`, which also matches deeper names | `wildcard-kfirs-com` (`*.kfirs.com`, `*.dev.kfirs.com`, `admin.id.kfirs.com`) / `traefik/wildcard-kfirs-com-tls`, also Traefik's default certificate |
 | `public/octomaton-dev` (9443) | `octomaton.dev` | `octomaton-dev` / `traefik/octomaton-dev-tls` |
 | `public/cobranch-dev` (9443) | `cobranch.dev` | `cobranch-dev` / `traefik/cobranch-dev-tls` |
+| `public/kfirs-com`, `public/www-kfirs-com` (9443) | `kfirs.com`, `www.kfirs.com` | `kfirs-com` (both names) / `traefik/kfirs-com-tls` |
 | `fin-pull-requests/app` (8443) | `*.app.dev.fin.kfirs.com` | `fin-pull-requests` / `traefik/fin-pull-requests-tls` |
 | `cobranch-pull-requests/previews` (8443) | `*.cobranch.dev.kfirs.com` | `cobranch-pull-requests` / `traefik/cobranch-pull-requests-tls` |
 | `cobranch-git/previews` (9443) | `*.git.cobranch.dev.kfirs.com` | `cobranch-git` / `traefik/cobranch-git-tls` |
@@ -96,7 +98,7 @@ cert-manager issues them from Let's Encrypt through ClusterIssuer `letsencrypt`,
 
 Listener `octomaton-dev` admits routes only from namespaces `octomaton` (the webhook) and `go-import` (the Go import
 page), and only while they carry `kfirs.com/public-ingress: "true"`. Listener `cobranch-dev` admits routes only from
-`cobranch-website`, on the same condition, where Cobranch delivers its website ([design](designs/cobranch-website.md)). Gateway `cobranch-git` is on the public entry point without that label: its one listener, `previews`, admits routes only from namespaces labelled `kfirs.com/cobranch-pull-request: "true"`, which policy `cobranch-http-routes` holds to Service `cobranch-git-server` ([Cobranch's previews](designs/cobranch-previews.md)). Gateway `cobranch-app` is on the public entry point too, without the label: both its listeners admit routes only from namespace `cobranch-app`, whose routes policy `cobranch-app-http-routes` holds to this Gateway, and whose Services policy `cobranch-app-cluster-ip-services` holds to `ClusterIP` ([hosting cobranch.app](designs/cobranch-app.md)).
+`cobranch-website`, on the same condition, where Cobranch delivers its website ([design](designs/cobranch-website.md)), and listeners `kfirs-com` and `www-kfirs-com` only from `kfirs-website`, where Cobranch delivers the family's website ([design](designs/kfirs-website.md)). Gateway `cobranch-git` is on the public entry point without that label: its one listener, `previews`, admits routes only from namespaces labelled `kfirs.com/cobranch-pull-request: "true"`, which policy `cobranch-http-routes` holds to Service `cobranch-git-server` ([Cobranch's previews](designs/cobranch-previews.md)). Gateway `cobranch-app` is on the public entry point too, without the label: both its listeners admit routes only from namespace `cobranch-app`, whose routes policy `cobranch-app-http-routes` holds to this Gateway, and whose Services policy `cobranch-app-cluster-ip-services` holds to `ClusterIP` ([hosting cobranch.app](designs/cobranch-app.md)).
 
 ### Hosts
 
@@ -122,6 +124,7 @@ Each route's Middlewares are in its own namespace.
 | `cobranch.app` | `cobranch-app`, listener `app` (public) | `cobranch-app/cobranch-rest-server:80`; `…/cobranch-graphql-server:80`; `…/cobranch-auth-server:80`; `…/cobranch-admin-server:80`; `…/cobranch-back-office:80`; `…/cobranch-console:80` (the chart's HTTPRoutes) | `/api`, `/graphql`, `/auth`, `/admin` and `/back-office`, each prefix rewritten to `/`; everything else | None: Cobranch signs people in itself |
 | `git.cobranch.app` | `cobranch-app`, listener `git` (public) | `cobranch-app/cobranch-git-server:80` (the chart's HTTPRoute) | All | None: the Git server signs requests in with personal tokens |
 | `cobranch.dev` | public, listener `cobranch-dev` | `cobranch-website/website:80` (Cobranch's website and Go import page, delivered by Cobranch, [design](designs/cobranch-website.md)) | Everything | None |
+| `www.kfirs.com`, `kfirs.com` | public, listeners `www-kfirs-com` and `kfirs-com` | `kfirs-website/website:80` (the family's website, delivered by Cobranch, which redirects `kfirs.com` to `www.kfirs.com`, [design](designs/kfirs-website.md)) | Everything | None |
 
 ### Fin's gateways
 
@@ -194,7 +197,7 @@ Hub-wide labels share the prefix `kfirs.com/`.
 
 | Label | On | Means | Set by |
 | --- | --- | --- | --- |
-| `kfirs.com/public-ingress: "true"` | Namespace | May attach routes to Gateway `public`, which has no sign-in | The Applications' `managedNamespaceMetadata` (`auth`, `docs`, `keycloak`, `go-import`, `cobranch-website`) and Application `octomaton`'s `kustomize` options (`octomaton`). Policy `fin-namespaces` refuses it on Fin's namespaces |
+| `kfirs.com/public-ingress: "true"` | Namespace | May attach routes to Gateway `public`, which has no sign-in | The Applications' `managedNamespaceMetadata` (`auth`, `docs`, `keycloak`, `go-import`, `cobranch-website`, `kfirs-website`) and Application `octomaton`'s `kustomize` options (`octomaton`). Policy `fin-namespaces` refuses it on Fin's namespaces |
 | `kfirs.com/pull-request: "true"` | Namespace | A Fin pull request's or merge queue entry's environment: `gcp-secret-manager` serves it nothing, it reaches NATS on 4222, and its routes may attach to `traefik/fin-pull-requests` | ApplicationSet `fin-pull-requests`; policy `fin-namespaces` requires it on `fin-pr-*` |
 | `kfirs.com/cobranch-pull-request: "true"` | Namespace | A Cobranch pull request's preview: `gcp-secret-manager` serves it nothing, and its routes may attach to `traefik/cobranch-pull-requests` and to listener `previews` of `traefik/cobranch-git`. Not `kfirs.com/pull-request`, which would admit it to NATS and Fin's Gateway | `platform/cobranch/pull-request`, and the previews' `jobs.namespaceLabels` for their job namespaces; policy `cobranch-namespaces` requires it on `cobranch-pr-*`, and refuses every other `kfirs.com/` label there, and every `kfirs.com/` label on `cobranch-app-jobs-*` |
 | `kfirs.com/pool: <pool>` | Node | Node pool `system`, `ci` or `fin`, which pods select; `ci` and `fin` are also tainted `kfirs.com/pool=<pool>:NoSchedule` | `infra` ([node pools](../infra/terraform/gcp.md#node-pools)); pods select it ([node pools](designs/node-pools.md)) |

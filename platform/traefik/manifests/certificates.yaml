@@ -52,3 +52,22 @@ spec:
     group: cert-manager.io
     kind: ClusterIssuer
     name: letsencrypt
+---
+# kfirs.com and www.kfirs.com (zone kfirs-com), the family's website: the wildcard covers www but not the bare domain,
+# and the website's own certificate keeps a problem with it off the wildcard's renewal.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kfirs-com
+  namespace: traefik
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  secretName: kfirs-com-tls
+  dnsNames:
+    - kfirs.com
+    - www.kfirs.com
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: letsencrypt
