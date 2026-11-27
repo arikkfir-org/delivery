@@ -1,0 +1,11 @@
+# Where cobranch.app's organization kfirs previews its website's branches: the account its delivery applies as, the
+# admission policies that hold that account to namespaces kfirs-website-preview-<branch> and hold what it delivers
+# there, and the Gateway their routes attach to (docs/delivery/designs/kfirs-website.md). The account takes
+# Application kfirs-website-preview's destination namespace; the policies are cluster-scoped, and the Gateway and its
+# certificate name namespace traefik.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - admission-policies.yaml
+  - delivery-account.yaml
+  - gateway.yaml

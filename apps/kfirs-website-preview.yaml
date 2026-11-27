@@ -1,0 +1,41 @@
+# Where cobranch.app's organization kfirs previews its website's branches (platform/kfirs-website/preview): each branch
+# in a namespace of its own, kfirs-website-preview-<branch>, at https://<branch>.preview.kfirs.com, which Cobranch makes
+# on the branch's first delivery and deletes with the branch (docs/delivery/designs/kfirs-website.md). Argo CD makes the
+# account Cobranch's delivery applies as, through a kubeconfig of its own that the organization keeps as a secret, in
+# namespace kfirs-website-preview, which holds nothing else; the policies that hold the account to the previews'
+# namespaces; and the Gateway their routes attach to. Cobranch delivers what runs.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kfirs-website-preview
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kfirs-website-preview
+  source:
+    repoURL: https://github.com/arikkfir-org/delivery
+    targetRevision: main
+    path: platform/kfirs-website/preview
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    # The account's namespace runs nothing and takes no routes.
+    managedNamespaceMetadata:
+      labels:
+        pod-security.kubernetes.io/enforce: restricted
+    retry:
+      limit: 10
+      refresh: true
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+    # The Gateway's and the certificate's CRDs come from Applications gateway-api and cert-manager.
+    syncOptions:
+      - CreateNamespace=true
+      - SkipDryRunOnMissingResource=true

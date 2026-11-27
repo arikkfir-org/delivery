@@ -84,7 +84,7 @@ Each file there is an Application in namespace `argocd`, project `default`:
 | 1 | `gateway-api`, `cert-manager`, `external-secrets` |
 | 2 | `argocd` |
 | 3 | `traefik`, `tekton-operator`, `keda`, `reloader`, `nats`, `keycloak-operator` |
-| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton-environment`, `docs`, `tests`, `ci-tenants`, `keycloak`, `fin-environments`, `go-import`, `cobranch-environment`, `cobranch-app-environment` |
+| 4 | `auth`, `grafana`, `nack`, `nui`, `tekton`, `octomaton-environment`, `docs`, `tests`, `ci-tenants`, `keycloak`, `fin-environments`, `go-import`, `cobranch-environment`, `cobranch-app-environment`, `kfirs-website-preview` |
 
 Within an Application, waves order dependent resources as well: ClusterIssuers and the ClusterSecretStore wait for their
 operators' webhooks; in `traefik` the Certificates (the wildcard, `octomaton-dev`, `cobranch-dev` and `kfirs-com`) are issued before
@@ -96,7 +96,7 @@ Secrets never live in Git: each one is an `ExternalSecret` reading Secret Manage
 oauth2-proxy interceptor ([design](docs/delivery/designs/phase-3-ingress-and-auth.md)); only `auth.kfirs.com/oauth2`, `octomaton.dev` (Octomaton's webhook, and its Go import page from `go-import`), `cobranch.dev` (Cobranch's website and Go import page, which Cobranch delivers into `cobranch-website`), `kfirs.com` and `www.kfirs.com` (the family's website, which Cobranch delivers into `kfirs-website`),
 `legal.kfirs.com` (the docs site's privacy policy and terms of service, exact paths only), `id.kfirs.com` (Keycloak's
 realm `hub`, and realm `master` behind the interceptor) and `fin.kfirs.com` (Fin's Go import page, `go-import`, [design](docs/delivery/designs/go-import-pages.md)) use the
-`public` gateway. Fin's host names need certificates of their own, so production's environment has a Gateway of its
+`public` gateway. The family's website's previews, `*.preview.kfirs.com`, each branch in a namespace `kfirs-website-preview-<branch>`, have a Gateway of their own on the public entry point, `traefik/kfirs-website-preview`, not a listener of `public`. Fin's host names need certificates of their own, so production's environment has a Gateway of its
 own, and pull requests' share `fin-pull-requests`, both on the protected gateway's entry point, behind the same
 interceptor. Every UI but Fin's then admits only group `admins` (Middleware `admins`, [design](docs/delivery/designs/admins-only.md)).
 

@@ -175,7 +175,8 @@ spec:
         # A target's kubeconfig may name the hub's own API server at its in-cluster address, Service default/kubernetes:
         # organization cobranch's target production of repository website does, as an account that changes namespace
         # cobranch-website alone (docs/delivery/designs/cobranch-website.md), and organization kfirs's, as one that
-        # changes kfirs-website alone (docs/delivery/designs/kfirs-website.md). Every other private address stays out of
+        # changes kfirs-website alone and one that changes namespaces kfirs-website-preview-<branch> alone
+        # (docs/delivery/designs/kfirs-website.md). Every other private address stays out of
         # the controller's reach.
         delivery:
           clusters:
