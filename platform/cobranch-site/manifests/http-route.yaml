@@ -1,5 +1,5 @@
-# cobranch.dev on the public gateway's listener cobranch-dev, which admits this namespace alone: the site for browsers,
-# and the Go import page for the go command, which fetches it anonymously.
+# cobranch.dev on the public gateway's listener cobranch-dev, which admitted this namespace alone until cobranch-website
+# took the domain over: the site for browsers, and the Go import page for the go command, which fetches it anonymously.
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
