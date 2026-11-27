@@ -1,0 +1,96 @@
+# What Cobranch delivers into namespace cobranch-website, from the website's main, which this repository doesn't
+# review, stays inside the cluster: its Services are of type ClusterIP with no external IPs, and its HTTPRoutes attach
+# only to listener cobranch-dev of Gateway traefik/public, which admits the namespace only once it takes over
+# cobranch.dev (docs/delivery/designs/cobranch-website.md); never to traefik/protected, which takes routes for any
+# *.kfirs.com host. Matched by the namespace's name. Wave -1: in force before the account exists.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: cobranch-website-cluster-ip-services
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - services
+  matchConditions:
+    - name: cobranch-website
+      expression: "request.namespace == 'cobranch-website'"
+    # Deleting an object, the garbage collector drops its finalizer with an update that leaves the spec as it was; that
+    # update passes, so an object made before this policy last tightened still goes. Every other update is checked.
+    - name: changed
+      expression: >-
+        request.operation == 'CREATE' || !has(oldObject.metadata.deletionTimestamp) || object.spec != oldObject.spec
+  validations:
+    - expression: "!has(object.spec.type) || object.spec.type == 'ClusterIP'"
+      message: A Service in namespace cobranch-website is of type ClusterIP.
+    - expression: "!has(object.spec.externalIPs) || size(object.spec.externalIPs) == 0"
+      message: A Service in namespace cobranch-website has no external IPs.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: cobranch-website-cluster-ip-services
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: cobranch-website-cluster-ip-services
+  validationActions:
+    - Deny
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: cobranch-website-http-routes
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - gateway.networking.k8s.io
+        apiVersions:
+          - "*"
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - httproutes
+  matchConditions:
+    - name: cobranch-website
+      expression: "request.namespace == 'cobranch-website'"
+    # As for Services above.
+    - name: changed
+      expression: >-
+        request.operation == 'CREATE' || !has(oldObject.metadata.deletionTimestamp) || object.spec != oldObject.spec
+  variables:
+    - name: parents
+      expression: "has(object.spec.parentRefs) ? object.spec.parentRefs : []"
+  validations:
+    - expression: >-
+        size(variables.parents) > 0 && variables.parents.all(p, (!has(p.group) || p.group == 'gateway.networking.k8s.io')
+          && (!has(p.kind) || p.kind == 'Gateway')
+          && has(p.namespace) && p.namespace == 'traefik' && p.name == 'public'
+          && has(p.sectionName) && p.sectionName == 'cobranch-dev')
+      message: An HTTPRoute in namespace cobranch-website attaches to listener cobranch-dev of Gateway traefik/public only.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: cobranch-website-http-routes
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: cobranch-website-http-routes
+  validationActions:
+    - Deny

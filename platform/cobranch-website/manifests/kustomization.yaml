@@ -1,0 +1,8 @@
+# The namespace cobranch.app's organization cobranch delivers its website into, the account it applies as, and the
+# admission policies that keep what it delivers inside the cluster (docs/delivery/designs/cobranch-website.md). The
+# namespaced objects take Application cobranch-website's destination namespace; the policies are cluster-scoped.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - admission-policies.yaml
+  - delivery-account.yaml

@@ -1,0 +1,78 @@
+# The account cobranch.app's delivery applies as, for target production of repository cobranch/website: a kubeconfig
+# with this ServiceAccount's token, which the organization keeps as a secret, reaches the API server at its in-cluster
+# address (delivery.clusters.allowedCIDRs of cobranch.app). It changes the kinds the website delivers, in this namespace
+# alone, and reads the namespace itself, which Cobranch then uses rather than makes.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cobranch-delivery
+automountServiceAccountToken: false
+---
+# The account's token, which Kubernetes writes here and keeps until this Secret is deleted: deleting it revokes the
+# organization's kubeconfig.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cobranch-delivery-token
+  annotations:
+    kubernetes.io/service-account.name: cobranch-delivery
+type: kubernetes.io/service-account-token
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cobranch-delivery
+rules:
+  - apiGroups: [""]
+    resources: [configmaps, services]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [apps]
+    resources: [deployments]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [policy]
+    resources: [poddisruptionbudgets]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [networking.k8s.io]
+    resources: [networkpolicies]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [gateway.networking.k8s.io]
+    resources: [httproutes]
+    verbs: [get, list, watch, create, update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cobranch-delivery
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cobranch-delivery
+subjects:
+  - kind: ServiceAccount
+    name: cobranch-delivery
+    namespace: cobranch-website
+---
+# Cobranch reads an environment's namespace before it delivers: one it may not read, it tries to make. Reading this one
+# alone lets it use it as it is.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cobranch-website-namespace
+rules:
+  - apiGroups: [""]
+    resources: [namespaces]
+    resourceNames: [cobranch-website]
+    verbs: [get]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cobranch-website-namespace
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cobranch-website-namespace
+subjects:
+  - kind: ServiceAccount
+    name: cobranch-delivery
+    namespace: cobranch-website
