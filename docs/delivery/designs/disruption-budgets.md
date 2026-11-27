@@ -58,7 +58,6 @@ sequenceDiagram
 | oauth2-proxy | 2 | Sessions live in cookies |
 | Docs and tests sites | 2 each | Each pod mounts its bucket read-only ([docs and tests servers](docs-and-tests-servers.md)) |
 | `go-import` | 2 | Static answers ([Go import pages](go-import-pages.md)) |
-| `cobranch-site` | 2 | Static files ([Cobranch's site](cobranch-site.md)) |
 | Grafana | 2 | State in PostgreSQL, shared; alert state gossiped between the replicas, so each alert notifies once ([below](#grafana-on-postgresql)) |
 | KEDA's operator, metrics server and admission webhooks | 2 each | KEDA keeps one operator and one metrics server active and the other on standby; both webhook replicas serve |
 | Keycloak | 2 | Sessions live in its PostgreSQL ([Keycloak](keycloak.md)) |
@@ -81,7 +80,7 @@ A single replica's budget needs no pod healthy, so a ready pod may always go. An
 | External Secrets Operator | operator, webhook, cert controller | `strategy`, `webhook.strategy`, `certController.strategy` | `platform/external-secrets/manifests`: the chart's budgets take no eviction policy |
 | oauth2-proxy, Grafana, KEDA | two replicas each | `strategy`, `deploymentStrategy`, `upgradeStrategy` | the charts' |
 | Traefik | two replicas | the chart's default, `maxSurge: 1`, `maxUnavailable: 0` | the chart's |
-| docs, tests, `go-import`, `cobranch-site` | two replicas each | the Deployment | `platform/<component>/manifests` |
+| docs, tests, `go-import` | two replicas each | the Deployment | `platform/<component>/manifests` |
 | NATS | servers (StatefulSet), nats-box | `natsBox.deployment.merge` | the chart's for the servers; `platform/nats/manifests` for nats-box |
 | NACK | controller | none in the chart; the default surges its one replica | `platform/nack/manifests` |
 | NUI | StatefulSet | n/a | `platform/nui/manifests` |

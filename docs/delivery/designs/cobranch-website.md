@@ -76,7 +76,7 @@ kubectl -n "$ns" get secret cobranch-delivery-token -o json | jq -r --arg ns "$n
 2. The owner builds the kubeconfig (above) and adds it as an organization secret of `cobranch`.
 3. The website's `/cobranch.yaml` names target `production`; its principal gets Secret reader on that secret; its first push to `main` delivers.
 4. The cutover (owner, 2026-11-27), once the website serves the Go import page too and delivers its route `website` for `cobranch.dev`: listener `cobranch-dev` admits `cobranch-website` instead of `cobranch-site`, the namespace gets `kfirs.com/public-ingress`, and Application `cobranch-site` gets the resources finalizer. Rolling it back is reverting it: `cobranch-site` still runs, and its route attaches again.
-5. Then, in a pull request of its own, `cobranch-site` goes: removing its Application deletes what it made, and its namespace goes by hand.
+5. Then, in a pull request of its own, `cobranch-site` goes: removing its Application deletes what it made through its finalizer, and its namespace, which Argo CD made and doesn't delete, goes by hand.
 
 Rolling back: reverting this deletes Application `cobranch-website` but not what it made, since Application `cobranch-website` carries no resources finalizer, so the token still authenticates. Revoke it by deleting Secret `cobranch-website/cobranch-delivery-token`, or the whole namespace, after the revert; the cluster-scoped ClusterRole, ClusterRoleBinding and policies go by hand too.
 
