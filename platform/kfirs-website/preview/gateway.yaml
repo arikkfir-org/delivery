@@ -1,0 +1,47 @@
+# The website's previews, each branch at <branch>.preview.kfirs.com, on Traefik's public entry point (9443): public on
+# purpose, as the website itself is. infra's record *.preview sends every name to the public gateway's address. A
+# Gateway of its own rather than a listener on traefik/public, whose listeners admit namespaces labelled
+# kfirs.com/public-ingress, which no preview carries: listener previews takes routes from namespaces labelled
+# kfirs.com/kfirs-website-preview, which policy kfirs-website-preview-account lets the delivery account set on the
+# namespaces it makes and policy kfirs-website-preview-http-routes holds to their own host. One certificate covers every
+# name, so a preview issues none, and in traefik no branch's code can read its private key. Wave 0 issues the
+# certificate before the Gateway (wave 1) references its Secret.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kfirs-website-preview
+  namespace: traefik
+spec:
+  secretName: kfirs-website-preview-tls
+  dnsNames:
+    - "*.preview.kfirs.com"
+  issuerRef:
+    group: cert-manager.io
+    kind: ClusterIssuer
+    name: letsencrypt
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: kfirs-website-preview
+  namespace: traefik
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  gatewayClassName: traefik
+  listeners:
+    - name: previews
+      protocol: HTTPS
+      port: 9443
+      hostname: "*.preview.kfirs.com"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: kfirs-website-preview-tls
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              kfirs.com/kfirs-website-preview: "true"

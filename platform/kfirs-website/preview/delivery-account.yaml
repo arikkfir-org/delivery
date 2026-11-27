@@ -1,6 +1,6 @@
-# The account cobranch.app's delivery applies as, for target preview of repository kfirs/website: as in namespace
-# kfirs-website (platform/kfirs-website/manifests), with a token of its own, so production's kubeconfig never reaches
-# the previews nor theirs production.
+# The account cobranch.app's delivery applies as, for target preview of repository kfirs/website: apart from
+# production's (platform/kfirs-website/manifests), with a token of its own, so production's kubeconfig never reaches the
+# previews nor theirs production. It lives in namespace kfirs-website-preview, which holds nothing else.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -17,60 +17,44 @@ metadata:
     kubernetes.io/service-account.name: cobranch-delivery
 type: kubernetes.io/service-account-token
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: cobranch-delivery
-rules:
-  - apiGroups: [""]
-    resources: [configmaps, services]
-    verbs: [get, list, watch, create, update, patch, delete]
-  - apiGroups: [apps]
-    resources: [deployments]
-    verbs: [get, list, watch, create, update, patch, delete]
-  - apiGroups: [policy]
-    resources: [poddisruptionbudgets]
-    verbs: [get, list, watch, create, update, patch, delete]
-  - apiGroups: [networking.k8s.io]
-    resources: [networkpolicies]
-    verbs: [get, list, watch, create, update, patch, delete]
-  - apiGroups: [gateway.networking.k8s.io]
-    resources: [httproutes]
-    verbs: [get, list, watch, create, update, patch, delete]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: cobranch-delivery
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: cobranch-delivery
-subjects:
-  - kind: ServiceAccount
-    name: cobranch-delivery
-    namespace: kfirs-website-preview
----
-# Cobranch reads an environment's namespace before it delivers: one it may not read, it tries to make. Reading this one
-# alone lets it use it as it is.
+# Each branch gets a namespace of its own, kfirs-website-preview-<branch>, which Cobranch makes on the branch's first
+# delivery and deletes with the branch. RBAC can't grant by a namespace's prefix, nor in a namespace that doesn't exist
+# yet, so this role is bound cluster-wide and policy kfirs-website-preview-account (admission-policies.yaml) refuses
+# every change the account makes anywhere else. What the policy can't hold is reading, so the role reads as little as
+# Cobranch needs: an object by its name (get), never a list or a watch, of the kinds the website renders, and no
+# Secrets.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: kfirs-website-preview-namespace
+  name: kfirs-website-preview-delivery
 rules:
   - apiGroups: [""]
     resources: [namespaces]
-    resourceNames: [kfirs-website-preview]
-    verbs: [get]
+    verbs: [get, create, delete]
+  - apiGroups: [""]
+    resources: [configmaps, services]
+    verbs: [get, create, patch, delete]
+  - apiGroups: [apps]
+    resources: [deployments]
+    verbs: [get, create, patch, delete]
+  - apiGroups: [policy]
+    resources: [poddisruptionbudgets]
+    verbs: [get, create, patch, delete]
+  - apiGroups: [networking.k8s.io]
+    resources: [networkpolicies]
+    verbs: [get, create, patch, delete]
+  - apiGroups: [gateway.networking.k8s.io]
+    resources: [httproutes]
+    verbs: [get, create, patch, delete]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: kfirs-website-preview-namespace
+  name: kfirs-website-preview-delivery
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: kfirs-website-preview-namespace
+  name: kfirs-website-preview-delivery
 subjects:
   - kind: ServiceAccount
     name: cobranch-delivery

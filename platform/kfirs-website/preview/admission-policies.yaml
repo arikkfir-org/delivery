@@ -1,0 +1,173 @@
+# What holds the website's previews. Their delivery account (delivery-account.yaml) is bound cluster-wide, since each
+# branch gets a namespace that doesn't exist until Cobranch makes it; policy kfirs-website-preview-account refuses
+# every change that account makes outside namespaces kfirs-website-preview-<branch>, and lets it make such a namespace
+# only as a preview: enforcing the restricted Pod Security Standard, labelled for the previews' Gateway, and carrying no
+# label that would admit it anywhere else (kfirs.com/public-ingress, Fin's kfirs.com/pull-request). The other two hold
+# what lands in those namespaces, from the website's branches, which this repository doesn't review, as policies
+# kfirs-website-* hold production's (platform/kfirs-website/manifests): Services stay inside the cluster, and an
+# HTTPRoute attaches only to Gateway traefik/kfirs-website-preview, at its namespace's own host. Matched by the
+# account's name and the namespaces' names (docs/delivery/designs/kfirs-website.md). Wave -1: in force before the
+# account's binding exists.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: kfirs-website-preview-account
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - "*"
+        apiVersions:
+          - "*"
+        operations:
+          - "*"
+        resources:
+          - "*/*"
+        scope: "*"
+  matchConditions:
+    - name: account
+      expression: "request.userInfo.username == 'system:serviceaccount:kfirs-website-preview:cobranch-delivery'"
+  variables:
+    - name: isNamespace
+      expression: "request.resource.group == '' && request.resource.resource == 'namespaces'"
+    # The namespace the request changes: the one it makes or deletes, or the one its object is in; empty for any other
+    # cluster-scoped object.
+    - name: changed
+      expression: >-
+        !variables.isNamespace ? request.namespace
+          : (request.operation == 'DELETE' ? oldObject.metadata.name : object.metadata.name)
+    - name: labels
+      expression: >-
+        variables.isNamespace && request.operation != 'DELETE' && has(object.metadata.labels) ? object.metadata.labels : {}
+  validations:
+    # kfirs-website-preview- and a branch's slug, never the bare prefix.
+    - expression: "variables.changed.startsWith('kfirs-website-preview-') && size(variables.changed) > 22"
+      message: >-
+        The website's preview account changes namespaces kfirs-website-preview-<branch> and what is in them, nothing
+        else.
+    - expression: >-
+        !variables.isNamespace || request.operation == 'DELETE' || (
+          variables.labels.all(k, k in ['kubernetes.io/metadata.name', 'app.kubernetes.io/managed-by',
+            'cobranch.dev/installation', 'cobranch.dev/organization', 'cobranch.dev/environment',
+            'pod-security.kubernetes.io/enforce', 'kfirs.com/kfirs-website-preview'])
+          && 'pod-security.kubernetes.io/enforce' in variables.labels
+          && variables.labels['pod-security.kubernetes.io/enforce'] == 'restricted'
+          && 'kfirs.com/kfirs-website-preview' in variables.labels
+          && variables.labels['kfirs.com/kfirs-website-preview'] == 'true'
+          && (!has(object.metadata.annotations) || size(object.metadata.annotations) == 0))
+      message: >-
+        A namespace the website's preview account makes carries Cobranch's labels,
+        pod-security.kubernetes.io/enforce: restricted and kfirs.com/kfirs-website-preview: "true", no other label and
+        no annotation.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: kfirs-website-preview-account
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: kfirs-website-preview-account
+  validationActions:
+    - Deny
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: kfirs-website-preview-cluster-ip-services
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - services
+  matchConditions:
+    - name: preview
+      expression: "request.namespace.startsWith('kfirs-website-preview-')"
+    # Deleting an object, the garbage collector drops its finalizer with an update that leaves the spec as it was; that
+    # update passes, so an object made before this policy last tightened still goes. Every other update is checked.
+    - name: changed
+      expression: >-
+        request.operation == 'CREATE' || !has(oldObject.metadata.deletionTimestamp) || object.spec != oldObject.spec
+  validations:
+    - expression: "!has(object.spec.type) || object.spec.type == 'ClusterIP'"
+      message: A Service in a preview of the website is of type ClusterIP.
+    - expression: "!has(object.spec.externalIPs) || size(object.spec.externalIPs) == 0"
+      message: A Service in a preview of the website has no external IPs.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: kfirs-website-preview-cluster-ip-services
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: kfirs-website-preview-cluster-ip-services
+  validationActions:
+    - Deny
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: kfirs-website-preview-http-routes
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups:
+          - gateway.networking.k8s.io
+        apiVersions:
+          - "*"
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - httproutes
+  matchConditions:
+    - name: preview
+      expression: "request.namespace.startsWith('kfirs-website-preview-')"
+    # As for Services above.
+    - name: changed
+      expression: >-
+        request.operation == 'CREATE' || !has(oldObject.metadata.deletionTimestamp) || object.spec != oldObject.spec
+  variables:
+    # kfirs-website-preview-<branch> serves <branch>.preview.kfirs.com.
+    - name: host
+      expression: "request.namespace.substring(22) + '.preview.kfirs.com'"
+    - name: parents
+      expression: "has(object.spec.parentRefs) ? object.spec.parentRefs : []"
+  validations:
+    - expression: >-
+        size(variables.parents) > 0 && variables.parents.all(p, (!has(p.group) || p.group == 'gateway.networking.k8s.io')
+          && (!has(p.kind) || p.kind == 'Gateway')
+          && has(p.namespace) && p.namespace == 'traefik' && p.name == 'kfirs-website-preview')
+      message: An HTTPRoute in a preview of the website attaches to Gateway traefik/kfirs-website-preview only.
+    - expression: >-
+        has(object.spec.hostnames) && size(object.spec.hostnames) > 0
+        && object.spec.hostnames.all(h, h == variables.host)
+      messageExpression: "'An HTTPRoute in ' + request.namespace + ' names one host, ' + variables.host"
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: kfirs-website-preview-http-routes
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  policyName: kfirs-website-preview-http-routes
+  validationActions:
+    - Deny
