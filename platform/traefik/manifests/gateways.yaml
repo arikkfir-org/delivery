@@ -92,3 +92,46 @@ spec:
                 operator: In
                 values:
                   - cobranch-website
+    # The family's website, www.kfirs.com, and the bare domain, which it redirects there: from kfirs-website alone, where
+    # cobranch.app's organization kfirs delivers its repository website (docs/delivery/designs/kfirs-website.md). They
+    # are more specific than public-websecure's *.kfirs.com, which would admit every labelled namespace.
+    - name: kfirs-com
+      protocol: HTTPS
+      port: 9443
+      hostname: kfirs.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: kfirs-com-tls
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              kfirs.com/public-ingress: "true"
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - kfirs-website
+    - name: www-kfirs-com
+      protocol: HTTPS
+      port: 9443
+      hostname: www.kfirs.com
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: kfirs-com-tls
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              kfirs.com/public-ingress: "true"
+            matchExpressions:
+              - key: kubernetes.io/metadata.name
+                operator: In
+                values:
+                  - kfirs-website
