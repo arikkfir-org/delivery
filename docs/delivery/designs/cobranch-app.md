@@ -4,7 +4,7 @@
 
 ## Why
 
-The owner asked for Cobranch's own hosted service once Git hosting was live: `cobranch.app` open for sign-up, deploying Cobranch's `main` and keeping its data through upgrades, beside `cobranch.dev`'s static site ([Cobranch's site](cobranch-site.md)), with no demo left. The demo couldn't become it: it sat behind the hub's sign-in, and its users signed in through the hub's Keycloak, which admits only the people it declares.
+The owner asked for Cobranch's own hosted service once Git hosting was live: `cobranch.app` open for sign-up, deploying Cobranch's `main` and keeping its data through upgrades, beside `cobranch.dev`'s static site ([Cobranch's site](cobranch-site.md), now [Cobranch's website](cobranch-website.md)), with no demo left. The demo couldn't become it: it sat behind the hub's sign-in, and its users signed in through the hub's Keycloak, which admits only the people it declares.
 
 ## Design
 

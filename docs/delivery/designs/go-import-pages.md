@@ -1,6 +1,6 @@
 # Go import pages
 
-**Decision**: one Caddy, Application `go-import`, answers Go's import requests for every hub domain that is a Go module path: `fin.kfirs.com` and `octomaton.dev`. `cobranch.dev` answered here too until its own site took the domain, and its page with it ([Cobranch's site](cobranch-site.md)). A table in its configuration names each domain's repository and where people who open the domain in a browser go: today each domain's own repository, and for any other host the organization's page, `https://github.com/arikkfir-org`. Built in [delivery#50](https://github.com/arikkfir-org/delivery/pull/50), which replaced Octomaton's own Caddy ([octomaton#27](https://github.com/arikkfir-org/octomaton/pull/27)).
+**Decision**: one Caddy, Application `go-import`, answers Go's import requests for every hub domain that is a Go module path: `fin.kfirs.com` and `octomaton.dev`. `cobranch.dev` answered here too until its own site took the domain, and its page with it ([Cobranch's site](cobranch-site.md)); today Cobranch's website answers it ([Cobranch's website](cobranch-website.md)). A table in its configuration names each domain's repository and where people who open the domain in a browser go: today each domain's own repository, and for any other host the organization's page, `https://github.com/arikkfir-org`. Built in [delivery#50](https://github.com/arikkfir-org/delivery/pull/50), which replaced Octomaton's own Caddy ([octomaton#27](https://github.com/arikkfir-org/octomaton/pull/27)).
 
 ## Why
 
