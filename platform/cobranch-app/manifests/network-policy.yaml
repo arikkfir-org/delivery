@@ -113,6 +113,11 @@ spec:
         - namespaceSelector:
             matchLabels:
               cobranch.dev/installation: cobranch-app-cobranch
+            # Not the family's website's previews, which the delivery labels as its own too
+            # (platform/kfirs-website/preview): they run a branch's site, not a job.
+            matchExpressions:
+              - key: kfirs.com/kfirs-website-preview
+                operator: DoesNotExist
       ports:
         - protocol: TCP
           port: 8080

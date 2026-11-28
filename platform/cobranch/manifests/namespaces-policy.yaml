@@ -7,7 +7,11 @@
 # restricted too and carry no kfirs.com/ label at all (jobs-policy.yaml). A namespace labelled cobranch.dev/installation
 # <N>-cobranch, which NetworkPolicy cobranch-jobs admits to N's servers, is one of N's job namespaces, <N>-jobs-…,
 # whoever writes it: only cobranch.app's controller makes cobranch-app-jobs-…, so no preview's or Fin's chart labels a
-# namespace into cobranch.app's servers. Wave -1: in force before any preview.
+# namespace into cobranch.app's servers. The one other namespace that carries the label is a preview of the family's
+# website, kfirs-website-preview-<branch>, which cobranch.app's delivery makes through an account of its own and labels
+# as every namespace it makes: this policy leaves that account's requests to policy kfirs-website-preview-account
+# (platform/kfirs-website/preview), which holds it to those names and to their labels. Wave -1: in force before any
+# preview.
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicy
 metadata:
@@ -32,6 +36,9 @@ spec:
       expression: >-
         object.metadata.name.startsWith('cobranch-pr-') || object.metadata.name.startsWith('cobranch-app-jobs-')
         || (has(object.metadata.labels) && 'cobranch.dev/installation' in object.metadata.labels)
+    # The family's website's previews are their own policy's (above).
+    - name: not-kfirs-website-preview
+      expression: request.userInfo.username != 'system:serviceaccount:kfirs-website-preview:cobranch-delivery'
     # Deleting a namespace, the garbage collector drops its finalizer with an update that leaves the labels as they
     # were; that update passes, so a namespace made before this policy last tightened still goes. Every other update is
     # checked.
