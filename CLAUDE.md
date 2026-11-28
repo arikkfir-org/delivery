@@ -90,6 +90,10 @@ Argo CD GitOps repository for the hub cluster. See README.md for layout, sync wa
   for the pinned version, and validate it against the CRD schema in the operator's release manifest (CI cannot: the
   CRDs catalog has no schema for it).
 - Verify every chart value key against the chart's `values.yaml`/`values.schema.json` for the pinned version.
+- A name says what the thing holds, never how it is used (https://docs.dev.kfirs.com/CONTRIBUTING.md, "Name what it
+  holds"): a policy's CEL variable that holds a namespace's name is `namespaceName`, not `changed`; a boolean states a
+  fact (`isClusterRole`); a prefix, a host or a count says so. Not `namespace`, which CEL reserves. This goes for CEL
+  variables and match conditions, object names, labels, ConfigMap and Secret keys, and shell variables.
 - Large tasks run as Linear projects (https://docs.dev.kfirs.com/CONTRIBUTING.md, "Projects"): suggest one to your
   person and create it once they agree; one issue per slice, however many pull requests it takes; slices preferably
   self-contained and deployable on their own; keep the project's status current, with an update at each milestone or

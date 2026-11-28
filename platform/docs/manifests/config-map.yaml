@@ -87,15 +87,15 @@ data:
   # the document as a template.
   page.html: |
     {{- /* Renders X.md for a request to X.md.html, from the first layer that has it (the Caddyfile's overlay order). */ -}}
-    {{- $md := trimSuffix ".html" (placeholder "http.request.orig_uri.path") -}}
+    {{- $mdPath := trimSuffix ".html" (placeholder "http.request.orig_uri.path") -}}
     {{- $file := "" -}}
     {{- range list "/.layers/docs" "/.layers/cobranch" "/.layers/delivery" "/.layers/fin" "/.layers/infra"
       "/.layers/octomaton" "/.layers/tooling" -}}
-    {{- if and (not $file) (fileExists (print . $md)) }}{{ $file = print . $md }}{{ end -}}
+    {{- if and (not $file) (fileExists (print . $mdPath)) }}{{ $file = print . $mdPath }}{{ end -}}
     {{- end -}}
     {{- if not $file }}{{ httpError 404 }}{{ end -}}
     {{- $text := readFile $file -}}
-    {{- $title := regexFind "(?m)^# .+$" $text | trimPrefix "# " | trim | default (base $md) -}}
+    {{- $title := regexFind "(?m)^# .+$" $text | trimPrefix "# " | trim | default (base $mdPath) -}}
     {{- $title = regexReplaceAll "<[^>]+>|`" $title "" -}}
     <!DOCTYPE html>
     <html lang="en">

@@ -40,17 +40,17 @@ spec:
   variables:
     - name: env
       expression: "request.namespace == 'fin' ? 'production' : request.namespace.substring(4)"
-    - name: prefix
+    - name: namePrefix
       expression: "'fin-' + variables.env + '-'"
-    - name: subjects
+    - name: subjectPrefix
       expression: "'fin.' + variables.env + '.'"
     - name: advisories
       expression: >-
         ['$JS.EVENT.ADVISORY.CONSUMER.MAX_DELIVERIES.', '$JS.EVENT.ADVISORY.CONSUMER.MSG_TERMINATED.'].map(a,
-          a + variables.prefix)
+          a + variables.namePrefix)
     # The names of the merge queue entry that extends this environment's: fin-pr-12-merge-… for fin-pr-12.
-    - name: entry
-      expression: "variables.prefix + 'merge-'"
+    - name: mergeEntryPrefix
+      expression: "variables.namePrefix + 'merge-'"
     - name: entryAdvisories
       expression: "variables.advisories.map(a, a + 'merge-')"
   validations:
@@ -66,50 +66,50 @@ spec:
         its own.
     - expression: >-
         request.kind.kind != 'Stream'
-        || (has(object.spec.name) && object.spec.name.startsWith(variables.prefix)
+        || (has(object.spec.name) && object.spec.name.startsWith(variables.namePrefix)
           && has(object.spec.subjects) && size(object.spec.subjects) > 0
-          && object.spec.subjects.all(s, s.startsWith(variables.subjects)
+          && object.spec.subjects.all(s, s.startsWith(variables.subjectPrefix)
             || variables.advisories.exists(a, s.startsWith(a))))
       messageExpression: >-
-        'A Stream in ' + request.namespace + ' is named ' + variables.prefix + '… and takes subjects under '
-          + variables.subjects + ' or the advisories of the environment\'s own streams.'
+        'A Stream in ' + request.namespace + ' is named ' + variables.namePrefix + '… and takes subjects under '
+          + variables.subjectPrefix + ' or the advisories of the environment\'s own streams.'
     - expression: >-
-        !(has(object.spec.name) && object.spec.name.startsWith(variables.entry))
-        && !(has(object.spec.bucket) && object.spec.bucket.startsWith(variables.entry))
-        && !(has(object.spec.streamName) && object.spec.streamName.startsWith(variables.entry))
+        !(has(object.spec.name) && object.spec.name.startsWith(variables.mergeEntryPrefix))
+        && !(has(object.spec.bucket) && object.spec.bucket.startsWith(variables.mergeEntryPrefix))
+        && !(has(object.spec.streamName) && object.spec.streamName.startsWith(variables.mergeEntryPrefix))
         && !(has(object.spec.subjects) && object.spec.subjects.exists(s,
           variables.entryAdvisories.exists(a, s.startsWith(a))))
       messageExpression: >-
         'A NATS resource in ' + request.namespace + ' takes no name, stream or advisory of '
-          + variables.entry + '…, its merge queue entry\'s environment.'
+          + variables.mergeEntryPrefix + '…, its merge queue entry\'s environment.'
     - expression: >-
-        request.kind.kind != 'KeyValue' || (has(object.spec.bucket) && object.spec.bucket.startsWith(variables.prefix))
-      messageExpression: "'A KeyValue bucket in ' + request.namespace + ' is named ' + variables.prefix + '…'"
+        request.kind.kind != 'KeyValue' || (has(object.spec.bucket) && object.spec.bucket.startsWith(variables.namePrefix))
+      messageExpression: "'A KeyValue bucket in ' + request.namespace + ' is named ' + variables.namePrefix + '…'"
     - expression: >-
         request.kind.kind != 'Consumer'
-        || (has(object.spec.streamName) && object.spec.streamName.startsWith(variables.prefix)
+        || (has(object.spec.streamName) && object.spec.streamName.startsWith(variables.namePrefix)
           && (!has(object.spec.filterSubject) || object.spec.filterSubject == ''
-            || object.spec.filterSubject.startsWith(variables.subjects)
+            || object.spec.filterSubject.startsWith(variables.subjectPrefix)
             || variables.advisories.exists(a, object.spec.filterSubject.startsWith(a)))
-          && (!has(object.spec.filterSubjects) || object.spec.filterSubjects.all(s, s.startsWith(variables.subjects)
+          && (!has(object.spec.filterSubjects) || object.spec.filterSubjects.all(s, s.startsWith(variables.subjectPrefix)
             || variables.advisories.exists(a, s.startsWith(a))))
           && (!has(object.spec.deliverSubject) || object.spec.deliverSubject == ''
-            || object.spec.deliverSubject.startsWith(variables.subjects)))
+            || object.spec.deliverSubject.startsWith(variables.subjectPrefix)))
       messageExpression: >-
-        'A Consumer in ' + request.namespace + ' reads a stream named ' + variables.prefix + '…, filters and delivers '
-          + 'under ' + variables.subjects + ' (or the environment\'s advisories).'
+        'A Consumer in ' + request.namespace + ' reads a stream named ' + variables.namePrefix + '…, filters and delivers '
+          + 'under ' + variables.subjectPrefix + ' (or the environment\'s advisories).'
     - expression: >-
         request.kind.kind == 'Consumer'
         || (!has(object.spec.mirror) && (!has(object.spec.sources) || size(object.spec.sources) == 0)
           && (!has(object.spec.republish) || !has(object.spec.republish.destination)
-            || object.spec.republish.destination.startsWith(variables.subjects)))
+            || object.spec.republish.destination.startsWith(variables.subjectPrefix)))
       messageExpression: >-
         'A Stream or KeyValue bucket in ' + request.namespace + ' has no mirror or sources, and republishes only under '
-          + variables.subjects
+          + variables.subjectPrefix
     - expression: >-
         request.kind.kind != 'Stream' || !has(object.spec.subjectTransform) || !has(object.spec.subjectTransform.dest)
-        || object.spec.subjectTransform.dest.startsWith(variables.subjects)
-      messageExpression: "'A Stream in ' + request.namespace + ' transforms subjects only into ' + variables.subjects"
+        || object.spec.subjectTransform.dest.startsWith(variables.subjectPrefix)
+      messageExpression: "'A Stream in ' + request.namespace + ' transforms subjects only into ' + variables.subjectPrefix"
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding

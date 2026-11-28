@@ -35,7 +35,7 @@ spec:
       expression: >-
         request.operation == 'CREATE' || !has(oldObject.metadata.deletionTimestamp) || object.spec != oldObject.spec
   variables:
-    - name: database
+    - name: databaseHost
       expression: "'postgres.' + request.namespace + '.svc.cluster.local'"
   validations:
     - expression: >-
@@ -45,9 +45,9 @@ spec:
     - expression: >-
         request.kind.kind == 'TriggerAuthentication'
         || object.spec.triggers.all(t, t.type != 'postgresql'
-          || (has(t.metadata) && 'host' in t.metadata && t.metadata['host'] == variables.database
+          || (has(t.metadata) && 'host' in t.metadata && t.metadata['host'] == variables.databaseHost
             && !('connection' in t.metadata) && !('connectionFromEnv' in t.metadata)))
-      messageExpression: "'A postgresql trigger in ' + request.namespace + ' connects to host ' + variables.database + ' only.'"
+      messageExpression: "'A postgresql trigger in ' + request.namespace + ' connects to host ' + variables.databaseHost + ' only.'"
     - expression: >-
         request.kind.kind == 'TriggerAuthentication'
         || object.spec.triggers.all(t, !has(t.authenticationRef) || !has(t.authenticationRef.kind)
