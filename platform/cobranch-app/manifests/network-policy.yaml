@@ -89,7 +89,8 @@ spec:
 ---
 # Cobranch's job pods reach the REST, GraphQL and Git servers: their API calls and checkouts, which the chart's egress
 # rule sends to those pods alone. Only cobranch.app's job namespaces carry its installation label, as policy
-# cobranch-job-controllers holds (docs/delivery/designs/cobranch-jobs.md).
+# cobranch-job-controllers holds (docs/delivery/designs/cobranch-jobs.md), and the family's website's previews, which
+# the selector leaves out.
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
