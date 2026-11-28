@@ -35,7 +35,7 @@ spec:
       expression: "request.resource.group == '' && request.resource.resource == 'namespaces'"
     # The namespace the request changes: the one it makes or deletes, or the one its object is in; empty for any other
     # cluster-scoped object.
-    - name: changed
+    - name: namespaceName
       expression: >-
         !variables.isNamespace ? request.namespace
           : (request.operation == 'DELETE' ? oldObject.metadata.name : object.metadata.name)
@@ -44,7 +44,7 @@ spec:
         variables.isNamespace && request.operation != 'DELETE' && has(object.metadata.labels) ? object.metadata.labels : {}
   validations:
     # kfirs-website-preview- and a branch's slug, never the bare prefix.
-    - expression: "variables.changed.startsWith('kfirs-website-preview-') && size(variables.changed) > 22"
+    - expression: "variables.namespaceName.startsWith('kfirs-website-preview-') && size(variables.namespaceName) > 22"
       message: >-
         The website's preview account changes namespaces kfirs-website-preview-<branch> and what is in them, nothing
         else.
