@@ -57,11 +57,13 @@ spec:
           && variables.labels['pod-security.kubernetes.io/enforce'] == 'restricted'
           && 'kfirs.com/kfirs-website-preview' in variables.labels
           && variables.labels['kfirs.com/kfirs-website-preview'] == 'true'
+          && (!('cobranch.dev/installation' in variables.labels)
+            || variables.labels['cobranch.dev/installation'] == 'cobranch-app-cobranch')
           && (!has(object.metadata.annotations) || size(object.metadata.annotations) == 0))
       message: >-
-        A namespace the website's preview account makes carries Cobranch's labels,
-        pod-security.kubernetes.io/enforce: restricted and kfirs.com/kfirs-website-preview: "true", no other label and
-        no annotation.
+        A namespace the website's preview account makes carries Cobranch's labels, cobranch.app's installation and no
+        other's, pod-security.kubernetes.io/enforce: restricted and kfirs.com/kfirs-website-preview: "true", no other
+        label and no annotation.
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingAdmissionPolicyBinding
