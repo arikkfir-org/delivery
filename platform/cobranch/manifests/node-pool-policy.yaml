@@ -24,7 +24,7 @@ spec:
         resources:
           - pods
   matchConditions:
-    - name: installation
+    - name: in-installation-namespace
       expression: "request.namespace.startsWith('cobranch-pr-') || request.namespace.startsWith('cobranch-app-jobs-')"
     # The Job controller drops a pod's finalizer, and the scheduler binds it (a subresource), without changing its spec:
     # those pass. An update that changes the spec, such as an added toleration, is checked.

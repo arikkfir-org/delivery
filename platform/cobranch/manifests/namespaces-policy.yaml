@@ -32,7 +32,7 @@ spec:
         resources:
           - namespaces
   matchConditions:
-    - name: installation
+    - name: is-installation-namespace
       expression: >-
         object.metadata.name.startsWith('cobranch-pr-') || object.metadata.name.startsWith('cobranch-app-jobs-')
         || (has(object.metadata.labels) && 'cobranch.dev/installation' in object.metadata.labels)

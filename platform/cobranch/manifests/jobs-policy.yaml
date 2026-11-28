@@ -34,7 +34,7 @@ spec:
           - clusterroles
           - clusterrolebindings
   matchConditions:
-    - name: installation
+    - name: has-installation-name-prefix
       expression: "object.metadata.name.startsWith('cobranch-pr-') || object.metadata.name.startsWith('cobranch-app-')"
   variables:
     - name: isClusterRole
@@ -134,7 +134,7 @@ spec:
         resources:
           - rolebindings
   matchConditions:
-    - name: installation
+    - name: from-installation-account
       expression: "request.userInfo.username.matches('^system:serviceaccount:(cobranch-pr-[0-9]+|cobranch-app):')"
   variables:
     - name: installationNamespace

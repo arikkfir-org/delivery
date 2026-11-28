@@ -27,7 +27,7 @@ spec:
         resources:
           - applications
   matchConditions:
-    - name: preview
+    - name: in-preview-project
       expression: "has(object.spec.project) && object.spec.project == 'cobranch-pull-requests'"
     - name: superseded
       expression: >-
